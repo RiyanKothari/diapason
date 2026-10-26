@@ -126,12 +126,27 @@ class Suite(BaseModel):
     target: Target
     agent: AgentSpec
     personas: list[Persona]
-    behaviours: list[Behaviour]
+    behaviours: list[Behaviour] = []
+    use_library: bool | list[str] = False   # add built-in adversarial behaviours (all, or these ids)
     channels: list[ChannelProfile] = []
     matrix: Matrix | None = Matrix()      # None: only the explicit cases run
     cases: list[Case] = []
     runs_per_scenario: int = Field(1, ge=1, le=10)
     gate: Gate = Gate()
+
+    @model_validator(mode="after")
+    def _merge_library(self):
+        if self.use_library:
+            from .library import LIBRARY
+            ids = list(LIBRARY) if self.use_library is True else self.use_library
+            unknown = [i for i in ids if i not in LIBRARY]
+            if unknown:
+                raise ValueError(f"unknown library behaviours: {unknown}; available: {sorted(LIBRARY)}")
+            own = {b.id for b in self.behaviours}
+            self.behaviours = self.behaviours + [LIBRARY[i] for i in ids if i not in own]
+        if not self.behaviours:
+            raise ValueError("suite needs at least one behaviour (define some or set use_library)")
+        return self
 
     @model_validator(mode="after")
     def _unique_ids(self):

@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from .runner import estimate_usage, run_suite
+from .runner import Budget, estimate_usage, run_suite
 from .scenarios import load_suite
 from .wiring import live_components, offline_components
 
@@ -28,6 +28,9 @@ class RunRequest(BaseModel):
     url: str | None = None
     stubborn: bool = False         # offline only: a fake agent that ignores barge-ins
     judge: bool = True
+    label: str = ""
+    max_tts_chars: int | None = None
+    redact: bool = True            # dashboards get shared; mask PII by default
 
 
 def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs") -> FastAPI:
@@ -97,7 +100,8 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs")
         async def go():
             try:
                 await run_suite(suite, c.connect, c.make_brain, c.speak, c.hear, evon_judge=c.evon_judge,
-                                out_dir=runs_dir, scenarios=scenarios, on_event=broadcast, call_kwargs=c.call_kwargs)
+                                out_dir=runs_dir, scenarios=scenarios, on_event=broadcast, call_kwargs=c.call_kwargs,
+                                label=req.label, redact_pii=req.redact, budget=Budget(max_tts_chars=req.max_tts_chars))
             except Exception as e:
                 broadcast({"type": "suite_error", "error": repr(e)})
             finally:
