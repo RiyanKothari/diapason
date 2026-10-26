@@ -68,10 +68,21 @@ bhool ingest suites/emi_collection.yaml calls/*.wav    # judge real stereo calls
 | `bhool validate SUITE` | check a suite, list its scenarios | none |
 | `bhool plan SUITE` | upper-bound TTS chars, STT seconds, Evon calls | none |
 | `bhool selftest` | full pipeline against a fake agent | none |
-| `bhool run SUITE` | live run; `--limit`, `--only`, `--no-judge`, `--url` | yes |
+| `bhool run SUITE` | live run; `--limit`, `--only`, `--label v2`, `--redact`, hard caps `--max-tts-chars` / `--max-stt-seconds` / `--max-evon-calls` | yes |
+| `bhool diff RUN_A RUN_B` | fixed / regressed / still failing per scenario; exit 1 on any regression | none |
+| `bhool generate SOP.txt NAME` | draft a full suite from an SOP (validated, library behaviours) | 1 Evon call |
+| `bhool suggest RUN SUITE` | fixes grouped by root cause, from the run's evidence | 1 Evon call |
+| `bhool calibrate RUN labels.csv` | judge vs human: agreement, Cohen's kappa, missed and false fails | none |
+| `bhool library` | the 15 built-in adversarial caller behaviours | none |
 | `bhool ingest SUITE WAVS...` | production calls -> verdicts -> regression cases | yes |
 | `bhool serve-agent --version v1\|v2` | the reference agent to test against | yes |
 | `bhool dashboard` | live view and run history | per run |
+
+**Enterprise safeguards.** Budget caps refuse an API call *before* it would cross the limit; calls cut short
+are skipped (never judged) and the gate fails, so a half-run can't look green. `--redact` masks mobile
+numbers, Aadhaar, PAN, account numbers and emails (Latin, Devanagari and Gujarati digits) in everything
+written to disk; the dashboard redacts by default. The judge prompt fences the transcript and tells Evon
+that caller lines are data, because the test callers themselves attempt prompt injection.
 
 ## Suites
 
@@ -88,8 +99,9 @@ The offline tests already show v1's VAD failing on in-band noise and ignoring ba
 
 ## Status, honestly
 
-- 56 tests pass offline: channel simulator, metrics, schema, judge logic, the real-time call engine,
-  the reference agent over a real websocket, and the regression loop. All model calls are faked.
+- All tests pass offline: channel simulator, metrics, schema, judge logic, the real-time call engine,
+  the reference agent over a real websocket, the regression loop, budgets, redaction, diff, generation
+  and calibration. All model calls are faked.
 - **Not yet run against the live Gnani APIs.** The clients follow docs.gnani.ai and are tested against
   mocked responses. Results numbers (catch rate on v1's seeded bugs, v1 vs v2 pass rate, judge agreement
   with human labels) will be added here only once measured.

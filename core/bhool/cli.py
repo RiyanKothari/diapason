@@ -86,10 +86,15 @@ def run(
     only: str = typer.Option(None, help="Only scenarios whose id contains this"),
     judge_samples: int = 3,
     no_judge: bool = typer.Option(False, help="Skip the Evon judge (code checks and metrics only)"),
+    label: str = typer.Option("", help="Name this run, e.g. the agent version (used by `diff`)"),
+    max_tts_chars: int = typer.Option(None, help="Hard cap: stop before exceeding this many TTS characters"),
+    max_stt_seconds: float = typer.Option(None, help="Hard cap on seconds of audio sent to STT"),
+    max_evon_calls: int = typer.Option(None, help="Hard cap on Evon requests (caller + judge)"),
+    redact: bool = typer.Option(False, help="Mask phone/Aadhaar/PAN/account numbers in stored reports"),
     verbose: bool = False,
 ):
     """Run a suite against a live agent with Gnani Prisma, Timbre and Evon. Exit code 1 if the gate fails."""
-    from .runner import run_suite
+    from .runner import Budget, run_suite
     from .wiring import live_components
     _utf8_console()
     suite = load_suite(suite_path)
@@ -100,7 +105,8 @@ def run(
     report = asyncio.run(run_suite(
         suite, c.connect, c.make_brain, c.speak, c.hear, evon_judge=c.evon_judge, out_dir=out,
         concurrency=concurrency, scenarios=_select(suite, limit, only), on_event=_printer(verbose),
-        judge_samples=judge_samples,
+        judge_samples=judge_samples, label=label, redact_pii=redact,
+        budget=Budget(max_tts_chars, max_stt_seconds, max_evon_calls),
     ))
     typer.echo(f"TTS cache: {c.tts.hits} hits, {c.tts.calls} API calls")
     _summary(report)
@@ -163,6 +169,73 @@ def ingest(
         typer.echo(f"\n{len(new)} new regression case(s) -> {regressions} ({len(reg.cases)} total). "
                    f"Run them with: bhool run {regressions}")
     typer.echo(f"{passed}/{len(recordings)} production calls passed")
+
+
+@app.command()
+def diff(before: Path, after: Path, out: Path = typer.Option(None, help="Write the Markdown summary here")):
+    """Compare two runs (dirs or report.json): what got fixed, what regressed. Exit 1 on any regression."""
+    from .diff import diff_reports, load_report, to_markdown
+    _utf8_console()
+    d = diff_reports(load_report(before), load_report(after))
+    md = to_markdown(d)
+    typer.echo(md)
+    if out:
+        out.write_text(md, encoding="utf-8")
+    raise typer.Exit(1 if d.regressions else 0)
+
+
+@app.command()
+def generate(sop: Path, name: str, out: Path = typer.Option(None, help="Default: suites/<name>.yaml"),
+             url: str = "ws://127.0.0.1:8765", personas: int = 6, sample: int = 24):
+    """Draft a complete test suite from an SOP text file with Evon (one Evon call)."""
+    from .gnani import Evon
+    from .generate import generate_suite, write_suite
+    _utf8_console()
+    load_dotenv()
+    suite = generate_suite(Evon(), sop.read_text(encoding="utf-8"), name, url=url, personas=personas, sample=sample)
+    path = out or Path("suites") / f"{name}.yaml"
+    write_suite(suite, path)
+    typer.echo(f"{path}: {len(suite.personas)} personas, {len(suite.behaviours)} behaviours, {len(suite.expand())} scenarios")
+    typer.echo("Review it before running: generated suites are a draft, not ground truth.")
+
+
+@app.command()
+def suggest(run_dir: Path, suite_path: Path, out: Path = typer.Option(None)):
+    """Ask Evon for concrete fixes, grouped by root cause, for everything that failed in a run."""
+    from .advise import suggest_fixes
+    from .diff import load_report
+    from .gnani import Evon
+    _utf8_console()
+    load_dotenv()
+    md = suggest_fixes(load_report(run_dir), load_suite(suite_path).agent.sop, Evon())
+    typer.echo(md)
+    (out or Path(run_dir) / "suggested_fixes.md").write_text(md, encoding="utf-8")
+
+
+@app.command()
+def calibrate(run_dir: Path, labels: Path):
+    """Agreement and Cohen's kappa between human labels (CSV) and the judge, per criterion."""
+    from .advise import calibrate as calib
+    from .diff import load_report
+    _utf8_console()
+    res = calib(load_report(run_dir), labels)
+    typer.echo(f"{'criterion':22} {'n':>4} {'agree':>6} {'kappa':>6} {'missed':>6} {'false':>6}")
+    for k, v in res["criteria"].items():
+        typer.echo(f"{k:22} {v['n']:>4} {v['agreement']:>6.0%} {str(v['kappa']):>6} {v['judge_missed_fail']:>6} {v['judge_false_fail']:>6}")
+    o = res["overall"]
+    typer.echo(f"{'overall':22} {o['n']:>4} {o['agreement'] or 0:>6.0%} {str(o['kappa']):>6}")
+    if res["labels_not_in_report"]:
+        typer.echo(f"({res['labels_not_in_report']} label rows had no matching verdict)")
+    (Path(run_dir) / "calibration.json").write_text(json.dumps(res, indent=2), encoding="utf-8")
+
+
+@app.command()
+def library():
+    """List the built-in adversarial caller behaviours (use_library in a suite)."""
+    from .scenarios.library import LIBRARY
+    _utf8_console()
+    for b in LIBRARY.values():
+        typer.echo(f"{b.id:20} {b.instructions}")
 
 
 @app.command()

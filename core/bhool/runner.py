@@ -55,31 +55,65 @@ class SuiteReport:
     calls_detail: list[dict]
     usage: dict
     dir: str = ""
+    label: str = ""                 # e.g. the agent version under test
+    skipped: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
 
 
-class Usage:
-    """Counts what a run actually consumed, for the credit budget."""
+class BudgetExceeded(RuntimeError):
+    pass
 
-    def __init__(self):
+
+@dataclass
+class Budget:
+    """Hard caps on API consumption for one run. None = unlimited."""
+    max_tts_chars: int | None = None
+    max_stt_seconds: float | None = None
+    max_evon_calls: int | None = None
+
+
+class Usage:
+    """Counts what a run consumed and refuses any API call that would cross the budget.
+
+    Counts are of requests made (TTS cache hits included), so the cap is conservative.
+    """
+
+    def __init__(self, budget: Budget | None = None):
+        self.budget = budget or Budget()
         self.tts_chars = self.tts_calls = self.stt_calls = self.evon_calls = 0
         self.stt_seconds = 0.0
+        self.exhausted: str | None = None
+
+    def _refuse(self, what: str) -> None:
+        self.exhausted = what
+        raise BudgetExceeded(f"budget exhausted: {what}")
 
     def wrap_speak(self, speak: Speak) -> Speak:
         def f(utt, persona):
+            n = len(utt.tts_text())
+            if self.budget.max_tts_chars is not None and self.tts_chars + n > self.budget.max_tts_chars:
+                self._refuse(f"TTS chars {self.tts_chars}+{n} > {self.budget.max_tts_chars}")
             self.tts_calls += 1
-            self.tts_chars += len(utt.tts_text())
+            self.tts_chars += n
             return speak(utt, persona)
         return f
 
     def wrap_hear(self, hear: Hear) -> Hear:
         def f(audio, sr, lang):
+            s = audio.size / sr
+            if self.budget.max_stt_seconds is not None and self.stt_seconds + s > self.budget.max_stt_seconds:
+                self._refuse(f"STT seconds {self.stt_seconds:.0f}+{s:.0f} > {self.budget.max_stt_seconds}")
             self.stt_calls += 1
-            self.stt_seconds += audio.size / sr
+            self.stt_seconds += s
             return hear(audio, sr, lang)
         return f
+
+    def _count_evon(self) -> None:
+        if self.budget.max_evon_calls is not None and self.evon_calls + 1 > self.budget.max_evon_calls:
+            self._refuse(f"Evon calls > {self.budget.max_evon_calls}")
+        self.evon_calls += 1
 
     def wrap_evon(self, evon):
         if evon is None:
@@ -88,17 +122,25 @@ class Usage:
 
         class Counted:
             def chat_json(self, *a, **k):
-                usage.evon_calls += 1
+                usage._count_evon()
                 return evon.chat_json(*a, **k)
 
             def chat(self, *a, **k):
-                usage.evon_calls += 1
+                usage._count_evon()
                 return evon.chat(*a, **k)
         return Counted()
 
+    def wrap_brain(self, brain):
+        """The caller brain calls Evon too; count it against the same budget."""
+        evon = getattr(brain, "evon", None)
+        if evon is not None:
+            brain.evon = self.wrap_evon(evon)
+        return brain
+
     def to_dict(self) -> dict:
         return {"tts_chars": self.tts_chars, "tts_calls": self.tts_calls, "stt_calls": self.stt_calls,
-                "stt_seconds": round(self.stt_seconds, 1), "evon_calls": self.evon_calls}
+                "stt_seconds": round(self.stt_seconds, 1), "evon_calls": self.evon_calls,
+                "budget_exhausted": self.exhausted}
 
 
 METRIC_KINDS = {"latency": "latency", "never answered": "unanswered", "barge-in": "barge_in",
@@ -167,13 +209,16 @@ async def run_suite(
     on_event: Callable[[dict], None] | None = None,
     judge_samples: int = 3,
     call_kwargs: dict | None = None,
+    budget: Budget | None = None,
+    label: str = "",
+    redact_pii: bool = False,
 ) -> SuiteReport:
     started = time.time()
     run_id = time.strftime("%Y%m%d-%H%M%S")
     root = Path(out_dir) / f"{suite.name}-{run_id}"
     root.mkdir(parents=True, exist_ok=True)
     scenarios = scenarios if scenarios is not None else suite.expand()
-    usage = Usage()
+    usage = Usage(budget)
     speak_c, hear_c, judge_c = usage.wrap_speak(speak), usage.wrap_hear(hear), usage.wrap_evon(evon_judge)
     sem = asyncio.Semaphore(concurrency)
     records: list[CallRecord] = []
@@ -181,17 +226,33 @@ async def run_suite(
     emit = on_event or (lambda e: None)
     emit({"type": "suite_start", "suite": suite.name, "run_id": run_id, "calls": len(scenarios) * suite.runs_per_scenario})
 
+    skipped: list[str] = []
+
     async def one(s: Scenario, run: int):
         async with sem:
+            if usage.exhausted:
+                skipped.append(f"{s.id}#{run}")
+                emit({"type": "call_skipped", "scenario": s.id, "run": run, "reason": usage.exhausted})
+                return
             emit({"type": "call_start", "scenario": s.id, "run": run, "persona": s.persona.id,
                   "behaviour": s.behaviour.id, "channel": s.channel.id})
             try:
-                rec = await run_call(s, connect(s), make_brain(s, run), speak_c, hear_c, out_dir=root,
-                                     run=run, on_event=on_event, **(call_kwargs or {}))
+                rec = await run_call(s, connect(s), usage.wrap_brain(make_brain(s, run)), speak_c, hear_c,
+                                     out_dir=root, run=run, on_event=on_event, **(call_kwargs or {}))
+            except BudgetExceeded:
+                # a call cut short by the budget is not evidence about the agent: skip, don't judge
+                skipped.append(f"{s.id}#{run}")
+                emit({"type": "call_skipped", "scenario": s.id, "run": run, "reason": usage.exhausted})
+                return
             except Exception as e:
                 emit({"type": "call_error", "scenario": s.id, "run": run, "error": repr(e)})
                 return
-            v = await asyncio.to_thread(judge_call, rec, suite.agent, s.persona, suite.gate, judge_c, None, judge_samples)
+            try:
+                v = await asyncio.to_thread(judge_call, rec, suite.agent, s.persona, suite.gate, judge_c, None, judge_samples)
+            except BudgetExceeded:
+                skipped.append(f"{s.id}#{run}")
+                emit({"type": "call_skipped", "scenario": s.id, "run": run, "reason": usage.exhausted})
+                return
             records.append(rec)
             verdicts.append(v)
             emit({"type": "verdict", "scenario": s.id, "run": run, "passed": v.passed,
@@ -199,7 +260,15 @@ async def run_suite(
 
     await asyncio.gather(*(one(s, r) for s in scenarios for r in range(suite.runs_per_scenario)))
     report = aggregate(suite, run_id, started, records, verdicts, scenarios, usage.to_dict())
-    report.dir = str(root)
+    report.dir, report.label, report.skipped = str(root), label, skipped
+    if skipped:
+        report.gate_passed = False
+        report.gate_reasons.append(f"{len(skipped)} call(s) skipped: {usage.exhausted}")
+    if redact_pii:
+        from .redact import redact_call_file, redact_report
+        redact_report(report)
+        for call_json in root.glob("*/run*/call.json"):
+            redact_call_file(call_json)
     (root / "report.json").write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
     from .report import write_html, write_junit
     write_html(report, root / "report.html")

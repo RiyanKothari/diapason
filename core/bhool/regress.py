@@ -20,11 +20,8 @@ from .caller.brain import Turn
 from .channel import ChannelProfile
 from .judge.metrics import group_turns, measure_call, speech_segments
 from .judge.rubric import CallVerdict
-from .scenarios.schema import EMOTION_TAGS, STT_LANGS, TTS_LANGS, Behaviour, Case, Persona, Suite
-
-# Timbre v3.0 voices by gender, for casting a persona like the real caller.
-FEMALE = ["Shivani", "Lakshmi", "Kalpana", "Chetana", "Vasudha", "Riyaa", "Tarika"]
-MALE = ["Avinash", "Shubham", "Prakash", "Devansh", "Yashraj", "Harshad"]
+from .scenarios.library import sanitize_persona
+from .scenarios.schema import Behaviour, Case, Persona, Suite
 
 
 def ingest_call(path: str | Path, hear: Hear, lang: str = "hi-IN", caller_channel: int = 0) -> tuple[CallRecord, np.ndarray, int]:
@@ -87,17 +84,8 @@ def distill(rec: CallRecord, verdict: CallVerdict, suite: Suite, evon) -> tuple[
     data = evon.chat_json([{"role": "system", "content": DISTILL_SYSTEM}, {"role": "user", "content": user}],
                           temperature=0.2, max_tokens=1200)
     p, b = data.get("persona") or {}, data.get("behaviour") or {}
-    stt = p.get("stt_lang") if p.get("stt_lang") in STT_LANGS else "hi-IN"
-    tts = p.get("tts_lang") if p.get("tts_lang") in TTS_LANGS - {"auto"} else ("hi-en" if stt == "hi-IN" else stt)
-    pool = MALE if str(p.get("gender", "")).lower().startswith("m") else FEMALE
-    voice = pool[sum(map(ord, rec.scenario_id)) % len(pool)]
     pid = f"prod_{rec.scenario_id}"
-    persona = Persona(
-        id=pid, description=str(p.get("description") or "caller from a failed production call"),
-        stt_lang=stt, tts_lang=tts, voice=voice,
-        emotion=[t for t in p.get("emotion") or [] if t in EMOTION_TAGS][:2],
-        goal=str(p.get("goal") or ""), hidden_facts={str(k): str(v) for k, v in (p.get("hidden_facts") or {}).items()},
-    )
+    persona = sanitize_persona({"description": "caller from a failed production call", **p}, pid)
     lines = [str(x) for x in b.get("key_lines") or [] if str(x).strip()][:4]
     instructions = str(b.get("instructions") or "Behave as the real caller did.")
     if lines:
@@ -112,8 +100,10 @@ def append_regressions(base: Suite, path: str | Path, items: list[tuple[Persona,
     if path.exists():
         reg = Suite.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
     else:
-        reg = Suite(name=f"{base.name}-regressions", target=base.target, agent=base.agent, personas=[], behaviours=[],
-                    matrix=None, gate=base.gate, runs_per_scenario=max(2, base.runs_per_scenario))
+        # Built empty, so skip validation here; it is validated in full once populated, below.
+        reg = Suite.model_construct(name=f"{base.name}-regressions", target=base.target, agent=base.agent, personas=[],
+                                    behaviours=[], use_library=False, channels=[], matrix=None, cases=[], gate=base.gate,
+                                    runs_per_scenario=max(2, base.runs_per_scenario))
     for persona, behaviour, channel, failure, source in items:
         reg.personas = [p for p in reg.personas if p.id != persona.id] + [persona]
         reg.behaviours = [b for b in reg.behaviours if b.id != behaviour.id] + [behaviour]
