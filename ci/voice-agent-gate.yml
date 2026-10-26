@@ -1,0 +1,37 @@
+# Drop this into your voice agent's repo as .github/workflows/voice-agent-gate.yml.
+# Every pull request that changes the agent must pass the Bhool Bhulaiya suite before it ships.
+# Secrets: GNANI_API_KEY, EVON_BASE_URL, EVON_API_KEY. Variable: AGENT_WS_URL (a staging deployment).
+name: voice-agent-gate
+on:
+  pull_request:
+    paths: ["agent/**", "prompts/**"]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Placeholder until the repo is published; point it at the real repository URL.
+      - run: pip install "git+https://github.com/RiyanKothari/bhool-bhulaiya"
+      - name: Cost before spending
+        run: bhool plan suites/agent.yaml --limit 12
+      - name: Run suite (exits 1 if the gate fails)
+        env:
+          GNANI_API_KEY: ${{ secrets.GNANI_API_KEY }}
+          EVON_BASE_URL: ${{ secrets.EVON_BASE_URL }}
+          EVON_API_KEY: ${{ secrets.EVON_API_KEY }}
+        run: bhool run suites/agent.yaml --url "${{ vars.AGENT_WS_URL }}" --limit 12
+      - name: Regressions from production must stay fixed
+        if: hashFiles('suites/regressions.yaml') != ''
+        env:
+          GNANI_API_KEY: ${{ secrets.GNANI_API_KEY }}
+          EVON_BASE_URL: ${{ secrets.EVON_BASE_URL }}
+          EVON_API_KEY: ${{ secrets.EVON_API_KEY }}
+        run: bhool run suites/regressions.yaml --url "${{ vars.AGENT_WS_URL }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bhool-report
+          path: runs/

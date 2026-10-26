@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bhool Bhulaiya</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#6b6a65;--card:#fff;--line:#e6e3dc;--soft:#f3f1ec;--pass:#2f7d4f;--fail:#b3402f;--warn:#a8741a;--accent:#3b5bdb;--caller:#eef1fb;--agent:#f3f1ec}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#9b9a94;--card:#1f1f1c;--line:#33322e;--soft:#262623;--pass:#5cbf83;--fail:#e97a68;--warn:#e0b25a;--accent:#8ea4ff;--caller:#232838;--agent:#2a2926}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:20px 16px 8px;max-width:1280px;margin:0 auto}
+header h1{font-size:22px;margin:0}header .sub{color:var(--muted)}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--soft);color:var(--muted)}
+.pill.on{background:var(--accent);color:#fff}.pill.pass{background:var(--pass);color:#fff}.pill.fail{background:var(--fail);color:#fff}
+main{max-width:1280px;margin:0 auto;padding:0 16px 64px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:4px}
+select,input{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0}
+input[type=number]{width:80px}input[type=text]{width:220px}
+button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:8px 16px;background:var(--accent);color:#fff;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+.check{flex-direction:row;align-items:center;gap:6px;font-size:14px;color:var(--fg)}
+.est{font-size:13px;color:var(--muted);margin-top:8px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}.kpi span{font-size:12px;color:var(--muted)}.kpi b{display:block;font-size:22px}
+.bar{height:6px;background:var(--soft);border-radius:999px;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;margin-top:12px}
+.call{background:var(--card);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;max-height:460px}
+.call.pass{border-color:var(--pass)}.call.fail{border-color:var(--fail)}
+.call .head{padding:10px 12px;border-bottom:1px solid var(--line)}
+.call .title{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.chip{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.feed{padding:8px 12px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px}
+.msg{max-width:88%;padding:6px 9px;border-radius:10px;font-size:14px}
+.msg.caller{align-self:flex-end;background:var(--caller)}.msg.agent{align-self:flex-start;background:var(--agent)}
+.msg .meta{display:block;font-size:11px;color:var(--muted)}
+.lat{font-weight:600}.lat.slow{color:var(--fail)}.lat.ok{color:var(--pass)}
+.note{align-self:center;font-size:12px;color:var(--muted)}.note.warn{color:var(--warn)}
+.foot{padding:8px 12px;border-top:1px solid var(--line);font-size:13px}.foot .fail{color:var(--fail)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);font-size:14px}th{color:var(--muted);font-weight:600;font-size:12px}
+a{color:var(--accent)}.scroll{overflow-x:auto}.empty{color:var(--muted);font-size:14px}
+@media (max-width:520px){input[type=text]{width:100%}.controls>*{flex:1 1 140px}}
+</style>
+</head>
+<body>
+<header><h1>Bhool Bhulaiya</h1><span class="sub">crash-testing Indian voice agents with synthetic, noisy, code-mixed callers</span><span id="status" class="pill">idle</span></header>
+<main>
+  <section class="panel">
+    <div class="controls">
+      <label>Suite<select id="suite"></select></label>
+      <label>Mode<select id="mode"><option value="offline">Offline: fake agent, zero credits</option><option value="live">Live: Gnani Prisma + Evon + Timbre</option></select></label>
+      <label>Scenarios<input id="limit" type="number" min="1" value="4"></label>
+      <label id="urlWrap" hidden>Agent URL<input id="url" type="text" placeholder="ws://127.0.0.1:8765"></label>
+      <label class="check" id="stubWrap"><input id="stubborn" type="checkbox"> fake agent ignores barge-ins</label>
+      <button id="run">Run suite</button>
+    </div>
+    <div class="est" id="est"></div>
+  </section>
+
+  <section class="kpis">
+    <div class="kpi"><span>Calls done</span><b id="kDone">0 / 0</b></div>
+    <div class="kpi"><span>Passed</span><b id="kPass">—</b></div>
+    <div class="kpi"><span>Response latency p95</span><b id="kP95">—</b></div>
+    <div class="kpi"><span>Barge-ins ignored</span><b id="kBarge">0</b></div>
+    <div class="kpi"><span>Gate</span><b id="kGate">—</b></div>
+  </section>
+  <div class="bar"><i id="prog"></i></div>
+
+  <div class="grid" id="calls"><p class="empty">Start a run to watch every test call live.</p></div>
+
+  <section class="panel">
+    <h2 style="font-size:16px;margin:0 0 8px">Past runs</h2>
+    <div class="scroll"><table><thead><tr><th>Suite</th><th>Started</th><th>Calls</th><th>Pass rate</th><th>p95</th><th>Gate</th><th></th></tr></thead><tbody id="runs"></tbody></table></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const SLOW = 2.5;
+let total = 0, done = 0, passed = 0, latencies = [], ignored = 0;
+const calls = new Map();
+let suites = [];
+
+async function loadSuites() {
+  suites = await (await fetch("/api/suites")).json();
+  $("suite").innerHTML = suites.map((s) => `<option value="${esc(s.file)}">${esc(s.name || s.file)}${s.error ? " (invalid)" : ` · ${s.scenarios} scenarios`}</option>`).join("");
+  showEstimate();
+}
+function showEstimate() {
+  const s = suites.find((x) => x.file === $("suite").value);
+  if (!s) return;
+  if (s.error) { $("est").textContent = "Invalid suite: " + s.error; return; }
+  const n = Math.min(+$("limit").value || s.scenarios, s.scenarios), f = n / s.scenarios, e = s.estimate;
+  $("est").textContent = $("mode").value === "offline"
+    ? `${n * s.runs_per_scenario} calls against a scripted fake agent. No API credits used.`
+    : `Up to ${n * s.runs_per_scenario} calls · ≤${Math.round(e.tts_chars_max * f)} TTS chars · ≤${Math.round(e.stt_seconds_max * f)}s STT · ≤${Math.round(e.evon_calls_max * f)} Evon calls (cached TTS is free on re-runs)`;
+}
+async function loadRuns() {
+  const runs = await (await fetch("/api/runs")).json();
+  $("runs").innerHTML = runs.length ? runs.map((r) => `<tr><td>${esc(r.suite)}</td><td>${esc(r.started_at)}</td><td>${r.calls}</td>
+    <td>${Math.round(r.pass_rate * 100)}%</td><td>${r.latency_p95_s ?? "—"}s</td>
+    <td><span class="pill ${r.gate_passed ? "pass" : "fail"}">${r.gate_passed ? "passed" : "failed"}</span></td>
+    <td><a href="/runs/${encodeURIComponent(r.dir)}/report" target="_blank">report</a></td></tr>`).join("")
+    : `<tr><td colspan="7" class="empty">No runs yet.</td></tr>`;
+}
+function kpis() {
+  $("kDone").textContent = `${done} / ${total}`;
+  $("kPass").textContent = done ? `${Math.round(passed / done * 100)}%` : "—";
+  const s = [...latencies].sort((a, b) => a - b);
+  $("kP95").textContent = s.length ? `${s[Math.min(s.length - 1, Math.floor(0.95 * s.length))].toFixed(2)}s` : "—";
+  $("kBarge").textContent = ignored;
+  $("prog").style.width = total ? `${done / total * 100}%` : "0";
+}
+function card(e) {
+  const key = `${e.scenario}#${e.run}`;
+  let c = calls.get(key);
+  if (c) return c;
+  if (!calls.size) $("calls").innerHTML = "";
+  const el = document.createElement("article");
+  el.className = "call";
+  el.innerHTML = `<div class="head"><div class="title"><span>${esc(e.scenario)} · run ${e.run}</span><span class="pill on" data-s>in call</span></div>
+    <div class="chips">${[e.persona, e.behaviour, e.channel].filter(Boolean).map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div></div>
+    <div class="feed"></div><div class="foot" hidden></div>`;
+  $("calls").prepend(el);
+  c = { el, feed: el.querySelector(".feed"), lastCallerEnd: null };
+  calls.set(key, c);
+  return c;
+}
+function add(c, html) { c.feed.insertAdjacentHTML("beforeend", html); c.feed.scrollTop = c.feed.scrollHeight; }
+
+function onEvent(e) {
+  switch (e.type) {
+    case "suite_start":
+      total = e.calls; done = passed = ignored = 0; latencies = []; calls.clear();
+      $("calls").innerHTML = ""; $("kGate").textContent = "—"; $("status").className = "pill on"; $("status").textContent = "running"; $("run").disabled = true;
+      break;
+    case "call_start": card(e); break;
+    case "turn": {
+      const c = card(e);
+      let meta = `${e.start.toFixed(1)}s`;
+      if (e.speaker === "caller") c.lastCallerEnd = e.end;
+      else if (c.lastCallerEnd !== null && e.start >= c.lastCallerEnd) {
+        const l = e.start - c.lastCallerEnd;
+        latencies.push(l);
+        meta += ` · <span class="lat ${l > SLOW ? "slow" : "ok"}">replied in ${l.toFixed(2)}s</span>`;
+        c.lastCallerEnd = null;
+      }
+      const tags = (e.tags || []).length ? ` · ${e.tags.map((t) => `&lt;${esc(t)}&gt;`).join(" ")}` : "";
+      add(c, `<div class="msg ${e.speaker}"><span class="meta">${e.speaker}${e.kind === "interjection" ? " (barge-in)" : ""} · ${meta}${tags}</span>${esc(e.text)}</div>`);
+      kpis();
+      break;
+    }
+    case "barge_in_attempt": add(card(e), `<div class="note warn">⚡ caller cuts in at ${e.t.toFixed(1)}s</div>`); break;
+    case "agent_clear": add(card(e), `<div class="note">agent stopped talking (yielded)</div>`); break;
+    case "silence": add(card(e), `<div class="note">caller goes silent for ${e.seconds}s</div>`); break;
+    case "disposition": add(card(e), `<div class="note">agent recorded: ${esc(JSON.stringify(e.data.slots || {}))}</div>`); break;
+    case "call_end": { const c = card(e); c.el.querySelector("[data-s]").textContent = "judging"; add(c, `<div class="note">call ended: ${esc(e.reason)} · ${e.duration_s.toFixed(0)}s</div>`); break; }
+    case "verdict": {
+      const c = card(e); done++; if (e.passed) passed++;
+      ignored += e.failures.filter((f) => /ignored \d+ of/.test(f)).length;
+      c.el.classList.add(e.passed ? "pass" : "fail");
+      const s = c.el.querySelector("[data-s]"); s.className = `pill ${e.passed ? "pass" : "fail"}`; s.textContent = e.passed ? "PASS" : "FAIL";
+      const f = c.el.querySelector(".foot"); f.hidden = false;
+      f.innerHTML = e.passed ? "All checks passed." : e.failures.map((x) => `<div class="fail">• ${esc(x)}</div>`).join("");
+      kpis();
+      break;
+    }
+    case "call_error": { const c = card(e); done++; c.el.classList.add("fail"); add(c, `<div class="note warn">error: ${esc(e.error)}</div>`); kpis(); break; }
+    case "suite_end": {
+      const g = $("kGate"); g.innerHTML = `<span class="pill ${e.gate_passed ? "pass" : "fail"}">${e.gate_passed ? "PASSED" : "FAILED"}</span>`;
+      const dir = String(e.report).split(/[\\/]/).slice(-2, -1)[0];
+      g.insertAdjacentHTML("beforeend", ` <a href="/runs/${encodeURIComponent(dir)}/report" target="_blank" style="font-size:14px">report</a>`);
+      $("status").className = "pill"; $("status").textContent = "idle"; $("run").disabled = false; loadRuns();
+      break;
+    }
+    case "suite_error": $("status").className = "pill fail"; $("status").textContent = "error"; $("run").disabled = false; alert(e.error); break;
+  }
+}
+function connect() {
+  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/live`);
+  ws.onmessage = (m) => onEvent(JSON.parse(m.data));
+  ws.onclose = () => setTimeout(connect, 1500);
+}
+$("mode").onchange = () => { const live = $("mode").value === "live"; $("urlWrap").hidden = !live; $("stubWrap").hidden = live; showEstimate(); };
+$("suite").onchange = showEstimate; $("limit").oninput = showEstimate;
+$("run").onclick = async () => {
+  const body = { suite: $("suite").value, mode: $("mode").value, limit: +$("limit").value || null, url: $("url").value || null, stubborn: $("stubborn").checked };
+  const r = await fetch("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) alert((await r.json()).detail || "could not start");
+};
+fetch("/api/status").then((r) => r.json()).then((s) => { if (s.running) { $("status").className = "pill on"; $("status").textContent = "running"; $("run").disabled = true; } });
+loadSuites(); loadRuns(); connect();
+</script>
+</body>
+</html>
