@@ -18,7 +18,7 @@ from .audio import read_wav_channels
 from .call.engine import CallRecord, Hear
 from .caller.brain import Turn
 from .channel import ChannelProfile
-from .judge.metrics import group_turns, measure_call, speech_segments
+from .judge.metrics import Segment, group_turns, measure_segments, speech_segments
 from .judge.rubric import CallVerdict
 from .scenarios.library import sanitize_persona
 from .scenarios.schema import Behaviour, Case, Persona, Suite
@@ -37,8 +37,13 @@ def ingest_call(path: str | Path, hear: Hear, lang: str = "hi-IN", caller_channe
         for seg in group_turns(own, other):
             text = hear(audio[int(seg.start * sr) : int(seg.end * sr)], sr, lang)
             turns.append(Turn(speaker, text, seg.start, seg.end))
-    metrics = measure_call(caller, agent, sr)
-    rec = CallRecord(scenario_id=path.stem, run=0, end_reason="production", duration_s=round(caller.size / sr, 3),
+    # A stretch the VAD called speech but STT heard nothing in is a noise burst (a click, a door, a fan surge),
+    # not a turn: drop it, and measure timing from the turns that were actually spoken.
+    turns = [t for t in turns if t.text.strip()]
+    duration = caller.size / sr
+    metrics = measure_segments([Segment(t.start, t.end) for t in turns if t.speaker == "caller"],
+                               [Segment(t.start, t.end) for t in turns if t.speaker == "agent"], duration)
+    rec = CallRecord(scenario_id=path.stem, run=0, end_reason="production", duration_s=round(duration, 3),
                      turns=sorted(turns, key=lambda t: t.start), caller_segments=c_segs, metrics=metrics)
     return rec, caller, sr
 

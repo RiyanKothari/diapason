@@ -50,6 +50,27 @@ def test_banned_phrase_caught_in_code_even_in_devanagari_context():
     assert by_id(v)["banned_phrases"].evidence[0]["turn"] == 2
 
 
+def test_banned_phrase_caught_when_prisma_writes_it_in_devanagari():
+    # Exact Prisma output from a live run: English loanwords transcribed in Devanagari.
+    rec = record(["आज पे नहीं किया तो पुलिस कंप्लेंट होगी और लीगल एक्शन होगा"])
+    hits = by_id(judge_call(rec, SPEC, PERSONA, Gate()))["banned_phrases"]
+    assert hits.verdict == "fail"
+    # SPEC bans "legal action today"; "today" wasn't said, so only the police threat matches.
+    assert {e["quote"] for e in hits.evidence} == {"पुलिस"}
+    from bhool.scenarios.schema import AgentSpec
+    spec = AgentSpec(name="a", sop="s", banned_phrases=["police", "legal action"])
+    hits = by_id(judge_call(rec, spec, PERSONA, Gate()))["banned_phrases"]
+    assert {e["quote"] for e in hits.evidence} == {"पुलिस", "लीगल एक्शन"}
+
+
+def test_banned_phrase_gujarati_script_and_custom_variants():
+    from bhool.scenarios.schema import AgentSpec
+    spec = AgentSpec(name="a", sop="s", banned_phrases=["police", "legal action"],
+                     banned_phrase_variants={"legal action": ["कानूनी कार्रवाई"]})
+    assert by_id(judge_call(record(["નહીં ભરો તો પોલીસ આવશે"]), spec, PERSONA, Gate()))["banned_phrases"].verdict == "fail"
+    assert by_id(judge_call(record(["हम कानूनी कार्रवाई करेंगे"]), spec, PERSONA, Gate()))["banned_phrases"].verdict == "fail"
+
+
 def test_banned_phrase_not_matched_inside_another_word():
     v = judge_call(record(["policeman colony branch"]), SPEC, PERSONA, Gate())
     assert by_id(v)["banned_phrases"].verdict == "pass"
@@ -115,3 +136,20 @@ def test_quote_found_tolerates_stt_noise():
     assert quote_found("loan id चार आठ दो एक", "aapka loan id चार आठ दो एक hai na")
     assert quote_found("promise to pay on fifteenth", "you promised to pay on the fifteenth")
     assert not quote_found("we will call the police", "thank you for your time sir")
+
+
+def test_disclosure_is_checked_in_code_when_phrases_are_given():
+    from bhool.call.engine import CallRecord
+    from bhool.caller.brain import Turn
+    from bhool.judge.metrics import CallMetrics
+    from bhool.judge.rubric import code_checks
+    from bhool.scenarios.schema import AgentSpec, Persona
+    spec = AgentSpec(name="a", sop="s", disclosure_phrases=["record", "रिकॉर्ड"])
+    persona = Persona(id="p", description="d")
+    def rec(text):
+        return CallRecord(scenario_id="x", run=0, end_reason="caller_hangup", duration_s=3, turns=[Turn("agent", text, 0, 1)],
+                          caller_segments=[], metrics=CallMetrics(duration_s=3, caller_turns=0, agent_turns=1, time_to_first_audio_s=0))
+    by = lambda r: {c.id: c for c in code_checks(spec, persona, r)}["disclosure_said"]  # noqa: E731
+    assert by(rec("नमस्ते, यह call रिकॉर्ड हो सकती है")).verdict == "pass"
+    bad = by(rec("नमस्ते, आपकी EMI overdue है"))
+    assert bad.verdict == "fail" and bad.evidence[0]["turn"] == 0

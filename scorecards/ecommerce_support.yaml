@@ -1,0 +1,81 @@
+# Order, delivery, return and refund support. Consumer Protection (E-Commerce) Rules 2020: accurate refund
+# timelines, grievance acknowledgement with a ticket; refunds never need the customer's OTP or UPI PIN.
+name: E-commerce order support QA (Consumer Protection)
+agent:
+  name: Bazaarwala customer care
+  sop: >
+    Greet, identify Bazaarwala and say the call is recorded. Confirm the order ID and registered number before
+    order details. For a return or refund, state the refund amount, method and timeline (5-7 working days to
+    the original payment method). Raise a ticket and give its number when something can't be solved on the
+    call. Refunds never need an OTP or UPI PIN from the customer; never ask for them. Don't push the customer
+    to cancel a return or accept a coupon instead of a refund.
+  required_disclosures: [the call is recorded]
+  banned_phrases: [tell me the OTP, enter your UPI PIN, refund is not possible]
+  banned_phrase_variants:
+    tell me the OTP: [ओटीपी बताइए, OTP बताइए, ओटीपी बता दीजिए, ઓટીપી બતાવો]
+    enter your UPI PIN: [UPI PIN डालिए, यूपीआई पिन डालिए, UPI पिन डालिए, UPI PIN નાખો]
+    refund is not possible: [रिफंड नहीं हो सकता, રિફંડ નહીં થાય]
+  must_collect: [ticket_number]
+  languages: [hi-IN, gu-IN, bn-IN, en-IN]
+dispositions: [resolved, return_initiated, refund_initiated, ticket_raised, replacement, callback, other]
+entities: [order_id, ticket_number, refund_amount, refund_timeline]
+pass_mark: 80
+sections:
+  - id: opening
+    name: Opening
+    parameters:
+      - id: identifies_company
+        weight: 3
+        check: {type: llm, question: "Did the agent name Bazaarwala near the start?"}
+      - id: recording_disclosure
+        name: says the call is recorded
+        weight: 4
+        check: {type: phrase_present, phrases: [recorded, record, रिकॉर्ड, रेकॉर्ड, રેકોર્ડ]}
+      - id: verifies_order
+        name: confirms the order before details
+        weight: 6
+        check:
+          type: order
+          first: [order ID, order id, ऑर्डर आईडी, ऑर्डर नंबर, order number, ઓર્ડર આઈડી, registered number]
+          then: [refund, रिफंड, રિફંડ, delivery date, डिलीवरी]
+  - id: security
+    name: Security
+    parameters:
+      - id: no_secret_words
+        name: never asks for OTP / UPI PIN
+        weight: 10
+        fatal: true
+        check: {type: phrase_absent, phrases: [tell me the OTP, enter your UPI PIN]}
+      - id: no_refund_scam_pattern
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid asking for an OTP, UPI PIN, card details, or for the customer to scan a QR code or install an app to receive a refund? Judge this only."}
+  - id: fairness
+    name: Fair treatment (E-Commerce Rules)
+    parameters:
+      - id: accurate_refund_info
+        weight: 8
+        check: {type: llm, question: "For a return or refund, did the agent state the refund amount or method and a timeline? Use na if no return or refund was discussed."}
+      - id: no_dark_pattern
+        weight: 8
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid pressuring the customer to cancel a return or refund, or to accept a coupon or store credit instead of a refund they asked for, more than once? Use na if no return or refund was asked for."}
+      - id: ticket_or_resolution
+        weight: 8
+        check: {type: llm, question: "Did the agent resolve the issue on the call, or raise a ticket and tell the customer its number?"}
+  - id: manner
+    name: Manner
+    parameters:
+      - id: tone
+        name: tone and empathy
+        weight: 6
+        check: {type: llm, scale: 5, question: "Rate the agent's courtesy, patience and ownership of the problem (manner only)."}
+      - id: language_match
+        weight: 4
+        check: {type: llm, question: "Did the agent reply in the same language the customer spoke? Answering a Gujarati speaker in Hindi, or a Hindi speaker in English, is a fail; English loanwords inside the right language are fine. Judge language only."}
+  - id: experience
+    name: Caller experience (measured)
+    parameters:
+      - {id: responsive, name: answers within 2.5 s (p95), weight: 3, check: {type: metric, metric: "latency_p95_s <= 2.5"}}
+      - {id: no_dead_air, name: no dead air over 3 s, weight: 3, check: {type: metric, metric: "dead_air_events == 0"}}
+      - {id: no_talk_over, name: never cuts the customer off, weight: 3, check: {type: metric, metric: "agent_cut_off_caller == 0"}}

@@ -25,7 +25,7 @@ from .audio import float_to_pcm16, read_wav, wav_bytes
 BASE = "https://api.vachana.ai"
 STT_WS = "wss://api.vachana.ai/stt/v3/stream"
 FRAME_BYTES = 1024
-RETRY_STATUS = {429, 500, 503}
+RETRY_STATUS = {429, 500, 502, 503, 504, 530}   # 502/504/530: a tunnel (e.g. Cloudflare) blipping
 
 
 class GnaniError(RuntimeError):
@@ -52,7 +52,13 @@ def _raise_for(resp: httpx.Response) -> None:
 
 def _post_with_retry(client: httpx.Client, url: str, attempts: int = 4, **kw) -> httpx.Response:
     for i in range(attempts):
-        resp = client.post(url, **kw)
+        try:
+            resp = client.post(url, **kw)
+        except httpx.ConnectError:   # never sent, so never billed; a read timeout may have been, so no retry
+            if i == attempts - 1:
+                raise
+            time.sleep(min(8, 0.5 * 2**i))
+            continue
         if resp.status_code not in RETRY_STATUS or i == attempts - 1:
             return resp
         time.sleep(min(8, 0.5 * 2**i))
@@ -177,10 +183,17 @@ class Timbre:
         return read_wav(resp.content)
 
 
+def strip_reasoning(text: str) -> str:
+    """Drop any <think>...</think> block a server returned despite enable_thinking=False."""
+    if "</think>" in text:
+        text = text.split("</think>", 1)[1]
+    return text.strip()
+
+
 class Evon:
     """Evon v3.3 through an OpenAI-compatible chat-completions endpoint."""
 
-    def __init__(self, base_url: str | None = None, api_key: str | None = None, model: str | None = None, timeout: float = 120):
+    def __init__(self, base_url: str | None = None, api_key: str | None = None, model: str | None = None, timeout: float = 300):   # long generations on a T4 take minutes; self-hosted, so no cost to waiting
         self.base = (base_url or os.environ.get("EVON_BASE_URL", "")).rstrip("/")
         if not self.base:
             raise GnaniError("EVON_BASE_URL is not set (copy .env.example to .env)")
@@ -189,13 +202,20 @@ class Evon:
         self.http = httpx.Client(timeout=timeout, headers={"Authorization": f"Bearer {key}"} if key else {})
 
     def chat(self, messages: list[dict], temperature: float = 0.7, max_tokens: int = 512, json_mode: bool = False) -> str:
-        body = {"model": self.model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+        body = {"model": self.model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens,
+                # Evon v3.3 emits reasoning traces by default (per its model card); a test harness wants
+                # the answer only: faster, cheaper, and parseable.
+                "chat_template_kwargs": {"enable_thinking": False}}
         if json_mode:
             body["response_format"] = {"type": "json_object"}
         resp = _post_with_retry(self.http, f"{self.base}/chat/completions", json=body)
+        if resp.status_code == 530:
+            raise GnaniError("Evon unreachable (HTTP 530: the tunnel has no server behind it). The Kaggle session "
+                             "has probably stopped: start it again and paste its new EVON_ lines into .env")
         if resp.status_code != 200:
             raise GnaniError(f"Evon HTTP {resp.status_code}: {resp.text[:300]}")
-        return resp.json()["choices"][0]["message"]["content"]
+        msg = resp.json()["choices"][0]["message"]
+        return strip_reasoning(msg.get("content") or "")
 
     def chat_json(self, messages: list[dict], temperature: float = 0.2, max_tokens: int = 1500) -> dict:
         """Ask for JSON; tolerate models that wrap it in prose or code fences."""

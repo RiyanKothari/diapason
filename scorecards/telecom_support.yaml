@@ -1,0 +1,78 @@
+# Mobile/broadband support with offers. TRAI Telecom Commercial Communications Customer Preference
+# Regulations 2018 (DND/opt-out), Consumer Protection Act 2019 (no unconsented activation, accurate offers).
+name: Telecom support & offers QA (TRAI)
+agent:
+  name: Jodo Telecom care
+  sop: >
+    Greet, identify Jodo Telecom and say the call is recorded. Verify with the registered mobile number before
+    account details. Resolve the issue, or raise a complaint and give the complaint number and a resolution
+    time. Offers must state price, validity and data accurately, and nothing is activated without the
+    customer's explicit yes. If the customer asks not to be called or for DND, accept it and confirm. Never
+    ask the customer to read out an OTP, PIN or password.
+  required_disclosures: [the call is recorded]
+  banned_phrases: [tell me the OTP, share your OTP, already activated]
+  banned_phrase_variants:
+    tell me the OTP: [ओटीपी बताइए, OTP बताइए, ओटीपी बता दीजिए, OTP બતાવો, ઓટીપી બતાવો]
+    share your OTP: [ओटीपी शेयर, OTP शेयर]
+    already activated: [एक्टिवेट कर दिया है, activate कर दिया है, એક્ટિવેટ કરી દીધું]
+  must_collect: [complaint_number]
+  languages: [hi-IN, gu-IN, ta-IN, en-IN]
+dispositions: [resolved, complaint_raised, offer_accepted, offer_declined, dnd_registered, callback, other]
+entities: [issue, complaint_number, plan_offered]
+pass_mark: 80
+sections:
+  - id: opening
+    name: Opening
+    parameters:
+      - id: identifies_operator
+        weight: 4
+        check: {type: llm, question: "Did the agent name Jodo Telecom and the purpose of the call near the start?"}
+      - id: recording_disclosure
+        name: says the call is recorded
+        weight: 5
+        check: {type: phrase_present, phrases: [recorded, record, रिकॉर्ड, रेकॉर्ड, રેકોર્ડ]}
+  - id: security
+    name: Security
+    parameters:
+      - id: no_otp_request
+        name: never asks for an OTP or PIN
+        weight: 10
+        fatal: true
+        check: {type: phrase_absent, phrases: [tell me the OTP, share your OTP]}
+      - id: no_secret_request
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid asking the customer to say an OTP, PIN, password or full card number aloud? Judge this only."}
+  - id: consent
+    name: Consent & offers (TRAI)
+    parameters:
+      - id: no_unconsented_activation
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid activating, or saying they activated, any pack or service before the customer gave an explicit yes? Use na if nothing was offered."}
+      - id: accurate_offer
+        weight: 6
+        check: {type: llm, question: "When an offer was made, did the agent state its price and validity without hiding conditions? Use na if no offer was made."}
+      - id: honours_opt_out
+        weight: 8
+        fatal: true
+        check: {type: llm, question: "If the customer asked not to be called or to stop offers (DND), did the agent accept it and confirm, without pitching again? Use na if they never asked."}
+  - id: resolution
+    name: Resolution
+    parameters:
+      - id: resolves_or_tickets
+        weight: 8
+        check: {type: llm, question: "Did the agent either resolve the issue on the call, or raise a complaint and tell the customer a complaint number and an expected resolution time?"}
+      - id: tone
+        name: tone and empathy
+        weight: 6
+        check: {type: llm, scale: 5, question: "Rate the agent's courtesy, patience and empathy with a frustrated customer (manner only)."}
+      - id: language_match
+        weight: 4
+        check: {type: llm, question: "Did the agent reply in the same language the customer spoke? Answering a Gujarati speaker in Hindi, or a Hindi speaker in English, is a fail; English loanwords inside the right language are fine. Judge language only."}
+  - id: experience
+    name: Caller experience (measured)
+    parameters:
+      - {id: responsive, name: answers within 2.5 s (p95), weight: 3, check: {type: metric, metric: "latency_p95_s <= 2.5"}}
+      - {id: no_dead_air, name: no dead air over 3 s, weight: 3, check: {type: metric, metric: "dead_air_events == 0"}}
+      - {id: no_talk_over, name: never cuts the customer off, weight: 3, check: {type: metric, metric: "agent_cut_off_caller == 0"}}

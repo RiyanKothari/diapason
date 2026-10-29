@@ -48,9 +48,17 @@ persona x phone-line heatmap, failure ranking, HTML report with playable audio, 
 
 ```bash
 python -m venv .venv && .venv/Scripts/pip install -e ".[dev]"   # Windows; use .venv/bin on Linux/macOS
-bhool selftest                     # whole pipeline against a scripted fake agent: zero API credits
+bhool demo                         # reference agent v1 (seeded bugs) vs v2, full harness, diff. Zero credits
 bhool dashboard                    # http://127.0.0.1:8000: start runs, watch calls live, open reports
 ```
+
+What `bhool demo` shows, measured on this machine: v1 fails all 4 calls on its seeded bugs (police
+threat, missed loan ID, ignored barge-in, silence on a crowded line); v2 fixes both landline calls
+(0% → 100%) and the tool **still flags v2 on the 5 dB crowded-market line**, where energy-based
+endpointing can't separate the caller from babble. That last finding is the point: it's real, and it's
+what you'd fix next (Prisma's streaming VAD).
+
+Docs: [how each Gnani model is used](docs/GNANI.md) · [architecture](docs/ARCHITECTURE.md)
 
 With a Gnani key (copy `.env.example` to `.env`):
 
@@ -74,15 +82,139 @@ bhool ingest suites/emi_collection.yaml calls/*.wav    # judge real stereo calls
 | `bhool suggest RUN SUITE` | fixes grouped by root cause, from the run's evidence | 1 Evon call |
 | `bhool calibrate RUN labels.csv` | judge vs human: agreement, Cohen's kappa, missed and false fails | none |
 | `bhool library` | the 15 built-in adversarial caller behaviours | none |
+| `bhool demo` | v1 vs v2 reference agent through the full harness, with diff | none |
+| `bhool asr-bench` | Prisma CER per language × phone line on Timbre speech with known text | STT + cached TTS |
+| `bhool load SUITE --levels 1,4,8,16` | latency and pass rate vs simultaneous calls (`--offline` for none) | per call |
+| `bhool schema` | suite JSON Schema for editor autocomplete | none |
 | `bhool ingest SUITE WAVS...` | production calls -> verdicts -> regression cases | yes |
 | `bhool serve-agent --version v1\|v2` | the reference agent to test against | yes |
-| `bhool dashboard` | live view and run history | per run |
+| `bhool dashboard` | live view, run history and QA audits | per run |
+| `bhool qa audit SCORECARD CALLS...` | QA audit of real calls (see below); `--offline`, `--labels`, `--baseline`, `--to-regressions` | Evon; STT for audio only |
+| `bhool qa template SUITE` | a ready scorecard from a suite's agent spec and rubric pack | none |
+| `bhool qa bench` | the auditor's own accuracy on calls with known verdicts | Evon (`--offline`: none) |
+| `bhool qa simulate [SCORECARD...]` | QA-Bench for **every segment**: Evon writes calls with planted defects from each scorecard; `--voice-calls N` speaks them with Timbre over a phone line and transcribes with Prisma first | Evon; Timbre + Prisma for voiced calls (capped) |
+| `bhool playbooks list\|build` | one tailored QA scorecard + adversarial test suite **per industry** (22 voice-AI verticals) from `playbooks/industries.yaml` | none |
+| `bhool dashboard` → `/studio` | **QA Studio**: segment tiles, a parameter × call heatmap, every verdict with its quote, click to hear the moment | none |
+| `bhool proof` | **one accuracy page**: planted bugs caught by the tests (v1 vs fixed v2) + QA-Bench; Evon plays agent, callers and judge over simulated phone audio | Evon only, no Gnani credits |
+| `bhool autopilot --agent v2` | **red team + self-repair**: Evon designs attack callers, breeds new ones from what broke the agent, saves every hit as a regression suite, then patches the prompt and keeps only fixes that a re-run proves (fixed ≥ 1, broke 0) | Evon only, no Gnani credits |
+
+**Rubric packs** (`rubric:` in a suite): `general`, `bfsi_collections` (RBI Fair Practices Code),
+`insurance` (IRDAI), `healthcare`, `telecom` (TRAI), `kyc`.
 
 **Enterprise safeguards.** Budget caps refuse an API call *before* it would cross the limit; calls cut short
 are skipped (never judged) and the gate fails, so a half-run can't look green. `--redact` masks mobile
 numbers, Aadhaar, PAN, account numbers and emails (Latin, Devanagari and Gujarati digits) in everything
 written to disk; the dashboard redacts by default. The judge prompt fences the transcript and tells Evon
 that caller lines are data, because the test callers themselves attempt prompt injection.
+
+## Quality audits of real calls
+
+Testing asks "will this agent survive real callers?" before launch; `bhool qa audit` asks "how did every
+real call go?" after, for AI and human agents alike. It reads dual-channel recordings (Prisma transcribes
+them), or transcripts as JSON, JSONL, CSV or text (no STT credits), or Bhool's own test runs.
+
+A **scorecard** ([scorecards/emi_collections.yaml](scorecards/emi_collections.yaml)) is the weighted QA form
+a contact-centre QA team fills in by hand, made executable. Each parameter has a weight, may be *fatal*
+(a fail zeroes the call), and one check:
+
+| Check | Decided by | Example |
+|---|---|---|
+| `phrase_present` / `phrase_absent` | code, with native-script loanword spellings (`police` = पुलिस = પોલીસ) | recording disclosure; no threats |
+| `order` | code | identity verified *before* the amount is said |
+| `metric` | code, from audio or a timed transcript | `latency_p95_s <= 2.5`, `agent_cut_off_caller == 0`, `agent_talk_ratio <= 0.65` |
+| `slot` | code, against the CRM when given | promise-to-pay date captured and correct |
+| `llm` (yes/no or 1..N scale) | Evon, k samples, majority vote, quotes verified against the transcript | no harassment, hardship handled, tone |
+
+Per call: score, section scores, fatal errors, every verdict with a quoted, timestamped line, talk
+analytics (talk ratio, words per minute, silence, longest monologue, script mix), and Evon insights
+(summary, disposition, extracted entities, caller sentiment over the call, root cause, coaching tied to
+the turn). Per batch: leaderboards and parameter heatmaps by agent and campaign, the most common reasons for
+each failing parameter with examples, dispositions, topics, sentiment shift, drift against a previous
+audit (`--baseline`), agreement with human QA labels (`--labels`: agreement, Cohen's kappa, fail
+precision and recall), and a **human review queue**. A judge fail whose quote isn't in the transcript, a split
+vote or a borderline score goes to a person instead of being guessed. Fatal calls can become regression
+tests (`--to-regressions`). Outputs: `qa.html`, `qa.json`, `calls.csv` (Excel-safe), PII redacted by default.
+
+**Seven segments, ready to run** ([scorecards/](scorecards)): EMI collections (RBI Fair Practices Code), insurance
+renewal & sales (IRDAI), healthcare appointments (clinical safety, DPDP), telecom support & offers (TRAI), banking fraud
+helpline (RBI customer liability), e-commerce order support (Consumer Protection E-Commerce Rules), KYC & onboarding
+(RBI KYC, Aadhaar Act). Each has 13-15 parameters, 3-5 fatal compliance rules, and every check type. Banned phrases match
+the *request* ("CVV बताइए"), not the warning ("never share your CVV"), so a good agent isn't failed for doing its job.
+
+**QA Studio** (`bhool dashboard`, then `/studio`): pick a segment; see every parameter of every call as a heatmap (planted
+defects outlined); open a call to read it as a chat with flagged turns, the scorecard with each verdict's reason, agreement
+and quote, Evon's summary, sentiment curve, root cause and coaching. For recordings, a timeline marks each failure: click a
+verdict and the audio jumps to that moment.
+
+**Industry playbooks** (`bhool playbooks build`): 22 verticals where Indian enterprises run voice AI: public-sector and small
+finance bank collections, bank customer service, rural farm and two-wheeler loans, consumer-durable loans, microfinance, housing
+finance, digital lending and BNPL, insurance renewals and claims, airline disruptions, vacation memberships, automotive service and
+roadside assistance, US clinic reminders, outsourced multilingual support, appliance service, matchmaking memberships, an
+engineering firm's IT helpdesk and Indic-software support. Each names the use case, its customers' languages (Tamil, Kannada,
+Marathi, Malayalam, Telugu, Bengali, Punjabi, Gujarati...), the rules that bind it, and realistic callers (a farmer paying after
+harvest, a Gulf worker's wife with an infant on a cancelled flight, a borrower's husband answering her phone). Rules come from a
+shared library of 38: RBI collections conduct and recovery-agent norms, Digital Lending Guidelines (no threats to phone contacts,
+KFS and cooling-off), the microfinance directions (no coercion, no public shaming), no prepayment charge on floating-rate home
+loans, IRDAI mis-selling and free-look, DGCA passenger rights (refund, not a forced credit shell), HIPAA minimum necessary and
+TCPA opt-out, PCI DSS, TRAI DND. The builder writes `scorecards/industries/<id>.yaml` and `suites/industries/<id>.yaml`; the QA
+Studio shows them as tiles. Brands are fictional.
+
+**QA across segments** (`bhool qa simulate`): no other segment has hand-built test calls, so Evon writes them from the
+scorecard: first a clean, compliant call, then each defect planted as its own targeted edit (replace or insert one agent line,
+with a customer line that sets up the situation when needed). The exact planted line is kept as ground truth and shown in the
+Studio. Code-checked defects are verified in code, with one retry; anything that still disagrees with the plan is excluded,
+never silently counted. (Asking a model to write a call that breaks rules X and Y in one go doesn't work: in our first live run
+it quietly wrote compliant agents, and the "misses" were the writer's, not the auditor's.) With `--voice-calls`, calls are spoken by
+Timbre, sent through the phone-line simulator and transcribed by Prisma, so the audit runs on real ASR output. Headline:
+planted-defect recall; fails on parameters neither planted nor declared are reported as *unplanted flags*, an upper bound on
+false alarms.
+
+**Measured on live Evon (29 Oct):** 22 industry playbooks x 4 calls and 7 segments x 6 calls, 1 call per industry voiced
+(Timbre, phone line, Prisma; 8,951 TTS characters and 709 s of STT for 7 voiced calls). The auditor failed 98 of 190 defects Evon
+claimed to have planted (52%), sent 4 more to review, flagged 8-10% of parameters that were neither planted nor declared, and
+zeroed 13 of 76 calls written as clean. **This is not the auditor's accuracy.** In a spot check of 14 random misses, 11 were planted
+lines that do not actually break the rule (a "doesn't name the company" line that names it, a "no reference number" line that gives
+one), 1 was a planter mix-up and 2 were real auditor misses (medicine advice passed; a language mismatch sent to review). Evon is a
+weak defect planter even with a separate confirmation step, so these runs are realistic test calls for every industry and a lower
+bound; the auditor's accuracy is QA-Bench below, where truth is built in code.
+
+**QA-Bench** (`bhool qa bench`) measures the auditor itself. Vendors publish coverage ("100% of calls
+audited"), not accuracy. The bench builds collections calls whose correct verdict on every parameter is
+known by construction (missed disclosure, verification out of order, threats, privacy leaks to a family
+member, pushy hardship handling, Gujarati caller answered in Hindi, slow or talk-over timing), in Hindi and
+Gujarati, half in the script Prisma actually produces. It reports per-parameter accuracy and fail
+precision/recall, pass/fail decision accuracy, fatal-error recall and score error.
+
+Measured on live Evon v3.3 (3 judge samples per parameter), on a 40-call corpus (seed 23) generated *after* the judge prompts
+were last changed, so it was never tuned on:
+
+| QA-Bench, 40 calls, unseen seed | Verdict accuracy | Notes |
+|---|---|---|
+| Code-checked parameters (7) | 99.6% | phrases, order, slot, timing metrics |
+| Evon-judged parameters (7) | 81.1% | strong: lender named 100%, hardship 100%, privacy 93%, harassment 90%; weak: tone 80%, language match 75%, **confirms-back 30%** |
+| All 560 verdicts | 90.4% | fail precision 78%, fail recall 94% |
+| Pass/fail decision per call | 92.5% | fatal-error recall **100%**, false fatal alarms **0** |
+
+Confirms-back (did the agent repeat the agreed date) is the auditor's weak spot: Evon misreads a bare "ok" vs. a read-back in
+mixed script. It is reported, not hidden; the next step is to make it a code check against the extracted date.
+
+## Autopilot: bugs nobody planted
+
+Seeded bugs prove the harness catches what you already suspect. `bhool autopilot` goes after what you don't:
+
+1. **Hunt.** Evon, as a red team, reads the agent's SOP and designs attack callers: who calls (the borrower, a
+   brother, someone claiming to be from the bank or the police), what they want, how they behave, in which
+   language and on which phone line. Key attack lines are pinned so the caller can't drift out of the attack.
+   Each generation is run through the real harness and judged with evidence; the next generation varies the
+   attacks that broke the agent (is it real? where are its edges?) and probes rules nobody has broken yet.
+2. **Remember.** Every attack that broke something is written to `autopilot_regressions.yaml`: a bug found
+   once is tested on every future version.
+3. **Heal.** Evon proposes new prompt rules (and a new opening line if that is the problem). The patched agent is
+   re-run on the attacks *and* the original suite; a patch is kept only if it fixes at least one failure and
+   breaks nothing that passed. Endpointing, barge-in and latency failures are listed as engineering work, since
+   no prompt fixes those.
+
+Output: `autopilot.html` with every attack, the judge's quoted evidence, the rules added and before/after.
 
 ## Suites
 
@@ -99,13 +231,21 @@ The offline tests already show v1's VAD failing on in-band noise and ignoring ba
 
 ## Status, honestly
 
-- All tests pass offline: channel simulator, metrics, schema, judge logic, the real-time call engine,
-  the reference agent over a real websocket, the regression loop, budgets, redaction, diff, generation
-  and calibration. All model calls are faked.
-- **Not yet run against the live Gnani APIs.** The clients follow docs.gnani.ai and are tested against
-  mocked responses. Results numbers (catch rate on v1's seeded bugs, v1 vs v2 pass rate, judge agreement
-  with human labels) will be added here only once measured.
-- Targets other than WebSocket (Twilio phone dial-out, Inya) are designed but not wired yet.
+- **Offline:** 130+ tests pass with every model faked: channel simulator, metrics, judge logic, the real-time call engine,
+  the reference agent over a real websocket, regression loop, budgets, redaction, autopilot, simulation, playbooks, dates.
+- **Live Gnani APIs, capped runs:** `bhool doctor --live` passes on Timbre, Prisma and self-hosted Evon v3.3.
+  Prisma on Timbre speech (`asr-bench`): 1.4% CER on a clean line, 5.5% on a 5 dB market line, 89-100% of critical
+  details kept. 7 calls voiced end to end (Timbre, phone line, Prisma) across industries.
+- **The auditor (QA-Bench on live Evon, unseen corpus):** 90.4% of 560 verdicts right, fatal-error recall 100%, no false
+  fatal alarms, 92.5% of pass/fail decisions right. Its weakest Evon parameter (confirms-back, 30%) is now a code check:
+  100% on three corpora (seeds 7, 11, 23), offline.
+- **The tests (`bhool proof`, live Evon, best run):** 7 of 8 seeded bugs caught. Two v2 flags: one a real v2 slip (it told the
+  borrower's brother there is a loan due), one a judge error since closed (fails must now be proven by the agent's own words).
+- **Simulated calls for every industry:** see "Measured on live Evon" above; useful test calls, not an accuracy number.
+- **Autopilot (hunt + heal):** built and tested offline; both live runs were cut short by Evon going offline mid-run, and those
+  results were discarded (the harness now detects that and refuses to count harness failures as agent bugs). A clean live run
+  is pending.
+- **Not done:** judge agreement with human labels on real calls (the tooling exists: `--labels`); Twilio and Inya targets.
 
 ## Layout
 

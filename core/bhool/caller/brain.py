@@ -102,8 +102,13 @@ class EvonBrain:
         self.system = persona_prompt(persona, behaviour)
         self._interjections = list(FALLBACK_INTERJECTIONS.get(persona.tts_lang, FALLBACK_INTERJECTIONS["en-IN"]))
         self._i = seed
+        self.replies = 0
 
     def reply(self, history: list[Turn]) -> Utterance:
+        self.replies += 1
+        pinned = self.behaviour.lines.get(self.replies)
+        if pinned:
+            return Utterance(text=pinned, tags=self.persona.emotion[:1])
         msgs = [{"role": "system", "content": self.system}, *history_messages(history)]
         if msgs[-1]["role"] != "user":
             msgs.append({"role": "user", "content": "AGENT: (silence)"})

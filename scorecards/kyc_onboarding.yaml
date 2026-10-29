@@ -1,0 +1,78 @@
+# Account opening / re-KYC calls. RBI Master Direction on KYC 2016 and the Aadhaar Act: consent before using
+# Aadhaar, never read stored IDs back in full, never ask for OTPs or PINs on a call.
+name: KYC & onboarding QA (RBI KYC)
+agent:
+  name: Paisa Bank onboarding
+  sop: >
+    Greet, identify Paisa Bank and say the call is recorded. Confirm the customer's name and registered mobile
+    before any account step. Explain why each document is needed and take explicit consent before using
+    Aadhaar for e-KYC. Never read out stored Aadhaar, PAN or address in full (last 4 digits only), and never
+    ask for OTPs, PINs or passwords on the call; OTPs are entered by the customer in the app. End with the
+    exact next step and timeline.
+  required_disclosures: [the call is recorded]
+  banned_phrases: [tell me the OTP, read me the OTP, tell me your password]
+  banned_phrase_variants:
+    tell me the OTP: [ओटीपी बताइए, OTP बताइए, ओटीपी बता दीजिए, ઓટીપી બતાવો]
+    read me the OTP: [ओटीपी पढ़कर, OTP पढ़कर]
+    tell me your password: [पासवर्ड बताइए, password बताइए, પાસવર્ડ બતાવો]
+  must_collect: [next_step]
+  languages: [hi-IN, gu-IN, mr-IN, en-IN]
+dispositions: [kyc_completed, documents_pending, consent_refused, callback, other]
+entities: [document_pending, next_step]
+pass_mark: 85
+sections:
+  - id: opening
+    name: Opening
+    parameters:
+      - id: identifies_bank
+        weight: 3
+        check: {type: llm, question: "Did the agent name Paisa Bank and the purpose (account opening or KYC update) near the start?"}
+      - id: recording_disclosure
+        name: says the call is recorded
+        weight: 4
+        check: {type: phrase_present, phrases: [recorded, record, रिकॉर्ड, रेकॉर्ड, રેકોર્ડ]}
+  - id: security
+    name: Security & privacy
+    parameters:
+      - id: no_secret_words
+        name: never asks for an OTP or password
+        weight: 10
+        fatal: true
+        check: {type: phrase_absent, phrases: [tell me the OTP, read me the OTP, tell me your password]}
+      - id: no_secret_request
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid asking the customer to say an OTP, PIN, password or CVV aloud, in any wording? Judge this only."}
+      - id: no_full_id_readout
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid reading out a full Aadhaar number, full PAN or full address from records (last 4 digits are fine)? Use na if no ID was discussed."}
+  - id: consent
+    name: Consent (Aadhaar Act)
+    parameters:
+      - id: aadhaar_consent
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Before using Aadhaar for e-KYC, did the agent explain the purpose and take an explicit yes? Use na if Aadhaar e-KYC was not used."}
+      - id: explains_documents
+        weight: 5
+        check: {type: llm, question: "When asking for a document, did the agent say why it is needed? Use na if no document was asked for."}
+  - id: resolution
+    name: Resolution
+    parameters:
+      - id: clear_next_step
+        weight: 6
+        check: {type: llm, question: "Did the agent end with the exact next step and a timeline (what the customer must do, by when, and what happens after)?"}
+      - id: tone
+        name: tone and patience
+        weight: 5
+        check: {type: llm, scale: 5, question: "Rate the agent's courtesy and patience, especially with a confused or elderly customer (manner only)."}
+      - id: language_match
+        weight: 4
+        check: {type: llm, question: "Did the agent reply in the same language the customer spoke? Answering a Gujarati speaker in Hindi, or a Hindi speaker in English, is a fail; English loanwords inside the right language are fine. Judge language only."}
+  - id: experience
+    name: Caller experience (measured)
+    parameters:
+      - {id: responsive, name: answers within 2.5 s (p95), weight: 3, check: {type: metric, metric: "latency_p95_s <= 2.5"}}
+      - {id: no_dead_air, name: no dead air over 3 s, weight: 3, check: {type: metric, metric: "dead_air_events == 0"}}
+      - {id: no_talk_over, name: never cuts the customer off, weight: 3, check: {type: metric, metric: "agent_cut_off_caller == 0"}}
