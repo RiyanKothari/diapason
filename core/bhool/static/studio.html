@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bhool QA Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f9fafb;--fg:#111;--text:#333;--muted:#636363;--card:#fff;--soft:#f5f5f5;--line:rgba(0,0,0,.1);--ink:#000;--ink-fg:#fff;
+  --accent:#4169e1;--pass:#1f7a4d;--fail:#c2410c;--warn:#a16207;--na:#b4b4b4;--caller:#eef2fd;--agent:#f5f5f5;--hl:#fff4e5;
+  --serif:"Instrument Serif",Georgia,serif;--sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#0b0b0c;--fg:#f4f4f5;--text:#d4d4d8;--muted:#9a9aa2;--card:#141416;--soft:#1c1c1f;--line:rgba(255,255,255,.1);
+  --ink:#fff;--ink-fg:#000;--accent:#7b96ff;--pass:#4ade80;--fail:#fb923c;--warn:#facc15;--na:#4a4a50;--caller:#1a2140;--agent:#1c1c1f;--hl:#2a2214}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+.topbar{border-bottom:1px solid var(--line);background:var(--card)}
+.topbar .in{max-width:1320px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{font-weight:500;color:var(--fg)}.brand b{font-weight:600}.spacer{flex:1}a{color:var(--fg);text-underline-offset:3px}
+.muted{color:var(--muted)}
+main{max-width:1320px;margin:0 auto;padding:0 16px 80px}
+.hero{padding:34px 0 6px}.hero h1{font:400 clamp(34px,5vw,56px)/1.03 var(--serif);color:var(--fg);margin:0}
+.hero p{margin:10px 0 0;color:var(--muted);max-width:720px}
+h2{font:400 26px var(--serif);color:var(--fg);margin:34px 0 6px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:12px;margin-top:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;text-align:left;font:inherit;color:inherit;transition:transform .12s,border-color .12s}
+.tile:hover{transform:translateY(-2px);border-color:var(--accent)}.tile.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.tile .reg{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
+.tile .nm{font:400 22px/1.15 var(--serif);color:var(--fg);margin:4px 0 8px}
+.tile .st{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}.tile .st b{color:var(--fg);font-weight:600}
+.tile .meter{height:4px;border-radius:9px;background:var(--soft);margin-top:12px;overflow:hidden}.tile .meter i{display:block;height:100%;background:var(--pass)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:16px 0}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;max-width:100%}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
+.kpi{background:var(--soft);border-radius:12px;padding:12px 14px}.kpi span{font-size:12px;color:var(--muted)}.kpi b{display:block;font:400 28px/1.15 var(--serif);color:var(--fg)}
+.heat{overflow-x:auto;margin-top:6px}.heat table{border-collapse:separate;border-spacing:3px}
+.heat th{font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap;padding:2px 6px;text-align:left}
+.heat th.c{writing-mode:vertical-rl;transform:rotate(180deg);height:86px;text-align:left;cursor:pointer}
+.cell{width:22px;height:22px;border-radius:5px;cursor:pointer;border:0;padding:0;display:block}
+.v-pass{background:var(--pass)}.v-fail{background:var(--fail)}.v-review{background:var(--warn)}.v-na,.v-skipped{background:var(--na);opacity:.45}
+.cell.planted{outline:2px solid var(--fg);outline-offset:1px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.callview{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;margin-top:16px}
+@media (max-width:860px){.callview{grid-template-columns:1fr}}
+.feed{display:flex;flex-direction:column;gap:8px;max-height:620px;overflow-y:auto;padding-right:4px}
+.msg{max-width:90%;padding:9px 12px;border-radius:14px;font-size:14px;color:var(--fg);border-left:3px solid transparent;transition:background .2s}
+.msg.caller{align-self:flex-end;background:var(--caller);border-bottom-right-radius:4px}.msg.agent{align-self:flex-start;background:var(--agent);border-bottom-left-radius:4px}
+.msg .meta{display:flex;gap:8px;font-size:11px;color:var(--muted);margin-bottom:2px}
+.msg.flag{border-left-color:var(--fail)}.msg.hl{background:var(--hl)!important;border-left-color:var(--warn)}
+.tag{font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--fail);color:#fff;cursor:pointer}
+.score{display:flex;gap:16px;align-items:center}
+.ring{--p:0;width:92px;height:92px;border-radius:50%;background:conic-gradient(var(--c,var(--pass)) calc(var(--p)*1%),var(--soft) 0);display:grid;place-items:center;flex:none}
+.ring b{width:72px;height:72px;border-radius:50%;background:var(--card);display:grid;place-items:center;font:400 26px var(--serif);color:var(--fg)}
+.params{margin-top:10px}.sec{margin-top:12px}.sec h4{margin:0 0 4px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.prm{display:flex;gap:9px;align-items:flex-start;padding:7px 8px;border-radius:10px;cursor:pointer}.prm:hover{background:var(--soft)}
+.prm .dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:none}
+.prm .lb{font-size:14px;color:var(--fg)}.prm .why{font-size:12px;color:var(--muted)}.prm .ft{font-size:10px;font-weight:600;color:var(--fail);margin-left:6px}
+.prm .pl{font-size:10px;font-weight:600;border:1px solid var(--fg);border-radius:999px;padding:0 6px;margin-left:6px;color:var(--fg)}
+.player{margin-top:12px}.player audio{width:100%}
+.timeline{position:relative;height:30px;background:var(--soft);border-radius:8px;margin-top:6px;cursor:pointer;overflow:hidden}
+.timeline .seg{position:absolute;top:8px;height:14px;border-radius:3px;opacity:.55}.timeline .seg.agent{background:var(--muted)}.timeline .seg.caller{background:var(--accent)}
+.timeline .mk{position:absolute;top:0;width:3px;height:30px;background:var(--fail)}.timeline .head{position:absolute;top:0;width:2px;height:30px;background:var(--fg)}
+.ins{font-size:14px}.ins .sum{color:var(--fg)}.coach{margin:6px 0 0;padding-left:18px}.coach li{margin:4px 0;cursor:pointer}
+.chip{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--soft);border:1px solid var(--line);color:var(--muted);margin:2px 4px 2px 0}
+.empty{color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="in"><span class="brand"><b>Bhool</b> QA Studio</span><span class="spacer"></span>
+<a href="/">Test dashboard</a></div></div>
+<main>
+<section class="hero">
+  <h1>Every call, every segment, every verdict with proof.</h1>
+  <p>One auditor for collections, insurance, healthcare, telecom, banking, e-commerce and KYC. Code checks where words decide,
+  Evon where judgment does. Every fail quoted from the call, every doubt sent to a person. Click any verdict to hear the moment.</p>
+</section>
+
+<h2>Segments</h2>
+<div class="tiles" id="tiles"></div>
+<div id="clientsHead" hidden><h2>Industry playbooks</h2>
+<p class="muted" style="margin:-2px 0 0;max-width:820px;font-size:13px">One playbook per voice-AI vertical: its use case, its customers'
+languages and the rules that bind it become a tailored QA scorecard and an adversarial test suite (<code>bhool playbooks build</code>).
+Brands are fictional.</p></div>
+<div class="tiles" id="clientTiles"></div>
+
+<section class="panel" id="auditPanel" hidden>
+  <div class="row"><b id="segName" style="color:var(--fg)"></b><span class="spacer"></span>
+    <label class="muted" style="font-size:12px">Audit <select id="audit"></select></label></div>
+  <div class="kpis" id="kpis"></div>
+  <h2 style="font-size:20px;margin-top:22px">Every parameter of every call</h2>
+  <div class="heat" id="heat"></div>
+  <div class="legend"><span><i class="v-pass"></i>pass</span><span><i class="v-fail"></i>fail</span><span><i class="v-review"></i>to a human</span>
+    <span><i class="v-na"></i>n/a</span><span><i style="outline:2px solid var(--fg);background:transparent"></i>defect planted on purpose</span></div>
+</section>
+<section class="panel" id="sopPanel" hidden></section>
+
+<section id="callPanel" hidden>
+  <div class="callview">
+    <div class="panel" style="margin:0">
+      <div class="row"><b id="callId" style="color:var(--fg)"></b><span class="spacer"></span><span id="callTags"></span></div>
+      <div class="player" id="player" hidden><audio id="audio" controls preload="metadata"></audio>
+        <div class="timeline" id="timeline"><div class="head" id="head"></div></div></div>
+      <div class="feed" id="feed" style="margin-top:12px"></div>
+    </div>
+    <div class="panel" style="margin:0">
+      <div class="score"><div class="ring" id="ring"><b id="scoreTxt"></b></div>
+        <div><div id="verdictTxt" style="font-weight:600;color:var(--fg)"></div><div class="muted" id="fatalTxt" style="font-size:13px"></div>
+        <div class="muted" id="reviewTxt" style="font-size:13px"></div></div></div>
+      <div class="params" id="params"></div>
+      <div class="ins" id="ins"></div>
+    </div>
+  </div>
+</section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pct = (x) => x == null ? "—" : `${Math.round(x * 100)}%`;
+let data = {scorecards: [], audits: []}, card = null, audit = null, call = null;
+
+const reg = (name) => (name.match(/\(([^)]+)\)\s*$/) || [, ""])[1];
+const short = (name) => name.replace(/\s*\([^)]*\)\s*$/, "").replace(/ QA$/, "");
+
+async function init() {
+  data = await (await fetch("/api/studio")).json();
+  const tile = (c) => {
+    const a = data.audits.find((x) => x.scorecard === c.name);
+    const ev = a && a.evaluation;
+    return `<button class="tile" data-stem="${esc(c.stem)}"><div class="reg">${esc(c.title ? c.sector : (reg(c.name) || "custom"))}</div>
+      <div class="nm">${esc(c.title || short(c.name))}</div>
+      ${c.title ? `<div class="muted" style="font-size:13px;margin:-4px 0 8px">${esc(c.use_case)} · ${esc((c.languages || []).join(", "))}</div>` : ""}
+      <div class="st"><span><b>${c.checks ?? "?"}</b> checks</span><span><b>${c.fatal ?? 0}</b> fatal</span><span><b>${c.code ?? 0}</b> in code</span></div>
+      <div class="st" style="margin-top:6px">${a ? `<span>avg <b>${a.avg_score ?? "—"}</b></span><span>pass <b>${pct(a.pass_rate)}</b></span>` : `<span>no audit yet</span>`}
+      ${ev ? `<span>defects found <b>${pct(ev.planted_recall)}</b></span>` : ""}</div>
+      <div class="meter"><i style="width:${ev ? Math.round((ev.planted_recall || 0) * 100) : 0}%"></i></div></button>`;
+  };
+  const segs = data.scorecards.filter((c) => c.group !== "industries"), clients = data.scorecards.filter((c) => c.group === "industries");
+  $("tiles").innerHTML = segs.map(tile).join("") || `<p class="empty">No scorecards in scorecards/.</p>`;
+  $("clientTiles").innerHTML = clients.map(tile).join("") || `<p class="empty">Run <code>bhool playbooks build</code>.</p>`;
+  $("clientsHead").hidden = !clients.length;
+  document.querySelectorAll(".tile").forEach((t) => t.onclick = () => pick(t.dataset.stem));
+  const first = data.scorecards.find((c) => data.audits.some((a) => a.scorecard === c.name)) || data.scorecards[0];
+  if (first) pick(first.stem);
+}
+
+function pick(stem) {
+  card = data.scorecards.find((c) => c.stem === stem);
+  document.querySelectorAll(".tile").forEach((t) => t.classList.toggle("on", t.dataset.stem === stem));
+  const audits = data.audits.filter((a) => a.scorecard === card.name);
+  $("segName").textContent = card.name;
+  $("sopPanel").hidden = false;
+  $("sopPanel").innerHTML = `${card.regulations ? `<div class="reg" style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.04em">${esc(card.regulations.join(" · "))}</div>` : ""}<b style="color:var(--fg)">${esc(card.agent || "")}</b><p class="muted" style="margin:6px 0 0">${esc(card.sop || "")}</p>
+    ${(card.sections || []).map((s) => `<div class="sec"><h4>${esc(s.name)}</h4>${s.params.map((p) =>
+      `<span class="chip" title="${esc(p.describe)}">${esc(p.label)}${p.fatal ? " · fatal" : ""} · ${esc(p.type)}</span>`).join("")}</div>`).join("")}`;
+  $("auditPanel").hidden = !audits.length;
+  $("callPanel").hidden = true;
+  $("audit").innerHTML = audits.map((a) => `<option value="${esc(a.path)}">${esc(a.generated)} · ${a.calls} calls · ${esc(a.path)}</option>`).join("");
+  $("audit").onchange = () => loadAudit($("audit").value);
+  if (audits.length) loadAudit(audits[0].path);
+}
+
+async function loadAudit(path) {
+  audit = await (await fetch(`/api/studio/audit/${path.split("/").map(encodeURIComponent).join("/")}`)).json();
+  const s = audit.summary || {}, ev = audit.evaluation;
+  const k = [["Calls", s.calls], ["Average score", s.avg_score ?? "—"], ["Pass rate", pct(s.pass_rate)], ["Fatal-error calls", pct(s.fatal_rate)],
+             ["Sent to a human", (s.review_queue || []).length]];
+  if (ev) k.push(["Planted defects found", `${Math.round((ev.planted_recall || 0) * ev.planted)}/${ev.planted}`], ["False fatal alarms", `${ev.false_fatal}/${ev.clean_fatal_calls}`]);
+  $("kpis").innerHTML = k.map(([a, b]) => `<div class="kpi"><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join("");
+  const params = (card.sections || []).flatMap((x) => x.params);
+  const calls = audit.calls;
+  $("heat").innerHTML = `<table><tr><th></th>${calls.map((c, i) => `<th class="c" data-i="${i}">${esc(c.call_id)}</th>`).join("")}</tr>
+    ${params.map((p) => `<tr><th>${esc(p.label)}${p.fatal ? " ·F" : ""}</th>${calls.map((c, i) => {
+      const r = (c.params || []).find((x) => x.id === p.id); const v = r ? r.verdict : "na";
+      const planted = (c.planted || []).includes(p.id);
+      return `<td><button class="cell v-${esc(v)}${planted ? " planted" : ""}" data-i="${i}" data-p="${esc(p.id)}" title="${esc(c.call_id)} · ${esc(p.label)}: ${esc(v)}${planted ? " (planted)" : ""}${r && r.reason ? " — " + esc(r.reason) : ""}"></button></td>`;
+    }).join("")}</tr>`).join("")}</table>`;
+  document.querySelectorAll("#heat .cell, #heat th.c").forEach((b) => b.onclick = () => openCall(+b.dataset.i, b.dataset.p));
+  if (calls.length) openCall(Math.max(0, calls.findIndex((c) => !c.passed)), null, false);
+}
+
+function openCall(i, focus, scroll = true) {
+  call = audit.calls[i];
+  $("callPanel").hidden = false;
+  $("callId").textContent = call.call_id;
+  const m = call.meta || {};
+  $("callTags").innerHTML = [m.segment, m.lang, m.voiced ? "voiced: Timbre → phone line → Prisma" : (call.audio ? "recording" : "transcript"),
+    ...(call.timing_planted || []).map((t) => "planted: " + t)].filter(Boolean).map((t) => `<span class="chip">${esc(t)}</span>`).join("");
+  const flagged = {};
+  (call.params || []).forEach((p) => (p.verdict === "fail" || p.verdict === "review") && (p.evidence || []).forEach((e) => (flagged[e.turn] ||= []).push(p.id)));
+  $("feed").innerHTML = (call.turns || []).map((t, k) => !String(t.text || "").trim() ? "" : `<div class="msg ${t.speaker === "agent" ? "agent" : "caller"}${flagged[k] ? " flag" : ""}" id="t${k}" data-t="${t.start ?? ""}">
+    <span class="meta"><span>T${k} · ${t.speaker === "agent" ? "Agent" : "Customer"}</span>${t.start != null ? `<span>${(+t.start).toFixed(1)}s</span>` : ""}
+    ${(flagged[k] || []).map((p) => `<span class="tag" data-p="${esc(p)}">${esc(p)}</span>`).join("")}</span>${esc(t.text)}</div>`).join("");
+  document.querySelectorAll("#feed .tag").forEach((t) => t.onclick = () => focusParam(t.dataset.p));
+  document.querySelectorAll("#feed .msg").forEach((el) => el.ondblclick = () => seek(+el.dataset.t));
+  const sc = call.score ?? 0;
+  $("ring").style.setProperty("--p", sc);
+  $("ring").style.setProperty("--c", call.passed ? "var(--pass)" : "var(--fail)");
+  $("scoreTxt").textContent = call.score == null ? "—" : Math.round(sc);
+  $("verdictTxt").textContent = call.error ? "Audit error" : (call.passed ? "Passes the scorecard" : "Fails the scorecard");
+  $("fatalTxt").textContent = (call.fatal || []).length ? `Fatal: ${call.fatal.join(", ")}` : "No fatal errors";
+  $("reviewTxt").textContent = (call.review || []).length ? `To a human: ${call.review.join("; ")}` : "";
+  const byId = Object.fromEntries((call.params || []).map((p) => [p.id, p]));
+  const color = {pass: "var(--pass)", fail: "var(--fail)", review: "var(--warn)"};
+  $("params").innerHTML = (card.sections || []).map((s) => `<div class="sec"><h4>${esc(s.name)} ${call.sections && call.sections[s.id] != null ? "· " + Math.round(call.sections[s.id]) : ""}</h4>
+    ${s.params.map((p) => { const r = byId[p.id] || {verdict: "na"};
+      return `<div class="prm" data-p="${esc(p.id)}"><span class="dot" style="background:${color[r.verdict] || "var(--na)"}"></span><div>
+        <span class="lb">${esc(p.label)}</span>${p.fatal ? `<span class="ft">FATAL</span>` : ""}${(call.planted || []).includes(p.id) ? `<span class="pl">planted</span>` : ""}
+        <div class="why">${esc(r.verdict)}${r.agreement != null && r.source === "judge" ? ` · agreement ${Math.round(r.agreement * 100)}%` : ""}${r.source ? " · " + esc(r.source) : ""}${r.reason ? " — " + esc(r.reason) : ""}</div>
+        ${(call.plants || []).filter((x) => x.parameter === p.id).map((x) => `<div class="why"><b>planted at T${x.turn}:</b> “${esc(x.text)}”</div>`).join("")}
+        ${(r.evidence || []).slice(0, 2).map((e) => `<div class="why">T${e.turn}${e.t != null ? " @" + (+e.t).toFixed(1) + "s" : ""}: “${esc(e.quote)}”</div>`).join("")}</div></div>`; }).join("")}</div>`).join("");
+  document.querySelectorAll("#params .prm").forEach((el) => el.onclick = () => focusParam(el.dataset.p));
+  const ins = call.insights || {};
+  const sent = (ins.sentiment || []);
+  const spark = sent.length > 1 ? `<svg viewBox="0 0 100 30" width="160" height="40" aria-label="customer sentiment over the call"><polyline fill="none" stroke="var(--accent)" stroke-width="2"
+    points="${sent.map((s, j) => `${(j / (sent.length - 1) * 100).toFixed(1)},${(15 - (s.score || 0) * 6.5).toFixed(1)}`).join(" ")}"/></svg>` : "";
+  $("ins").innerHTML = ins.summary ? `<h4 class="muted" style="margin:16px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.04em">Evon insights</h4>
+    <div class="sum">${esc(ins.summary)}</div><div style="margin-top:6px">${ins.disposition ? `<span class="chip">${esc(ins.disposition)}</span>` : ""}${(ins.topics || []).map((t) => `<span class="chip">${esc(t)}</span>`).join("")}</div>
+    ${spark ? `<div class="muted" style="font-size:12px;margin-top:6px">Customer sentiment ${spark}</div>` : ""}
+    ${ins.root_cause ? `<div style="margin-top:6px"><b style="color:var(--fg)">Root cause:</b> ${esc(ins.root_cause)}</div>` : ""}
+    ${(ins.coaching || []).length ? `<b style="color:var(--fg);display:block;margin-top:8px">Coaching</b><ol class="coach">${ins.coaching.map((c) =>
+      `<li data-turn="${c.turn}">T${c.turn}: ${esc(c.tip)}</li>`).join("")}</ol>` : ""}` : "";
+  document.querySelectorAll(".coach li").forEach((li) => li.onclick = () => flash(+li.dataset.turn));
+  setupAudio();
+  if (focus) focusParam(focus);
+  if (scroll) $("callPanel").scrollIntoView({behavior: "smooth", block: "start"});
+}
+
+function setupAudio() {
+  const has = !!call.audio;
+  $("player").hidden = !has;
+  if (!has) return;
+  const a = $("audio");
+  a.src = call.audio;
+  const dur = Math.max(...(call.turns || []).map((t) => +t.end || 0), 1);
+  const segs = (call.turns || []).map((t) => `<div class="seg ${t.speaker === "agent" ? "agent" : "caller"}" style="left:${t.start / dur * 100}%;width:${Math.max(0.5, (t.end - t.start) / dur * 100)}%"></div>`).join("");
+  const marks = (call.params || []).filter((p) => p.verdict === "fail").flatMap((p) => (p.evidence || []).filter((e) => e.t != null)
+    .map((e) => `<div class="mk" style="left:${e.t / dur * 100}%" title="${esc(p.id)}"></div>`)).join("");
+  $("timeline").innerHTML = segs + marks + `<div class="head" id="head"></div>`;
+  $("timeline").onclick = (ev) => { const r = $("timeline").getBoundingClientRect(); seek((ev.clientX - r.left) / r.width * dur); };
+  a.ontimeupdate = () => { $("head").style.left = `${a.currentTime / dur * 100}%`; };
+}
+
+function seek(t) {
+  if (!call.audio || isNaN(t)) return;
+  const a = $("audio"); a.currentTime = Math.max(0, t - 0.3); a.play().catch(() => {});
+}
+
+function flash(turn) {
+  document.querySelectorAll(".msg.hl").forEach((m) => m.classList.remove("hl"));
+  const el = $("t" + turn); if (!el) return;
+  el.classList.add("hl"); el.scrollIntoView({behavior: "smooth", block: "center"});
+}
+
+function focusParam(pid) {
+  const r = (call.params || []).find((p) => p.id === pid);
+  document.querySelectorAll(".msg.hl").forEach((m) => m.classList.remove("hl"));
+  const ev = (r && r.evidence) || [];
+  ev.forEach((e) => $("t" + e.turn) && $("t" + e.turn).classList.add("hl"));
+  if (ev[0]) { flash(ev[0].turn); ev.forEach((e) => $("t" + e.turn) && $("t" + e.turn).classList.add("hl")); seek(ev[0].t); }
+}
+
+init();
+</script>
+</body>
+</html>

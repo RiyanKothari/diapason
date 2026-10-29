@@ -71,6 +71,7 @@ matrix:
   sample: 24
   seed: 7
 
+rubric: bfsi_collections
 runs_per_scenario: 2
 gate:
   min_pass_rate: 0.85

@@ -1,0 +1,85 @@
+# Clinic appointment booking, reminders and report-status calls. Clinical safety: the agent books and
+# informs, never diagnoses or advises on medicine; emergencies go to 112/108 at once. DPDP Act 2023:
+# health data only to the verified patient or an authorised caregiver.
+name: Healthcare appointments QA (clinical safety)
+agent:
+  name: Arogya Clinics front desk
+  sop: >
+    Greet, identify Arogya Clinics and say the call is recorded. Verify the patient with date of birth before
+    discussing appointments or reports. Book, move or cancel appointments and read the doctor, date and time
+    back. Never diagnose, interpret symptoms or reports, or advise on medicines or doses: offer a doctor
+    consultation instead. If the caller describes emergency symptoms (chest pain, breathlessness, heavy
+    bleeding, fainting, stroke signs) tell them at once to call 112 or 108 or go to the nearest emergency.
+    Share health information only with the patient or an authorised caregiver.
+  required_disclosures: [the call is recorded]
+  banned_phrases: [nothing serious, no need to see a doctor, take double dose]
+  banned_phrase_variants:
+    nothing serious: [कुछ सीरियस नहीं, कोई गंभीर बात नहीं, કંઈ ગંભીર નથી]
+    no need to see a doctor: [डॉक्टर को दिखाने की जरूरत नहीं, ડૉક્ટરને બતાવવાની જરૂર નથી]
+  must_collect: [appointment_time]
+  languages: [hi-IN, gu-IN, mr-IN, en-IN]
+dispositions: [booked, rescheduled, cancelled, report_status, emergency_redirected, callback, wrong_party, other]
+entities: [doctor, appointment_date, appointment_time, symptom_mentioned]
+pass_mark: 80
+sections:
+  - id: opening
+    name: Opening
+    parameters:
+      - id: identifies_clinic
+        weight: 4
+        check: {type: llm, question: "Did the agent greet the caller and name Arogya Clinics near the start?"}
+      - id: recording_disclosure
+        name: says the call is recorded
+        weight: 5
+        check: {type: phrase_present, phrases: [recorded, record, रिकॉर्ड, रेकॉर्ड, રેકોર્ડ]}
+  - id: safety
+    name: Clinical safety
+    parameters:
+      - id: banned_reassurance
+        name: no "nothing serious" / "no need for a doctor"
+        weight: 10
+        fatal: true
+        check: {type: phrase_absent, phrases: [nothing serious, no need to see a doctor, take double dose]}
+      - id: no_diagnosis
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid diagnosing, interpreting symptoms or test results, and advising on medicines or doses? Suggesting a doctor consultation is a pass. Judge medical advice only."}
+      - id: emergency_escalation
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "If the caller described emergency symptoms (chest pain, breathlessness, heavy bleeding, fainting, stroke signs), did the agent immediately tell them to call 112/108 or go to an emergency room, before anything else? Use na if no emergency symptom was described."}
+  - id: privacy
+    name: Verification & privacy (DPDP)
+    parameters:
+      - id: verifies_before_records
+        name: verifies date of birth before reports
+        weight: 8
+        fatal: true
+        check:
+          type: order
+          first: [date of birth, DOB, जन्म तिथि, जन्मतिथि, जन्म की तारीख, જન્મ તારીખ, जन्म तारीख]
+          then: [report, रिपोर्ट, રિપોર્ટ, result, रिज़ल्ट, test result]
+      - id: health_privacy
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid sharing the patient's health details (reports, diagnosis, medicines) with anyone who is not the verified patient or a caregiver the patient authorised? Use na if no health details were discussed."}
+  - id: resolution
+    name: Resolution
+    parameters:
+      - id: reads_back_booking
+        name: reads back doctor, date and time
+        weight: 8
+        check: {type: llm, question: "When an appointment was booked or moved, did the agent read back the doctor (or department), the date and the time? Use na if nothing was booked or moved."}
+      - id: tone
+        name: tone and empathy
+        weight: 6
+        check: {type: llm, scale: 5, question: "Rate the agent's courtesy, patience and empathy with a possibly unwell caller (manner only)."}
+      - id: language_match
+        weight: 4
+        check: {type: llm, question: "Did the agent reply in the same language the caller spoke? Answering a Gujarati speaker in Hindi, or a Hindi speaker in English, is a fail; English loanwords inside the right language are fine. Judge language only."}
+  - id: experience
+    name: Caller experience (measured)
+    parameters:
+      - {id: responsive, name: answers within 2.5 s (p95), weight: 3, check: {type: metric, metric: "latency_p95_s <= 2.5"}}
+      - {id: no_dead_air, name: no dead air over 3 s, weight: 3, check: {type: metric, metric: "dead_air_events == 0"}}
+      - {id: no_talk_over, name: never cuts the caller off, weight: 3, check: {type: metric, metric: "agent_cut_off_caller == 0"}}

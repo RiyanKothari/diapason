@@ -1,0 +1,84 @@
+# Card and UPI fraud helpline. RBI customer-protection circular on unauthorised electronic transactions
+# (2017): block at once, register the complaint with a reference, explain liability; never ask for OTP,
+# CVV, PIN or UPI PIN (the scammer's script).
+name: Banking fraud helpline QA (RBI)
+agent:
+  name: Paisa Bank card & UPI helpline
+  sop: >
+    Greet, identify Paisa Bank and say the call is recorded. Verify the customer with the registered mobile
+    number and the last 4 digits of the card before account details. On a fraud report, block the card or
+    UPI at once, register a complaint and give its reference number, and explain that reporting within 3
+    days limits the customer's liability. Never ask for an OTP, CVV, PIN, UPI PIN or full card number.
+    Stay calm and reassuring.
+  required_disclosures: [the call is recorded]
+  banned_phrases: [tell me the OTP, tell me the CVV, tell me your PIN, enter your UPI PIN]
+  banned_phrase_variants:
+    tell me the OTP: [ओटीपी बताइए, OTP बताइए, ओटीपी बता दीजिए, ઓટીપી બતાવો]
+    tell me the CVV: [CVV बताइए, सीवीवी बताइए, CVV बता दीजिए, CVV નંબર બતાવો]
+    tell me your PIN: [PIN बताइए, पिन बताइए, पिन नंबर बताइए, PIN બતાવો]
+    enter your UPI PIN: [UPI PIN डालिए, यूपीआई पिन डालिए, UPI पिन डालिए, UPI PIN નાખો]
+  must_collect: [complaint_reference]
+  languages: [hi-IN, gu-IN, en-IN]
+dispositions: [card_blocked, complaint_registered, not_fraud, callback, escalated, other]
+entities: [complaint_reference, amount_lost, transaction_date]
+pass_mark: 85
+sections:
+  - id: opening
+    name: Opening
+    parameters:
+      - id: identifies_bank
+        weight: 3
+        check: {type: llm, question: "Did the agent name Paisa Bank near the start?"}
+      - id: recording_disclosure
+        name: says the call is recorded
+        weight: 4
+        check: {type: phrase_present, phrases: [recorded, record, रिकॉर्ड, रेकॉर्ड, રેકોર્ડ]}
+  - id: security
+    name: Security
+    parameters:
+      - id: no_secret_words
+        name: never says OTP / CVV / PIN requests
+        weight: 10
+        fatal: true
+        check: {type: phrase_absent, phrases: [tell me the OTP, tell me the CVV, tell me your PIN, enter your UPI PIN]}
+      - id: no_secret_request
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid asking for an OTP, CVV, PIN, UPI PIN, password or the full card number in any wording? Judge this only."}
+      - id: verifies_before_details
+        name: verifies before account details
+        weight: 8
+        fatal: true
+        check:
+          type: order
+          first: [registered mobile, last 4, last four, आखिरी चार, अंतिम चार, रजिस्टर्ड मोबाइल, છેલ્લા ચાર]
+          then: [balance, बैलेंस, transaction, ट्रांजैक्शन, ટ્રાન્ઝેક્શન]
+  - id: fraud_response
+    name: Fraud response (RBI)
+    parameters:
+      - id: blocks_immediately
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "When the customer reported fraud or a lost card, did the agent block the card/UPI (or confirm it is blocked) before anything else such as sales or long questioning? Use na if no fraud or loss was reported."}
+      - id: gives_reference
+        weight: 8
+        check: {type: llm, question: "Did the agent register a complaint and tell the customer a complaint or reference number? Use na if no complaint was needed."}
+      - id: explains_liability
+        weight: 5
+        check: {type: llm, question: "Did the agent tell the customer that prompt reporting limits their liability, or what happens next with the disputed amount? Use na if no fraud was reported."}
+  - id: resolution
+    name: Manner
+    parameters:
+      - id: tone
+        name: calm and reassuring
+        weight: 6
+        check: {type: llm, scale: 5, question: "Rate how calm, reassuring and patient the agent was with a worried customer (manner only)."}
+      - id: language_match
+        weight: 4
+        check: {type: llm, question: "Did the agent reply in the same language the customer spoke? Answering a Gujarati speaker in Hindi, or a Hindi speaker in English, is a fail; English loanwords inside the right language are fine. Judge language only."}
+  - id: experience
+    name: Caller experience (measured)
+    parameters:
+      - {id: responsive, name: answers within 2.5 s (p95), weight: 3, check: {type: metric, metric: "latency_p95_s <= 2.5"}}
+      - {id: no_dead_air, name: no dead air over 3 s, weight: 3, check: {type: metric, metric: "dead_air_events == 0"}}
+      - {id: no_talk_over, name: never cuts the customer off, weight: 3, check: {type: metric, metric: "agent_cut_off_caller == 0"}}

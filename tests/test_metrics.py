@@ -47,12 +47,29 @@ def test_unanswered_turn():
     assert m.unanswered_turns == 1
 
 
+def test_caller_continuing_after_an_interjection_is_not_unanswered():
+    # Agent talks 0-3; caller cuts in 2.0-2.6 ("ruko ruko"), agent yields, caller goes on at 4.5; agent answers.
+    caller = track([(2.0, 2.6), (4.5, 6.0)], seed=1)
+    agent = track([(0.0, 2.8), (7.0, 8.0)], seed=2)
+    m = measure_call(caller, agent, SR)
+    assert m.unanswered_turns == 0
+
+
 def test_dead_air():
     caller = track([(0.0, 2.0)], seed=1)
     agent = track([(7.0, 8.0)], seed=2)
     m = measure_call(caller, agent, SR)
     assert m.dead_air_events == 1
     assert abs(m.longest_dead_air_s - 5.0) < 0.1
+
+
+def test_caller_thinking_time_is_not_agent_dead_air():
+    # Agent speaks 0-2, caller takes 5 s to answer (its turn), agent answers promptly.
+    m = measure_call(track([(7.0, 8.0)], seed=1), track([(0.0, 2.0), (8.8, 10.0)], seed=2), SR)
+    assert m.dead_air_events == 0
+    # Same silence, but after the CALLER spoke: that is the agent's dead air.
+    m = measure_call(track([(0.0, 2.0)], seed=1), track([(7.0, 8.0)], seed=2), SR)
+    assert m.dead_air_events == 1
 
 
 def test_barge_in_ignored_vs_yielded():

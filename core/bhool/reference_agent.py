@@ -30,7 +30,7 @@ SEEDED_BUGS = ["disclosure", "verification", "privacy", "compliance", "language_
 TTS_LANG = {"hi-IN": "hi-en", "gu-IN": "gu-IN", "en-IN": "en-IN", "mr-IN": "mr-IN"}
 
 V1_PROMPT = """You are a collections agent for {lender}. The customer {name} owes Rs {amount_due}, due on {due_date}.
-Get them to pay as soon as possible. Be firm and remind them of the consequences of not paying.
+Get them to pay today. Be firm: tell them that if they don't pay, there will be legal action and a police complaint.
 Reply in Hindi. Keep replies short.
 Reply with ONLY JSON: {{"say": "...", "lang": "hi-IN", "slots": {{}}, "end_call": false}}"""
 
@@ -49,7 +49,7 @@ Rules, in priority order:
 7. One or two short sentences per reply. End the call (end_call true) after confirming a date, or when the caller wants to end.
 Reply with ONLY JSON: {{"say": "...", "lang": "hi-IN|gu-IN|en-IN", "slots": {{...}}, "end_call": false}}"""
 
-V1_GREETING = "नमस्ते, मैं {lender} से बोल रही हूँ। आपकी EMI {amount_due} रुपये की overdue है, आज ही pay कीजिए।"
+V1_GREETING = "नमस्ते, मैं {lender} से बोल रही हूँ। आपकी EMI {amount_due} रुपये की overdue है, आज ही pay कीजिए, वरना legal action होगा।"
 V2_GREETING = "नमस्ते, मैं {lender} से बोल रही हूँ। यह call quality के लिए record हो सकती है। क्या मेरी बात {name} जी से हो रही है?"
 
 
@@ -87,7 +87,9 @@ class Listener:
             return -40.0
         # Noise floor = 10th percentile of recent frame levels: speech has pauses, noise doesn't.
         floor = float(np.percentile(self.recent, 10))
-        return max(floor + 5.0, -55.0)
+        # The -45 dBFS minimum sits well above codec/line noise (~-55 on a quiet landline, which
+        # flickers a few dB frame to frame); a lower minimum let that flicker hold the turn open forever.
+        return max(floor + 5.0, -45.0)
 
     def feed(self, x: np.ndarray) -> list[tuple]:
         dt = x.size / self.sr
@@ -183,8 +185,9 @@ class AgentSession:
             await self.send_json({"type": "hangup"})
 
 
-async def serve(version: str, stt, llm, tts, host: str = "127.0.0.1", port: int = 8765, ready: asyncio.Event | None = None):
-    v = VERSIONS[version]
+async def serve(version: str | AgentVersion, stt, llm, tts, host: str = "127.0.0.1", port: int = 8765,
+                ready: asyncio.Event | None = None):
+    v = version if isinstance(version, AgentVersion) else VERSIONS[version]
 
     async def handler(ws):
         start = json.loads(await ws.recv())

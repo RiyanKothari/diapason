@@ -123,6 +123,53 @@ class ScriptedBrain:
         return Utterance(self._interjection)
 
 
+class ToneCodec:
+    """Offline stand-in for TTS + STT that round-trips text through audio.
+
+    Each utterance is registered and rendered as a tone whose pitch encodes its index; decoding
+    finds the pitch with an FFT. So an offline demo 'hears' exactly what the agent said, across
+    concurrent calls, with no model. Only valid on clean (unchannelled) audio such as the agent's.
+    """
+
+    BASE, STEP, SLOTS = 300.0, 12.0, 60
+
+    def __init__(self, sr: int = 16000, seconds_per_char: float = 0.035):
+        self.sr, self.spc = sr, seconds_per_char
+        self.texts: dict[int, str] = {}
+        self.next = 0
+
+    def encode(self, text: str) -> tuple[np.ndarray, int]:
+        idx = self.next % self.SLOTS
+        self.next += 1
+        self.texts[idx] = text
+        secs = min(6.0, max(0.8, len(text) * self.spc))
+        t = np.arange(int(secs * self.sr)) / self.sr
+        env = 0.6 + 0.4 * np.abs(np.sin(2 * np.pi * 2 * t))
+        return (0.25 * env * np.sin(2 * np.pi * (self.BASE + idx * self.STEP) * t)).astype(np.float32), self.sr
+
+    def decode(self, audio: np.ndarray, sr: int) -> str:
+        if audio.size < sr * 0.1:
+            return ""
+        spec = np.abs(np.fft.rfft(audio * np.hanning(audio.size)))
+        f = np.fft.rfftfreq(audio.size, 1 / sr)
+        band = (f >= self.BASE - self.STEP) & (f <= self.BASE + self.SLOTS * self.STEP)
+        # A codec tone towers over the spectrum even through a noisy phone line; a segment of pure
+        # noise (e.g. a VAD fooled by a crowd) has no such peak and must decode to nothing.
+        if spec[band].max() < 12 * np.median(spec[band]):
+            return ""
+        peak = f[band][np.argmax(spec[band])]
+        idx = int(round((peak - self.BASE) / self.STEP))
+        return self.texts.get(idx, "")
+
+
+def scripted_agent_llm(lines: list[dict]):
+    """Agent-side fake LLM: the n-th caller utterance gets the n-th scripted reply."""
+    def llm(messages: list[dict]) -> dict:
+        n = sum(m["role"] == "user" for m in messages)
+        return dict(lines[min(n, len(lines)) - 1])
+    return llm
+
+
 def fake_speak(seconds_per_char: float = 0.03, min_s: float = 0.6, max_s: float = 2.5):
     def speak(utt: Utterance, persona) -> tuple[np.ndarray, int]:
         return tone(min(max_s, max(min_s, len(utt.text) * seconds_per_char)), 16000, f0=240), 16000

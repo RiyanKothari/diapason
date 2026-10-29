@@ -51,7 +51,10 @@ class AgentSpec(BaseModel):
     name: str
     sop: str = Field(..., description="Standard operating procedure / system prompt summary")
     required_disclosures: list[str] = []
+    disclosure_phrases: list[str] = []   # words that prove a disclosure was said (any one), checked in code, e.g. [record, रिकॉर्ड]
     banned_phrases: list[str] = []
+    # Extra native-script spellings, e.g. {"legal action": ["कानूनी कार्रवाई"]}; built-ins cover common loanwords.
+    banned_phrase_variants: dict[str, list[str]] = {}
     must_collect: list[str] = []   # slots, e.g. ["loan_id", "promise_to_pay_date"]
     languages: list[str] = ["hi-IN"]
 
@@ -88,6 +91,9 @@ class Behaviour(BaseModel):
     interrupt_prob: float = Field(0.0, ge=0, le=1)   # chance per agent turn of barging in
     silence_s: float = Field(0.0, ge=0)              # stays silent this long at some point
     max_turns: int = Field(12, ge=1, le=60)
+    # Exact words for given replies (1 = the caller's first reply). A model role-playing a caller drifts back
+    # to its persona and may never deliver the attack; a pinned line always lands.
+    lines: dict[int, str] = {}
 
 
 class Scenario(BaseModel):
@@ -119,6 +125,7 @@ class Case(BaseModel):
 class Gate(BaseModel):
     min_pass_rate: float = Field(0.85, ge=0, le=1)
     max_p95_latency_ms: int | None = 2500
+    check_dead_air: bool = True     # off when the agent's response time is not the agent's own (see demo.run_version)
 
 
 class Suite(BaseModel):
@@ -133,6 +140,13 @@ class Suite(BaseModel):
     cases: list[Case] = []
     runs_per_scenario: int = Field(1, ge=1, le=10)
     gate: Gate = Gate()
+    rubric: str = "general"    # judge pack: general, bfsi_collections, insurance, healthcare, telecom, kyc
+
+    @model_validator(mode="after")
+    def _known_rubric(self):
+        from ..judge.packs import get_pack
+        get_pack(self.rubric)
+        return self
 
     @model_validator(mode="after")
     def _merge_library(self):

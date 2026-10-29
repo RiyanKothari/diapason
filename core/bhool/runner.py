@@ -15,6 +15,7 @@ import numpy as np
 from .call.engine import CallRecord, Hear, Speak, run_call
 from .call.transport import AgentConnection
 from .caller.brain import Brain
+from .judge.packs import get_pack
 from .judge.rubric import CallVerdict, judge_call
 from .scenarios.schema import Scenario, Suite
 
@@ -248,7 +249,8 @@ async def run_suite(
                 emit({"type": "call_error", "scenario": s.id, "run": run, "error": repr(e)})
                 return
             try:
-                v = await asyncio.to_thread(judge_call, rec, suite.agent, s.persona, suite.gate, judge_c, None, judge_samples)
+                v = await asyncio.to_thread(judge_call, rec, suite.agent, s.persona, suite.gate, judge_c,
+                                            get_pack(suite.rubric), judge_samples)
             except BudgetExceeded:
                 skipped.append(f"{s.id}#{run}")
                 emit({"type": "call_skipped", "scenario": s.id, "run": run, "reason": usage.exhausted})
@@ -275,6 +277,51 @@ async def run_suite(
     write_junit(report, root / "junit.xml")
     emit({"type": "suite_end", "run_id": run_id, "pass_rate": report.pass_rate, "gate_passed": report.gate_passed,
           "report": str(root / "report.html")})
+    return report
+
+
+def load_call(call_json: Path) -> CallRecord:
+    """Rebuild a CallRecord from its saved call.json, re-measuring metrics from the saved recordings."""
+    from .audio import read_wav
+    from .caller.brain import Turn
+    from .judge.metrics import Segment, measure_call
+    d = json.loads(Path(call_json).read_text(encoding="utf-8"))
+    caller, sr = read_wav(Path(call_json).parent / "caller.wav")
+    agent, _ = read_wav(Path(call_json).parent / "agent.wav")
+    truth = [Segment(s["start"], s["end"]) for s in d["caller_segments"]]
+    return CallRecord(
+        scenario_id=d["scenario_id"], run=d["run"], end_reason=d["end_reason"], duration_s=d["duration_s"],
+        turns=[Turn(**t) for t in d["turns"]], caller_segments=truth,
+        metrics=measure_call(caller, agent, sr, caller_segments=truth),
+        dispositions=d.get("dispositions", []), events=d.get("events", []),
+        caller_wav=d.get("caller_wav"), agent_wav=d.get("agent_wav"),
+    )
+
+
+def rejudge_run(run_dir: str | Path, suite: Suite, evon_judge=None, judge_samples: int = 3) -> SuiteReport:
+    """Re-score a saved run with the current metrics, code checks and (optionally) Evon. No calls are re-made."""
+    root = Path(run_dir)
+    old = json.loads((root / "report.json").read_text(encoding="utf-8"))
+    by_id = {s.id: s for s in suite.expand()}
+    records, verdicts, used = [], [], []
+    for cj in sorted(root.glob("*/run*/call.json")):
+        rec = load_call(cj)
+        scen = by_id.get(rec.scenario_id)
+        if scen is None:
+            continue    # scenario no longer in the suite
+        records.append(rec)
+        used.append(scen)
+        verdicts.append(judge_call(rec, suite.agent, scen.persona, suite.gate, evon_judge, get_pack(suite.rubric), judge_samples))
+    uniq = list({s.id: s for s in used}.values())
+    report = aggregate(suite, old["run_id"], time.time(), records, verdicts, uniq, old.get("usage", {}))
+    report.dir, report.label = str(root), old.get("label", "")
+    backup = root / "report.before-rejudge.json"
+    if not backup.exists():
+        backup.write_text((root / "report.json").read_text(encoding="utf-8"), encoding="utf-8")
+    (root / "report.json").write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+    from .report import write_html, write_junit
+    write_html(report, root / "report.html")
+    write_junit(report, root / "junit.xml")
     return report
 
 

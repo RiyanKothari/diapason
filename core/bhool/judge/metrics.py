@@ -127,9 +127,21 @@ def measure_call(
     if caller.size != agent.size:
         n = max(caller.size, agent.size)
         caller, agent = np.pad(caller, (0, n - caller.size)), np.pad(agent, (0, n - agent.size))
-    duration = caller.size / sr
     c_segs = sorted(caller_segments, key=lambda s: s.start) if caller_segments is not None else speech_segments(caller, sr)
-    a_segs = speech_segments(agent, sr)
+    return measure_segments(c_segs, speech_segments(agent, sr), caller.size / sr,
+                            turn_gap_s, dead_air_s, yield_s, answer_window_s)
+
+
+def measure_segments(
+    c_segs: list[Segment],
+    a_segs: list[Segment],
+    duration: float,
+    turn_gap_s: float = 0.7,
+    dead_air_s: float = 3.0,
+    yield_s: float = 1.5,
+    answer_window_s: float = 8.0,
+) -> CallMetrics:
+    """The timing metrics from who-spoke-when alone: from audio (via VAD) or a timestamped transcript."""
     c_turns = group_turns(c_segs, a_segs, turn_gap_s)
     a_turns = group_turns(a_segs, c_segs, turn_gap_s)
 
@@ -142,16 +154,21 @@ def measure_call(
         onset = next((a.start for a in a_segs if ct.end <= a.start), None)
         if onset is not None and onset - ct.end <= answer_window_s and onset <= nxt_caller:
             latencies.append(round(onset - ct.end, 3))
+        elif nxt_caller - ct.end < answer_window_s / 2 and i + 1 < len(c_turns):
+            continue    # the caller kept the floor (e.g. "wait wait", then their point): nothing to answer yet
         elif ct.end + answer_window_s <= duration or nxt_caller < duration:
             unanswered += 1
 
-    # Dead air: nobody speaking, between the first and last speech of the call.
-    all_segs = sorted(c_segs + a_segs, key=lambda s: s.start)
-    gaps, cursor = [], None
-    for s in all_segs:
-        if cursor is not None and s.start > cursor:
+    # Dead air: nobody speaking while it is the AGENT's turn, i.e. the silence follows caller speech.
+    # Silence after the agent spoke is the caller's thinking time (for a synthetic caller, the harness's
+    # own synthesis time) and must never be held against the agent.
+    tagged = sorted([(s, "caller") for s in c_segs] + [(s, "agent") for s in a_segs], key=lambda x: x[0].start)
+    gaps, cursor, last = [], None, None
+    for s, who in tagged:
+        if cursor is not None and s.start > cursor and last == "caller":
             gaps.append(s.start - cursor)
-        cursor = s.end if cursor is None else max(cursor, s.end)
+        if cursor is None or s.end >= cursor:
+            cursor, last = s.end, who
     long_gaps = [g for g in gaps if g >= dead_air_s]
 
     # Overlap and barge-in handling.

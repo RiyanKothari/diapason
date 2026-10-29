@@ -4,49 +4,67 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Bhool Bhulaiya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#6b6a65;--card:#fff;--line:#e6e3dc;--soft:#f3f1ec;--pass:#2f7d4f;--fail:#b3402f;--warn:#a8741a;--accent:#3b5bdb;--caller:#eef1fb;--agent:#f3f1ec}
-@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#9b9a94;--card:#1f1f1c;--line:#33322e;--soft:#262623;--pass:#5cbf83;--fail:#e97a68;--warn:#e0b25a;--accent:#8ea4ff;--caller:#232838;--agent:#2a2926}}
+:root{--bg:#f9fafb;--fg:#111111;--text:#333333;--muted:#636363;--card:#ffffff;--soft:#f5f5f5;--line:rgba(0,0,0,.1);--ink:#000000;--ink-fg:#ffffff;
+  --accent:#4169e1;--pass:#1f7a4d;--fail:#c2410c;--warn:#a16207;--caller:#eef2fd;--agent:#f5f5f5;--cream:#fcf7f2;
+  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;--sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#0b0b0c;--fg:#f4f4f5;--text:#d4d4d8;--muted:#9a9aa2;--card:#141416;--soft:#1c1c1f;--line:rgba(255,255,255,.1);
+  --ink:#ffffff;--ink-fg:#000000;--accent:#7b96ff;--pass:#4ade80;--fail:#fb923c;--warn:#facc15;--caller:#1a2140;--agent:#1c1c1f;--cream:#1a1714}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:20px 16px 8px;max-width:1280px;margin:0 auto}
-header h1{font-size:22px;margin:0}header .sub{color:var(--muted)}
-.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--soft);color:var(--muted)}
-.pill.on{background:var(--accent);color:#fff}.pill.pass{background:var(--pass);color:#fff}.pill.fail{background:var(--fail);color:#fff}
-main{max-width:1280px;margin:0 auto;padding:0 16px 64px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0}
-.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
-label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:4px}
-select,input{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0}
-input[type=number]{width:80px}input[type=text]{width:220px}
-button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:8px 16px;background:var(--accent);color:#fff;cursor:pointer}
-button:disabled{opacity:.5;cursor:default}
-.check{flex-direction:row;align-items:center;gap:6px;font-size:14px;color:var(--fg)}
-.est{font-size:13px;color:var(--muted);margin-top:8px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}.kpi span{font-size:12px;color:var(--muted)}.kpi b{display:block;font-size:22px}
-.bar{height:6px;background:var(--soft);border-radius:999px;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;margin-top:12px}
-.call{background:var(--card);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;max-height:460px}
-.call.pass{border-color:var(--pass)}.call.fail{border-color:var(--fail)}
-.call .head{padding:10px 12px;border-bottom:1px solid var(--line)}
-.call .title{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:14px}
-.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.chip{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--soft);color:var(--muted)}
-.feed{padding:8px 12px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px}
-.msg{max-width:88%;padding:6px 9px;border-radius:10px;font-size:14px}
-.msg.caller{align-self:flex-end;background:var(--caller)}.msg.agent{align-self:flex-start;background:var(--agent)}
-.msg .meta{display:block;font-size:11px;color:var(--muted)}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+.topbar{border-bottom:1px solid var(--line);background:var(--card)}
+.topbar .in{max-width:1280px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{font:500 15px var(--sans);color:var(--fg);letter-spacing:-.01em}.brand b{font-weight:600}
+.built{font-size:13px;color:var(--muted)}.spacer{flex:1}
+.hero{max-width:1280px;margin:0 auto;padding:36px 16px 8px}
+.hero h1{font:400 clamp(32px,5vw,52px)/1.05 var(--serif);color:var(--fg);margin:0;letter-spacing:-.01em}
+.hero p{margin:10px 0 0;color:var(--muted);max-width:640px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:500;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7}
+.pill.on{color:var(--accent)}.pill.pass{color:var(--pass)}.pill.fail{color:var(--fail)}
+main{max-width:1280px;margin:0 auto;padding:0 16px 72px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:20px 0}
+.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:end}
+label{display:flex;flex-direction:column;font-size:12px;font-weight:500;color:var(--muted);gap:6px}
+select,input{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0}
+select:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px}
+input[type=number]{width:90px}input[type=text]{width:230px}
+button{font:500 14px var(--sans);border:0;border-radius:999px;padding:10px 22px;background:var(--ink);color:var(--ink-fg);cursor:pointer;transition:opacity .15s}
+button:hover{opacity:.85}button:disabled{opacity:.35;cursor:default}
+.check{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:var(--text);font-weight:400}
+.est{font-size:13px;color:var(--muted);margin-top:12px}
+.section-title{font:400 26px var(--serif);color:var(--fg);margin:36px 0 4px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi span{font-size:12px;color:var(--muted);font-weight:500}.kpi b{display:block;font:400 30px/1.2 var(--serif);color:var(--fg);margin-top:4px}
+.bar{height:3px;background:var(--soft);border-radius:999px;overflow:hidden;margin-top:14px}.bar i{display:block;height:100%;width:0;background:var(--ink);transition:width .3s}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px;margin-top:14px}
+.call{background:var(--card);border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;max-height:480px;overflow:hidden}
+.call.pass{box-shadow:inset 0 3px 0 var(--pass)}.call.fail{box-shadow:inset 0 3px 0 var(--fail)}
+.call .head{padding:12px 14px;border-bottom:1px solid var(--line)}
+.call .title{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600;font-size:13px;color:var(--fg);word-break:break-word}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.chip{font-size:11px;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.feed{padding:10px 14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:7px}
+.msg{max-width:88%;padding:8px 11px;border-radius:14px;font-size:14px;color:var(--fg)}
+.msg.caller{align-self:flex-end;background:var(--caller);border-bottom-right-radius:4px}.msg.agent{align-self:flex-start;background:var(--agent);border-bottom-left-radius:4px}
+.msg .meta{display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
 .lat{font-weight:600}.lat.slow{color:var(--fail)}.lat.ok{color:var(--pass)}
-.note{align-self:center;font-size:12px;color:var(--muted)}.note.warn{color:var(--warn)}
-.foot{padding:8px 12px;border-top:1px solid var(--line);font-size:13px}.foot .fail{color:var(--fail)}
-table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);font-size:14px}th{color:var(--muted);font-weight:600;font-size:12px}
-a{color:var(--accent)}.scroll{overflow-x:auto}.empty{color:var(--muted);font-size:14px}
-@media (max-width:520px){input[type=text]{width:100%}.controls>*{flex:1 1 140px}}
+.note{align-self:center;font-size:12px;color:var(--muted);background:var(--soft);padding:2px 10px;border-radius:999px}.note.warn{color:var(--warn)}
+.foot{padding:10px 14px;border-top:1px solid var(--line);font-size:13px;background:var(--cream)}.foot .fail{color:var(--fail)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:14px}
+th{color:var(--muted);font-weight:500;font-size:12px}td{color:var(--text)}tr:last-child td{border-bottom:0}
+a{color:var(--fg);text-underline-offset:3px}.scroll{overflow-x:auto}.empty{color:var(--muted);font-size:14px}
+@media (max-width:560px){input[type=text]{width:100%}.controls>*{flex:1 1 140px}.controls button{flex-basis:100%}}
 </style>
 </head>
 <body>
-<header><h1>Bhool Bhulaiya</h1><span class="sub">crash-testing Indian voice agents with synthetic, noisy, code-mixed callers</span><span id="status" class="pill">idle</span></header>
+<div class="topbar"><div class="in"><span class="brand"><b>Bhool Bhulaiya</b></span><span class="built">built on Gnani Prisma · Evon · Timbre</span><span class="spacer"></span><a href="/studio">QA Studio</a><span id="status" class="pill">idle</span></div></div>
+<section class="hero"><h1>Every caller your agent<br>will meet, before it meets them.</h1>
+<p>Synthetic Indian callers, noisy 8 kHz lines, code-mixed speech and barge-ins. Each call is measured, judged with quoted evidence, and gated.</p></section>
 <main>
   <section class="panel">
     <div class="controls">
@@ -60,6 +78,7 @@ a{color:var(--accent)}.scroll{overflow-x:auto}.empty{color:var(--muted);font-siz
     <div class="est" id="est"></div>
   </section>
 
+  <h2 class="section-title">Live run</h2>
   <section class="kpis">
     <div class="kpi"><span>Calls done</span><b id="kDone">0 / 0</b></div>
     <div class="kpi"><span>Passed</span><b id="kPass">—</b></div>
@@ -71,9 +90,21 @@ a{color:var(--accent)}.scroll{overflow-x:auto}.empty{color:var(--muted);font-siz
 
   <div class="grid" id="calls"><p class="empty">Start a run to watch every test call live.</p></div>
 
+  <h2 class="section-title">Past runs</h2>
   <section class="panel">
-    <h2 style="font-size:16px;margin:0 0 8px">Past runs</h2>
     <div class="scroll"><table><thead><tr><th>Suite</th><th>Started</th><th>Calls</th><th>Pass rate</th><th>p95</th><th>Gate</th><th></th></tr></thead><tbody id="runs"></tbody></table></div>
+  </section>
+
+  <h2 class="section-title">How accurate is it? Proof and autopilot</h2>
+  <p style="color:var(--muted);margin:-6px 0 12px">Measured against answers known in advance (<code>bhool proof</code>), and bugs nobody planted, found and fixed by Evon (<code>bhool autopilot</code>)</p>
+  <section class="panel">
+    <div class="scroll"><table><thead><tr><th>Kind</th><th>When</th><th>Result</th><th></th></tr></thead><tbody id="proofs"></tbody></table></div>
+  </section>
+
+  <h2 class="section-title">Quality audits of real calls</h2>
+  <p style="color:var(--muted);margin:-6px 0 12px">Every production call scored against a QA scorecard with quoted evidence: <code>bhool qa audit scorecards/emi_collections.yaml calls/</code></p>
+  <section class="panel">
+    <div class="scroll"><table><thead><tr><th>Scorecard</th><th>Audited</th><th>Calls</th><th>Avg score</th><th>Pass</th><th>Fatal</th><th>Review</th><th></th></tr></thead><tbody id="audits"></tbody></table></div>
   </section>
 </main>
 <script>
@@ -105,6 +136,21 @@ async function loadRuns() {
     <td><span class="pill ${r.gate_passed ? "pass" : "fail"}">${r.gate_passed ? "passed" : "failed"}</span></td>
     <td><a href="/runs/${encodeURIComponent(r.dir)}/report" target="_blank">report</a></td></tr>`).join("")
     : `<tr><td colspan="7" class="empty">No runs yet.</td></tr>`;
+}
+async function loadAudits() {
+  const qa = await (await fetch("/api/qa")).json();
+  const pct = (x) => x == null ? "—" : `${Math.round(x * 100)}%`;
+  $("audits").innerHTML = qa.length ? qa.map((q) => `<tr><td>${esc(q.scorecard)}</td><td>${esc(q.generated)}</td><td>${q.calls}</td>
+    <td>${q.avg_score ?? "—"}</td><td>${pct(q.pass_rate)}</td><td>${pct(q.fatal_rate)}</td><td>${q.review}</td>
+    <td><a href="/runs/${encodeURIComponent(q.dir)}/qa" target="_blank">audit</a></td></tr>`).join("")
+    : `<tr><td colspan="8" class="empty">No audits yet.</td></tr>`;
+}
+async function loadProofs() {
+  const ps = await (await fetch("/api/proof")).json();
+  $("proofs").innerHTML = ps.length ? ps.map((p) => `<tr><td><span class="pill ${p.kind === "proof" ? "pass" : "fail"}">${esc(p.kind)}</span></td>
+    <td>${esc(p.generated)}</td><td>${esc(p.headline)}</td>
+    <td><a href="/runs/${encodeURIComponent(p.dir)}/${p.page}" target="_blank">open</a></td></tr>`).join("")
+    : `<tr><td colspan="4" class="empty">Run <code>bhool proof</code> or <code>bhool autopilot</code>.</td></tr>`;
 }
 function kpis() {
   $("kDone").textContent = `${done} / ${total}`;
@@ -192,7 +238,7 @@ $("run").onclick = async () => {
   if (!r.ok) alert((await r.json()).detail || "could not start");
 };
 fetch("/api/status").then((r) => r.json()).then((s) => { if (s.running) { $("status").className = "pill on"; $("status").textContent = "running"; $("run").disabled = true; } });
-loadSuites(); loadRuns(); connect();
+loadSuites(); loadRuns(); loadAudits(); loadProofs(); connect();
 </script>
 </body>
 </html>

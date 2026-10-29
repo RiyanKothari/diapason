@@ -7,20 +7,23 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 CSS = """
-:root{--bg:#fbfaf7;--fg:#1d1d1b;--muted:#6b6a65;--card:#fff;--line:#e6e3dc;--pass:#2f7d4f;--fail:#b3402f;--review:#a8741a;--accent:#3b5bdb}
-@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#ecebe6;--muted:#9b9a94;--card:#1f1f1c;--line:#33322e;--pass:#5cbf83;--fail:#e97a68;--review:#e0b25a;--accent:#8ea4ff}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:1100px;margin:0 auto;padding:24px 16px 64px}h1{font-size:24px;margin:0 0 4px}h2{font-size:17px;margin:32px 0 12px}
-.muted{color:var(--muted)}.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}.kpi b{display:block;font-size:22px}
-.gate{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:600;color:#fff}.gate.ok{background:var(--pass)}.gate.no{background:var(--fail)}
-table{border-collapse:collapse;width:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{font-weight:600;font-size:13px;color:var(--muted)}
-.scroll{overflow-x:auto}.cell{font-weight:600;text-align:center}
+:root{--bg:#f9fafb;--fg:#111111;--text:#333333;--muted:#636363;--card:#ffffff;--soft:#f5f5f5;--line:rgba(0,0,0,.1);--pass:#1f7a4d;--fail:#c2410c;--review:#a16207;
+  --serif:"Instrument Serif",Georgia,serif;--sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#0b0b0c;--fg:#f4f4f5;--text:#d4d4d8;--muted:#9a9aa2;--card:#141416;--soft:#1c1c1f;--line:rgba(255,255,255,.1);--pass:#4ade80;--fail:#fb923c;--review:#facc15}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+main{max-width:1100px;margin:0 auto;padding:36px 16px 72px}
+h1{font:400 clamp(30px,5vw,44px)/1.1 var(--serif);color:var(--fg);margin:0 0 6px}h2{font:400 26px var(--serif);color:var(--fg);margin:36px 0 12px}
+.muted{color:var(--muted)}.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}.kpi b{display:block;font:400 30px/1.2 var(--serif);color:var(--fg)}
+.gate{display:inline-block;vertical-align:middle;padding:4px 12px;border-radius:999px;font:500 12px var(--sans);border:1px solid currentColor}
+.gate.ok{color:var(--pass)}.gate.no{color:var(--fail)}
+table{border-collapse:collapse;width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{font-weight:500;font-size:12px;color:var(--muted)}
+.scroll{overflow-x:auto}.cell{font-weight:600;text-align:center;color:var(--fg)}
 .pass{color:var(--pass)}.fail{color:var(--fail)}.review{color:var(--review)}.na{color:var(--muted)}
-details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:8px 0;padding:10px 14px}summary{cursor:pointer;font-weight:600}
-.turn{margin:2px 0}.turn .who{display:inline-block;min-width:64px;font-size:12px;color:var(--muted)}audio{width:100%;margin:8px 0}
-.ev{font-size:13px;border-left:3px solid var(--line);padding-left:8px;margin:4px 0}code{font-size:13px}
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 0;padding:12px 16px}summary{cursor:pointer;font-weight:500;color:var(--fg)}
+.turn{margin:3px 0}.turn .who{display:inline-block;min-width:70px;font-size:12px;color:var(--muted)}audio{width:100%;margin:10px 0}
+.ev{font-size:13px;border-left:2px solid var(--line);padding-left:10px;margin:4px 0}code{font-size:13px}
 """
 
 
@@ -31,10 +34,10 @@ def _pct(x: float | None) -> str:
 def _heat_color(rate: float) -> str:
     # red -> amber -> green, readable in both themes via alpha
     if rate >= 0.85:
-        return "rgba(47,125,79,.28)"
+        return "rgba(31,122,77,.16)"
     if rate >= 0.5:
-        return "rgba(168,116,26,.28)"
-    return "rgba(179,64,47,.30)"
+        return "rgba(161,98,7,.16)"
+    return "rgba(194,65,12,.18)"
 
 
 def write_html(report, path: str | Path) -> None:
@@ -78,7 +81,9 @@ def write_html(report, path: str | Path) -> None:
 <h3 style="font-size:14px">Transcript</h3>{turns}</details>""")
 
     html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bhool Bhulaiya report</title><style>{CSS}</style></head><body><main>
+<title>Bhool Bhulaiya report</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>{CSS}</style></head><body><main>
 <h1>{escape(r.suite)} {gate}</h1><div class="muted">run {escape(r.run_id)} · started {escape(r.started_at)} · {r.duration_s:.0f}s</div>
 {''.join(f'<div class="fail">• {escape(x)}</div>' for x in r.gate_reasons)}
 <div class="kpis"><div class="kpi"><span class="muted">Pass rate</span><b>{_pct(r.pass_rate)}</b></div>

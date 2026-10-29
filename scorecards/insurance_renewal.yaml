@@ -1,0 +1,93 @@
+# Life-insurance renewal and upsell calls. IRDAI (Protection of Policyholders' Interests) Regulations 2017:
+# no mis-selling, disclose key terms and the free-look period, explicit consent before any purchase.
+name: Insurance renewal & sales QA (IRDAI)
+agent:
+  name: Suraksha Life renewals
+  sop: >
+    Greet, identify Suraksha Life, say the call is recorded and that it is about the policy renewal (and any
+    new plan offered). Verify the policyholder with date of birth before discussing the policy. State the
+    renewal premium and due date accurately. When offering a new plan, state premium, term and main exclusions,
+    never promise guaranteed returns on market-linked plans, and mention the 30-day free-look period. Take
+    an explicit yes before any purchase step; respect a no.
+  required_disclosures: [the call is recorded]
+  banned_phrases: [guaranteed returns, risk free, double your money]
+  banned_phrase_variants:
+    guaranteed returns: [गारंटीड रिटर्न, पक्का रिटर्न, ગેરંટીડ રિટર્ન]
+    risk free: [रिस्क फ्री, कोई रिस्क नहीं, કોઈ જોખમ નથી]
+    double your money: [पैसा डबल, पैसे डबल, પૈસા ડબલ]
+  must_collect: [renewal_decision]
+  languages: [hi-IN, gu-IN, en-IN]
+dispositions: [renewed, will_renew, new_plan_interest, declined, callback, wrong_party, other]
+entities: [renewal_decision, premium_quoted, callback_time]
+pass_mark: 80
+sections:
+  - id: opening
+    name: Opening
+    parameters:
+      - id: identifies_insurer
+        weight: 4
+        check: {type: llm, question: "Did the agent name the insurer (Suraksha Life) and say the call is about the policy renewal or a plan offer, near the start?"}
+      - id: recording_disclosure
+        name: says the call is recorded
+        weight: 6
+        fatal: true
+        check: {type: phrase_present, phrases: [recorded, record, रिकॉर्ड, रेकॉर्ड, રેકોર્ડ]}
+  - id: verification
+    name: Verification
+    parameters:
+      - id: verifies_before_policy
+        name: verifies date of birth before policy details
+        weight: 8
+        fatal: true
+        check:
+          type: order
+          first: [date of birth, DOB, जन्म तिथि, जन्मतिथि, जन्म की तारीख, જન્મ તારીખ]
+          then: [premium, प्रीमियम, પ્રીમિયમ, policy number, पॉलिसी नंबर]
+  - id: suitability
+    name: Suitability & disclosure (IRDAI)
+    parameters:
+      - id: banned_claims
+        name: no guaranteed-return or risk-free claims
+        weight: 10
+        fatal: true
+        check: {type: phrase_absent, phrases: [guaranteed returns, risk free, double your money]}
+      - id: no_misselling
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid misleading claims: guaranteed or assured returns on a market-linked plan, hiding exclusions, waiting periods or charges, or calling a plan something it is not (e.g. a savings account)? Judge mis-selling only."}
+      - id: key_terms
+        weight: 8
+        check: {type: llm, question: "When a new plan was pitched, did the agent state its premium, term and at least one main exclusion or charge? Use na if no new plan was pitched."}
+      - id: free_look
+        name: mentions the free-look period
+        weight: 5
+        check: {type: llm, question: "When a new plan was pitched, did the agent mention the free-look period (cancel within 15/30 days for a refund)? Use na if no new plan was pitched."}
+  - id: consent
+    name: Consent
+    parameters:
+      - id: explicit_consent
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid treating a vague answer (hmm, okay, I'll see) as a yes, and take an explicit yes before any payment or purchase step? Use na if no purchase or payment step happened."}
+      - id: respects_no
+        weight: 6
+        check: {type: llm, question: "If the customer declined or asked for time, did the agent accept it without pushing more than once? Use na if they never declined."}
+  - id: resolution
+    name: Resolution
+    parameters:
+      - id: clear_next_step
+        weight: 6
+        check: {type: llm, question: "Did the call end with a clear next step stated back to the customer (renewal date, payment link, callback time)?"}
+      - id: tone
+        name: tone and empathy
+        weight: 6
+        check: {type: llm, scale: 5, question: "Rate the agent's courtesy, patience and clarity (manner only, not procedure)."}
+      - id: language_match
+        weight: 4
+        check: {type: llm, question: "Did the agent reply in the same language the customer spoke? Answering a Gujarati speaker in Hindi, or a Hindi speaker in English, is a fail; English loanwords inside the right language are fine. Judge language only."}
+  - id: experience
+    name: Caller experience (measured)
+    parameters:
+      - {id: responsive, name: answers within 2.5 s (p95), weight: 3, check: {type: metric, metric: "latency_p95_s <= 2.5"}}
+      - {id: no_dead_air, name: no dead air over 3 s, weight: 3, check: {type: metric, metric: "dead_air_events == 0"}}
+      - {id: no_talk_over, name: never cuts the customer off, weight: 3, check: {type: metric, metric: "agent_cut_off_caller == 0"}}
