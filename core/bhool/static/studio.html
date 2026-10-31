@@ -37,7 +37,7 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1
 .kpi{background:var(--soft);border-radius:12px;padding:12px 14px}.kpi span{font-size:12px;color:var(--muted)}.kpi b{display:block;font:400 28px/1.15 var(--serif);color:var(--fg)}
 .heat{overflow-x:auto;margin-top:6px}.heat table{border-collapse:separate;border-spacing:3px}
 .heat th{font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap;padding:2px 6px;text-align:left}
-.heat th.c{writing-mode:vertical-rl;transform:rotate(180deg);height:86px;text-align:left;cursor:pointer}
+.heat th.c{text-align:center;cursor:pointer;font-variant-numeric:tabular-nums}
 .cell{width:22px;height:22px;border-radius:5px;cursor:pointer;border:0;padding:0;display:block}
 .v-pass{background:var(--pass)}.v-fail{background:var(--fail)}.v-review{background:var(--warn)}.v-na,.v-skipped{background:var(--na);opacity:.45}
 .cell.planted{outline:2px solid var(--fg);outline-offset:1px}
@@ -119,12 +119,14 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pct = (x) => x == null ? "—" : `${Math.round(x * 100)}%`;
 let data = {scorecards: [], audits: []}, card = null, audit = null, call = null;
+const DATA = window.BHOOL_DATA;   // set by the static site (`bhool site`): read files instead of the API
+if (DATA) { const a = document.querySelector(".topbar a"); a.href = "index.html"; a.textContent = "Overview"; }
 
 const reg = (name) => (name.match(/\(([^)]+)\)\s*$/) || [, ""])[1];
 const short = (name) => name.replace(/\s*\([^)]*\)\s*$/, "").replace(/ QA$/, "");
 
 async function init() {
-  data = await (await fetch("/api/studio")).json();
+  data = await (await fetch(DATA ? `${DATA}studio.json` : "/api/studio")).json();
   const tile = (c) => {
     const a = data.audits.find((x) => x.scorecard === c.name);
     const ev = a && a.evaluation;
@@ -162,7 +164,7 @@ function pick(stem) {
 }
 
 async function loadAudit(path) {
-  audit = await (await fetch(`/api/studio/audit/${path.split("/").map(encodeURIComponent).join("/")}`)).json();
+  audit = await (await fetch(DATA ? `${DATA}audit/${path.split("/").join("__")}.json` : `/api/studio/audit/${path.split("/").map(encodeURIComponent).join("/")}`)).json();
   const s = audit.summary || {}, ev = audit.evaluation;
   const k = [["Calls", s.calls], ["Average score", s.avg_score ?? "—"], ["Pass rate", pct(s.pass_rate)], ["Fatal-error calls", pct(s.fatal_rate)],
              ["Sent to a human", (s.review_queue || []).length]];
@@ -170,7 +172,7 @@ async function loadAudit(path) {
   $("kpis").innerHTML = k.map(([a, b]) => `<div class="kpi"><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join("");
   const params = (card.sections || []).flatMap((x) => x.params);
   const calls = audit.calls;
-  $("heat").innerHTML = `<table><tr><th></th>${calls.map((c, i) => `<th class="c" data-i="${i}">${esc(c.call_id)}</th>`).join("")}</tr>
+  $("heat").innerHTML = `<table><tr><th></th>${calls.map((c, i) => `<th class="c" data-i="${i}" title="${esc(c.call_id)}">#${esc(String(c.call_id).split(/[-_]/).pop())}</th>`).join("")}</tr>
     ${params.map((p) => `<tr><th>${esc(p.label)}${p.fatal ? " ·F" : ""}</th>${calls.map((c, i) => {
       const r = (c.params || []).find((x) => x.id === p.id); const v = r ? r.verdict : "na";
       const planted = (c.planted || []).includes(p.id);
@@ -208,6 +210,7 @@ function openCall(i, focus, scroll = true) {
       return `<div class="prm" data-p="${esc(p.id)}"><span class="dot" style="background:${color[r.verdict] || "var(--na)"}"></span><div>
         <span class="lb">${esc(p.label)}</span>${p.fatal ? `<span class="ft">FATAL</span>` : ""}${(call.planted || []).includes(p.id) ? `<span class="pl">planted</span>` : ""}
         <div class="why">${esc(r.verdict)}${r.agreement != null && r.source === "judge" ? ` · agreement ${Math.round(r.agreement * 100)}%` : ""}${r.source ? " · " + esc(r.source) : ""}${r.reason ? " — " + esc(r.reason) : ""}</div>
+        ${p.source ? `<div class="why" style="font-style:italic">enforces: “${esc(p.source)}”</div>` : ""}
         ${(call.plants || []).filter((x) => x.parameter === p.id).map((x) => `<div class="why"><b>planted at T${x.turn}:</b> “${esc(x.text)}”</div>`).join("")}
         ${(r.evidence || []).slice(0, 2).map((e) => `<div class="why">T${e.turn}${e.t != null ? " @" + (+e.t).toFixed(1) + "s" : ""}: “${esc(e.quote)}”</div>`).join("")}</div></div>`; }).join("")}</div>`).join("");
   document.querySelectorAll("#params .prm").forEach((el) => el.onclick = () => focusParam(el.dataset.p));

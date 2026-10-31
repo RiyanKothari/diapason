@@ -72,6 +72,7 @@ class Parameter(BaseModel):
     weight: float = Field(1.0, ge=0)
     fatal: bool = False
     check: Check
+    source: str = ""            # the clause of the policy or regulation this check enforces (see qa/compile.py)
 
     @property
     def label(self) -> str:

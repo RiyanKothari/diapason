@@ -153,3 +153,15 @@ def test_disclosure_is_checked_in_code_when_phrases_are_given():
     assert by(rec("नमस्ते, यह call रिकॉर्ड हो सकती है")).verdict == "pass"
     bad = by(rec("नमस्ते, आपकी EMI overdue है"))
     assert bad.verdict == "fail" and bad.evidence[0]["turn"] == 0
+
+
+def test_code_check_overrides_a_contradicting_judge_fail():
+    from bhool.judge.rubric import CriterionResult, code_overrides_judge
+    rs = [CriterionResult("disclosure", "fail", True, 1.0, "no disclosure", [{"turn": 0, "quote": "x"}], "judge"),
+          CriterionResult("disclosure_said", "pass", True, 1.0, "", [], "code"),
+          CriterionResult("privacy", "fail", True, 1.0, "leak", [{"turn": 1, "quote": "y"}], "judge")]
+    out = {r.id: r for r in code_overrides_judge(rs)}
+    assert out["disclosure"].verdict == "na" and "disclosure_said passed" in out["disclosure"].reason
+    assert out["privacy"].verdict == "fail"                 # nothing in code covers it: the judge stands
+    rs2 = [CriterionResult("disclosure", "pass", True, 1.0, "", [], "judge"), CriterionResult("disclosure_said", "fail", True, 1.0, "", [], "code")]
+    assert {r.id: r.verdict for r in code_overrides_judge(rs2)} == {"disclosure": "pass", "disclosure_said": "fail"}   # code fail stands on its own

@@ -22,14 +22,15 @@ jobs:
           GNANI_API_KEY: ${{ secrets.GNANI_API_KEY }}
           EVON_BASE_URL: ${{ secrets.EVON_BASE_URL }}
           EVON_API_KEY: ${{ secrets.EVON_API_KEY }}
-        run: bhool run suites/agent.yaml --url "${{ vars.AGENT_WS_URL }}" --limit 12
+        # hard caps: the run refuses any API call that would cross them, and a capped run fails the gate
+        run: bhool run suites/agent.yaml --url "${{ vars.AGENT_WS_URL }}" --limit 12 --max-tts-chars 6000 --max-stt-seconds 600
       - name: Regressions from production must stay fixed
         if: hashFiles('suites/regressions.yaml') != ''
         env:
           GNANI_API_KEY: ${{ secrets.GNANI_API_KEY }}
           EVON_BASE_URL: ${{ secrets.EVON_BASE_URL }}
           EVON_API_KEY: ${{ secrets.EVON_API_KEY }}
-        run: bhool run suites/regressions.yaml --url "${{ vars.AGENT_WS_URL }}"
+        run: bhool run suites/regressions.yaml --url "${{ vars.AGENT_WS_URL }}" --max-tts-chars 6000 --max-stt-seconds 600
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -49,7 +49,7 @@ def test_autopilot_finds_then_heals_without_regressions(tmp_path, monkeypatch):
     assert [a["id"] for a in r["attacks"]] == ["g1_fake_relative"]
     a = r["attacks"][0]
     assert a["behaviour"]["interrupt_prob"] == 1.0 and a["channel"] == "street"
-    assert {f["item"] for f in a["broke"] if not f["item"].startswith("metric:")} == {"disclosure", "disclosure_said", "banned_phrases"}
+    assert {f["item"] for f in a["broke"] if not f["item"].startswith("metric:")} == {"disclosure", "disclosure_said", "banned_phrases", "account_privacy"}  # v1 greets with the amount
     assert (tmp_path / "autopilot_regressions.yaml").exists()
     h = r["heal"]
     assert h["attempts"][0]["accepted"] and not h["broken"]
@@ -88,3 +88,29 @@ def test_evon_failing_mid_hunt_is_discarded_not_counted_as_bugs(tmp_path, monkey
     assert {a["generation"] for a in r["attacks"]} == {1}          # stopped after the first bad generation
     assert r["found"] == {} and r["regression_suite"] is None and r["heal"] is None
     assert "discarded" in (tmp_path / "autopilot.html").read_text(encoding="utf-8")
+
+
+def test_counted_evon_sorts_infra_from_model_errors():
+    import httpx
+    import pytest
+    from bhool.demo import CountedEvon
+
+    class Flaky:
+        def __init__(self, errs):
+            self.errs = list(errs)
+
+        def chat_json(self, *a, **kw):
+            if self.errs:
+                raise self.errs.pop(0)
+            return {"say": "ok"}
+    c = CountedEvon(Flaky([ValueError("no JSON")]))
+    assert c.chat_json([]) == {"say": "ok"} and c.errors == 0 and c.model_errors == 0      # one bad reply: retried
+    c = CountedEvon(Flaky([ValueError("x"), ValueError("y")]))
+    with pytest.raises(ValueError):
+        c.chat_json([])
+    assert c.model_errors == 1 and c.errors == 0                                          # the agent's own failure
+    for e in (httpx.ConnectError("getaddrinfo failed"), RuntimeError("HTTP 530 tunnel")):
+        c = CountedEvon(Flaky([e]))
+        with pytest.raises(type(e)):
+            c.chat_json([])
+        assert c.errors == 1                                                              # ours: discard the run

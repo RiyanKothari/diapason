@@ -146,72 +146,17 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
 
     @app.get("/api/studio")
     def studio_index():
-        """Every scorecard (one per business segment) and every audit on disk, newest first."""
-        import yaml
-        from .qa import Scorecard
-        books = {}
-        pb = Path("playbooks/industries.yaml")
-        if pb.exists():
-            from .playbooks import load_playbooks
-            try:
-                books = {b.id: b for b in load_playbooks(pb)}
-            except Exception:
-                books = {}
-        cards = []
-        files = [("segments", f) for f in sorted(scorecards_dir.glob("*.yaml"))] +                 [("industries", f) for f in sorted((scorecards_dir / "industries").glob("*.yaml"))]
-        for group, f in files:
-            try:
-                c = Scorecard.model_validate(yaml.safe_load(f.read_text(encoding="utf-8")))
-            except Exception as e:
-                cards.append({"stem": f"{group}/{f.stem}", "group": group, "name": f.stem, "error": str(e)[:200]})
-                continue
-            b = books.get(f.stem) if group == "industries" else None
-            extra = {"title": b.title, "brand": b.brand, "sector": b.sector, "use_case": b.use_case, "languages": b.languages,
-                     "regulations": b.regulations} if b else {}
-            cards.append({"stem": f"{group}/{f.stem}", "group": group, **extra, "name": c.name, "agent": c.agent.name, "sop": c.agent.sop, "pass_mark": c.pass_mark,
-                          "checks": len(c.parameters()), "fatal": sum(p.fatal for p in c.parameters()),
-                          "code": sum(p.check.type != "llm" for p in c.parameters()),
-                          "sections": [{"id": s.id, "name": s.name or s.id, "params": [
-                              {"id": p.id, "label": p.label, "fatal": p.fatal, "type": p.check.type, "describe": p.check.describe()}
-                              for p in s.parameters]} for s in c.sections]})
-        audits = []
-        for f in list(runs_dir.glob("*/qa.json")) + list(runs_dir.glob("*/*/qa.json")):
-            try:
-                q = json.loads(f.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                continue
-            s = q.get("summary") or {}
-            sim = f.parent / "simulate.json"
-            ev = json.loads(sim.read_text(encoding="utf-8")).get("evaluation") if sim.exists() else None
-            audits.append({"path": f.parent.relative_to(runs_dir).as_posix(), "generated": q.get("generated"),
-                           "scorecard": s.get("scorecard"), "calls": s.get("calls"), "avg_score": s.get("avg_score"),
-                           "pass_rate": s.get("pass_rate"), "fatal_rate": s.get("fatal_rate"),
-                           "review": len(s.get("review_queue") or []), "evaluation": ev})
-        audits.sort(key=lambda a: a["generated"] or "", reverse=True)
-        return {"scorecards": cards, "audits": audits}
+        """Every scorecard (segments and industry playbooks) and every audit on disk, newest first."""
+        from .studio import index
+        return index(runs_dir, scorecards_dir)
 
     @app.get("/api/studio/audit/{path:path}")
     def studio_audit(path: str):
-        root = runs_dir.resolve()
-        f = (runs_dir / path / "qa.json").resolve()
-        if root not in f.parents or not f.exists():
+        from .studio import audit
+        data = audit(runs_dir, path)
+        if data is None:
             raise HTTPException(404)
-        q = json.loads(f.read_text(encoding="utf-8"))
-        sim = f.parent / "simulate.json"
-        plan = {c["call_id"]: c for c in json.loads(sim.read_text(encoding="utf-8"))["calls"]} if sim.exists() else {}
-        for c in q["calls"]:
-            src = (c.get("meta") or {}).get("source") or ""
-            c["audio"] = None
-            if src.lower().endswith(".wav"):
-                a = Path(src).resolve()
-                if root in a.parents and a.exists():
-                    c["audio"] = "/runs/" + a.relative_to(root).as_posix()
-            p = plan.get(c["call_id"])
-            c["planted"] = (p or {}).get("planted")
-            c["timing_planted"] = (p or {}).get("timing")
-            c["plants"] = (p or {}).get("plants") or []
-        return {"summary": q.get("summary"), "generated": q.get("generated"), "calls": q["calls"],
-                "evaluation": json.loads(sim.read_text(encoding="utf-8")).get("evaluation") if sim.exists() else None}
+        return data
 
     @app.get("/api/proof")
     def proofs():

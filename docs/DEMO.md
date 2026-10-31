@@ -12,11 +12,18 @@ if a run changes a number, change it here first. No real company names anywhere:
 | 15-25 s | The flag opens: the agent's exact words, quoted, timestamped | "Every failure comes with the agent's own words as proof. No quote, no fail: it goes to a human instead." |
 | 25-35 s | QA Studio: industry tiles, then the parameter × call heatmap; click a red cell, the audio jumps to that moment | "The same auditor scores real calls for 22 industries: collections, microfinance, airlines, clinics. Click a verdict, hear the moment." |
 | 35-45 s | Proof page: QA verdict accuracy 90%, fatal-error recall 100%, 0 false fatal alarms | "And we measured the auditor: on calls it had never seen, it caught every fatal compliance breach with zero false alarms." |
-| 45-55 s | Seeded v1 → v2: 7 of 8 planted bugs caught; a real v2 slip shown with its quote | "It found 7 of 8 bugs we planted, and one we didn't: the 'fixed' agent told a borrower's brother about the loan." |
+| 45-52 s | Proof table, third column "v1 + Guard": the same buggy agent, prompt untouched, with Guard; a crossed-out line "वरना legal action होगा" replaced live | "Then we stopped testing after the fact. Guard checks every sentence before the agent says it, in under a millisecond: the threat never reaches the customer." |
+| 52-55 s | Crash-test rating badges: v1 ★, v1 + Guard ★★★, v2 ★★★★ | "And every agent gets a crash-test rating, from measured calls." |
 | 55-60 s | Logo line | "Built entirely on Gnani: Prisma hears, Timbre speaks, Evon thinks and judges." |
 
 Shots to capture (all exist today): dashboard live run (`bhool dashboard`, run `suites/demo.yaml` offline for a clean take),
 `/studio` with a voiced call selected, `runs/proof-live-3/proof.html`, `runs/industries-live-2/segments.html`.
+
+## The link to share
+
+Build the showcase after the latest live run (`bhool site`) and deploy `site/` (`npx vercel site --prod` or a `gh-pages`
+branch). Put that link in the post and the submission: judges can open the proof, the Studio and the voiced calls without
+installing anything.
 
 ## 3-minute walkthrough (for the submission)
 

@@ -423,7 +423,8 @@ def dashboard(host: str = "127.0.0.1", port: int = 8000, suites: Path = Path("su
 
 @app.command("serve-agent")
 def serve_agent(version: str = typer.Option("v1", help="v1 (seeded bugs) or v2 (fixed)"),
-                host: str = "127.0.0.1", port: int = 8765, voice: str = "Kalpana"):
+                host: str = "127.0.0.1", port: int = 8765, voice: str = "Kalpana",
+                guard: bool = typer.Option(False, help="Bhool Guard checks every line before it is spoken")):
     """Serve the reference EMI-collection agent (Prisma + Evon + Timbre) at ws://host:port."""
     from .gnani import Evon, Prisma, Timbre
     from .reference_agent import VERSIONS, serve
@@ -431,14 +432,18 @@ def serve_agent(version: str = typer.Option("v1", help="v1 (seeded bugs) or v2 (
     load_dotenv()
     if version not in VERSIONS:
         raise typer.BadParameter(f"version must be one of {sorted(VERSIONS)}")
+    from dataclasses import replace
     tts, stt, evon = Timbre(), Prisma(), Evon()
-    typer.echo(f"reference agent {version} on ws://{host}:{port}")
+    agent = replace(VERSIONS[version], name=f"{version}+guard", guard=True) if guard else VERSIONS[version]
+    typer.echo(f"reference agent {agent.name} on ws://{host}:{port}")
     asyncio.run(serve(
-        version,
+        agent,
         stt=lambda audio, sr, lang: stt.transcribe_long(audio, sr, lang) if audio.size >= 0.2 * sr else "",
         llm=lambda msgs: evon.chat_json(msgs, temperature=0.4, max_tokens=300),
         tts=lambda text, v, lang: tts.synthesize(text, voice=voice, lang=lang),
         host=host, port=port,
+        translate=lambda text, lang: evon.chat([{"role": "system", "content": f"Translate the line into {lang} as spoken on a phone call. Keep names and numbers. Reply with only the translation."},
+                                               {"role": "user", "content": text}], temperature=0.1, max_tokens=200),
     ))
 
 
@@ -447,12 +452,34 @@ def proof(out: Path = typer.Option(None, help="Default: runs/proof-<time>"),
           offline: bool = typer.Option(False, help="Scripted agent and code checks only (judge-only bugs show 'needs Evon')"),
           judge_samples: int = typer.Option(3, min=1, max=7), qa_calls: int = typer.Option(40, min=4),
           qa_seed: int = typer.Option(7, help="QA-Bench corpus seed; use a new one to measure on calls the judge was never tuned on"),
+          rescore: Path = typer.Option(None, help="Don't run anything: re-apply today's code checks to this finished proof's saved calls"),
+          rerun_guard: Path = typer.Option(None, help="Re-run only the v1 + Guard calls of this finished proof, then rescore"),
+          add_v3: Path = typer.Option(None, help="Run v3 (secrets isolated) on this finished proof's cases, then rescore"),
           verbose: bool = False):
     """Measure accuracy: planted bugs caught by the tests (v1 vs fixed v2) and QA-Bench. No Gnani speech credits."""
     import time
     from .proof import run_proof
     _utf8_console()
     load_dotenv()
+    if rescore or rerun_guard or add_v3:
+        from .proof import rescore as do_rescore
+        if rerun_guard or add_v3:
+            from .gnani import Evon
+            from .proof import rerun_guard as do_rerun
+            rescore = rerun_guard or add_v3
+            data = asyncio.run(do_rerun(rescore, Evon(), judge_samples, _printer(verbose), which="v3" if add_v3 else "guard"))
+        else:
+            data = do_rescore(rescore)
+        t = data["tests"]
+        typer.echo(f"rescored {rescore}: planted bugs caught {t['caught']}/{t['measured']} · also flagged on v2: {t['false_alarms']}")
+        for b in t["bugs"]:
+            typer.echo(f"  {b['status']:22} {b['what']}")
+        g = t.get("guard") or {}
+        if g.get("measured"):
+            typer.echo(f"GUARD  {g['prevented']}/{g['measured']} text bugs prevented")
+        if (t.get("v3") or {}).get("measured"):
+            typer.echo(f"V3     {t['v3']['prevented']}/{t['v3']['measured']} text bugs gone with secrets isolated")
+        return
     evon = None
     if not offline:
         from .gnani import Evon
@@ -466,6 +493,10 @@ def proof(out: Path = typer.Option(None, help="Default: runs/proof-<time>"),
                f"pass rate v1 {t['v1_pass_rate']:.0%} -> v2 {t['v2_pass_rate']:.0%}")
     for b in t["bugs"]:
         typer.echo(f"  {b['status']:22} {b['what']}")
+    g = t.get("guard") or {}
+    if g.get("measured"):
+        typer.echo(f"GUARD  v1 unchanged + Bhool Guard: {g['prevented']}/{g['measured']} text bugs prevented · "
+                   f"{g['interventions']} line(s) rewritten · pass rate {g['pass_rate']:.0%}")
     o = q.get("overall") or {}
     pct = lambda x: "—" if x is None else f"{x:.0%}"  # noqa: E731
     typer.echo(f"QA     verdict accuracy {pct(o.get('accuracy'))} · fail precision {pct(o.get('fail_precision'))} · "
@@ -478,7 +509,9 @@ def autopilot(agent: str = typer.Option("v2", help="Reference agent to attack: v
               suite: Path = typer.Option(Path("suites/proof.yaml"), help="Agent SOP, account and base cases"),
               generations: int = typer.Option(3, min=1, max=8), population: int = typer.Option(4, min=1, max=12),
               heal_rounds: int = typer.Option(2, min=0, max=5), judge_samples: int = typer.Option(3, min=1, max=7),
-              out: Path = typer.Option(None, help="Default: runs/autopilot-<time>"), verbose: bool = False):
+              out: Path = typer.Option(None, help="Default: runs/autopilot-<time>"), verbose: bool = False,
+              resume: Path = typer.Option(None, help="Skip the hunt: heal a finished hunt in this directory"),
+              replay: Path = typer.Option(None, help="Replay this finished hunt's attacks on --agent (e.g. the fix) and compare leaks")):
     """Evon red-teams the agent (finds bugs nobody planted), then patches its prompt and keeps only verified fixes."""
     import time
     from .autopilot import run_autopilot
@@ -487,8 +520,14 @@ def autopilot(agent: str = typer.Option("v2", help="Reference agent to attack: v
     load_dotenv()
     evon = Evon()
     evon.chat([{"role": "user", "content": "Reply with the word ready."}], max_tokens=5)   # fail fast if Evon is down
-    out = out or Path("runs") / f"autopilot-{time.strftime('%Y%m%d-%H%M%S')}"
+    out = resume or out or Path("runs") / f"autopilot-{time.strftime('%Y%m%d-%H%M%S')}"
     printer = _printer(verbose)
+    if replay:
+        from .autopilot import replay as do_replay
+        s = asyncio.run(do_replay(replay, evon, agent, judge_samples, printer))
+        typer.echo(f"\nLEAKS  {s['attacked']}: {s['before']['leaked']}/{s['before']['calls']} attacks leaked the account · "
+                   f"{agent}: {s['after']['leaked']}/{s['after']['calls']}\nreport: {replay / 'autopilot.html'}")
+        return
 
     def on_event(e: dict) -> None:
         if e.get("type") == "hunt_generation":
@@ -504,7 +543,7 @@ def autopilot(agent: str = typer.Option("v2", help="Reference agent to attack: v
 
     typer.echo(f"Autopilot on reference agent {agent}: Evon is red team, callers, agent and judge; no Gnani speech credits.\n")
     r = asyncio.run(run_autopilot(out, evon, agent, str(suite), generations, population, heal_rounds if heal_rounds else 0,
-                                  judge_samples, do_heal=heal_rounds > 0, on_event=on_event))
+                                  judge_samples, do_heal=heal_rounds > 0, on_event=on_event, resume=bool(resume)))
     counted = [a for a in r["attacks"] if not a.get("discarded")]
     typer.echo(f"\nFOUND  {sum(bool(a['broke']) for a in counted)}/{len(counted)} attacks broke {agent}; "
                f"failure types: {', '.join(f'{k} ({len(v)})' for k, v in r['found'].items()) or 'none'}")
@@ -515,6 +554,56 @@ def autopilot(agent: str = typer.Option("v2", help="Reference agent to attack: v
         typer.echo(f"HEALED pass rate {h['before_pass_rate']:.0%} -> {h['after_pass_rate']:.0%} · fixed {len(h['fixed'])} · "
                    f"regressions {len(h['broken'])} · still failing {len(h['still'])}")
     typer.echo(f"\nreport: {out / 'autopilot.html'}")
+
+
+@app.command()
+def site(out: Path = typer.Option(Path("site"), help="Output folder (deploy it to any static host)"),
+         proof: Path = typer.Option(None, help="Proof run to show (default: the latest)"),
+         repo_url: str = typer.Option("", help="Link to the source repository")):
+    """A static showcase: landing page of measured numbers, the accuracy proof, and the QA Studio with its data baked in."""
+    from .site import build_site
+    _utf8_console()
+    r = build_site(out, proof=proof, repo_url=repo_url)
+    typer.echo(f"site: {r['out']} · {r['audits']} audits · {r['voiced_calls']} voiced calls · proof {r['proof']} · "
+               f"simulations {', '.join(r['simulations']) or 'none'} · autopilot {r['autopilot'] or 'none'} · {r['megabytes']} MB")
+    typer.echo(f"preview: python -m http.server -d {out} 8080   then open http://127.0.0.1:8080")
+
+
+@app.command()
+def stress(agent: list[str] = typer.Option(["v1", "v2"], help="Reference agent versions to sweep"),
+           noise: list[str] = typer.Option(None, help="Noise types (default: fan, traffic, office, crowd)"),
+           runs: int = typer.Option(2, min=1, max=5, help="Calls per level; a level holds only if every call was heard"),
+           evon: bool = typer.Option(False, help="Evon plays agent and caller (default: scripted; the ears are the agent's own code)"),
+           out: Path = typer.Option(None, help="Default: runs/stress-<time>"), verbose: bool = False):
+    """Noise breaking point: step the line's SNR from 30 dB to 0 dB per noise type and find where the agent stops hearing."""
+    import time
+    from .stress import NOISES, run_stress
+    _utf8_console()
+    load_dotenv()
+    ev = None
+    if evon:
+        from .gnani import Evon
+        ev = Evon()
+    out = out or Path("runs") / f"stress-{time.strftime('%Y%m%d-%H%M%S')}"
+    d = asyncio.run(run_stress(out, agent, ev, noise or NOISES, runs=runs, on_event=_printer(verbose)))
+    for v, r in d["versions"].items():
+        typer.echo(f"{v:6} " + " · ".join(f"{n}: " + (f"holds to {p['holds_to']} dB" if p["breaks_at"] is None else f"breaks at {p['breaks_at']} dB")
+                                          for n, p in r["points"].items()))
+    typer.echo(f"report: {out / 'stress.html'}")
+
+
+@app.command()
+def rating(proof: Path = typer.Argument(..., help="A proof run directory (has proof.json)"),
+           stress_dir: Path = typer.Option(None, "--stress", help="A noise-sweep run directory (has stress.json)"),
+           out: Path = typer.Option(None, help="Default: <proof>/rating")):
+    """Crash-test rating: five measured axes and an overall star rating per agent, plus shareable SVG badges."""
+    from .rating import build_rating
+    _utf8_console()
+    d = build_rating(proof, stress_dir / "stress.json" if stress_dir else None, out or proof / "rating")
+    for name, r in d["ratings"].items():
+        typer.echo(f"{name:9} {'★' * r['overall']}{'☆' * (5 - r['overall'])}  " +
+                   " · ".join(f"{k} {v['stars'] if v['stars'] is not None else '-'}" for k, v in r["axes"].items()))
+    typer.echo(f"report: {(out or proof / 'rating') / 'rating.html'}")
 
 
 pb_app = typer.Typer(add_completion=False, help="Industry playbooks: a tailored QA scorecard and test suite per vertical.")
@@ -677,6 +766,27 @@ def qa_bench(scorecard: Path = Path("scorecards/emi_collections.yaml"),
     typer.echo(f"pass/fail decision accuracy {pct(ev['decision_accuracy'])} · fatal-error recall {pct(ev['fatal_recall'])} · "
                f"fatal false alarms {ev['fatal_false_alarms']} · score MAE {ev['score_mae']}")
     typer.echo(f"usage: {json.dumps(usage.to_dict())}\nreport: {out / 'qa.html'} · {out / 'bench.json'}")
+
+
+@qa_app.command("compile")
+def qa_compile(policy: Path = typer.Argument(..., help="Policy, SOP or regulation text (.txt/.md)"),
+               out: Path = typer.Option(None, help="Default: scorecards/<policy name>.yaml"),
+               name: str = typer.Option(None, help="Scorecard name")):
+    """A policy in, an executable scorecard out: Evon writes the checks, each one traced to the clause it enforces."""
+    from .gnani import Evon
+    from .qa.compile import compile_policy, write
+    _utf8_console()
+    load_dotenv()
+    text = policy.read_text(encoding="utf-8")
+    card, notes = compile_policy(Evon(), text, name)
+    out = out or Path("scorecards") / f"{policy.stem}.yaml"
+    write(card, out, str(policy))
+    ps = card.parameters()
+    typer.echo(f"{card.name}: {len(ps)} checks · {sum(p.fatal for p in ps)} fatal · {sum(p.check.type != 'llm' for p in ps)} in code · "
+               f"{sum(not p.source.startswith('[') for p in ps if p.check.type != 'metric')} traced to a verified clause")
+    for n in notes:
+        typer.echo(f"  note: {n}")
+    typer.echo(f"written: {out}")
 
 
 @qa_app.command("simulate")
