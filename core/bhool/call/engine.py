@@ -70,6 +70,7 @@ async def run_call(
     agent_silent_timeout_s: float = 15.0,
     frame_ms: int = 20,
     on_event: Callable[[dict], None] | None = None,
+    answer_window_s: float = 8.0,
 ) -> CallRecord:
     loop = asyncio.get_running_loop()
     persona, behaviour = scenario.persona, scenario.behaviour
@@ -124,6 +125,8 @@ async def run_call(
             elif ev.kind == "hangup":
                 await q.put(("hangup", now()))
                 return
+            elif (ev.data or {}).get("type") == "guard":        # the agent's guard rewrote a line before speaking it
+                emit({**ev.data, "t": now()})
 
     async def clock():
         t0, k, was_speaking = loop.time(), 0, False
@@ -250,7 +253,7 @@ async def run_call(
 
     caller = np.concatenate(caller_frames) if caller_frames else np.zeros(0, np.float32)
     agent = np.concatenate(agent_frames) if agent_frames else np.zeros(0, np.float32)
-    metrics = measure_call(caller, agent, sr, caller_segments=truth)
+    metrics = measure_call(caller, agent, sr, caller_segments=truth, answer_window_s=answer_window_s)
     rec = CallRecord(
         scenario_id=scenario.id, run=run, end_reason=end_reason, duration_s=round(caller.size / sr, 3),
         turns=sorted(history, key=lambda t: t.start), caller_segments=truth, metrics=metrics,

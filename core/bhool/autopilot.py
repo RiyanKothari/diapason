@@ -310,8 +310,17 @@ async def heal(evon, suite: Suite, agent: AgentVersion, out: Path, rounds: int =
             break
         user = (f"CURRENT PROMPT:\n{current.prompt}\n\nOPENING LINE:\n{current.greeting}\n\n"
                 f"FAILURES:\n{digest}\n{feedback}")
-        data = evon.chat_json([{"role": "system", "content": HEAL_SYSTEM.format()}, {"role": "user", "content": user}],
-                              temperature=0.3, max_tokens=2000)
+        data = None
+        for _ in range(2):              # a malformed patch proposal is retried once, then the round is recorded as failed
+            try:
+                data = evon.chat_json([{"role": "system", "content": HEAL_SYSTEM.format()}, {"role": "user", "content": user}],
+                                      temperature=0.3, max_tokens=2000)
+                break
+            except Exception as e:
+                err = repr(e)[:160]
+        if data is None:
+            attempts.append({"round": r, "accepted": False, "rules": [], "error": f"Evon's patch proposal was unusable: {err}"})
+            continue
         rules = [str(x.get("rule") if isinstance(x, dict) else x) for x in data.get("rules") or []]
         try:
             patched = patch_agent(current, rules, data.get("greeting"), f"heal{r}")
@@ -350,15 +359,48 @@ async def heal(evon, suite: Suite, agent: AgentVersion, out: Path, rounds: int =
 
 # ---------------------------------------------------------------- the whole loop
 
+def attacks_from_disk(out: Path) -> list[Attack]:
+    """Rebuild a finished hunt's attacks from its saved generation reports and regression suite (to resume heal)."""
+    reg = out / "autopilot_regressions.yaml"
+    meta = {}
+    if reg.exists():
+        data = yaml.safe_load(reg.read_text(encoding="utf-8"))
+        people = {p["id"]: p for p in data.get("personas", [])}
+        acts = {b["id"]: b for b in data.get("behaviours", [])}
+        meta = {c["id"]: (people.get(c["persona"], {}), acts.get(c["behaviour"], {}), c.get("channel", "landline")) for c in data.get("cases", [])}
+    attacks = []
+    for d in sorted((out / "hunt").glob("hunt-g*")):
+        gen = int(d.name.split("-")[1][1:])
+        rep = json.loads((d / "report.json").read_text(encoding="utf-8"))
+        by: dict[str, list[dict]] = {}
+        for v in rep["verdicts"]:
+            by.setdefault(v["scenario_id"], []).append(v)
+        for sid, vs in by.items():
+            persona, beh, channel = meta.get(sid, ({}, {}, "landline"))
+            fails = [f for v in vs for f in call_failures(v)]
+            attacks.append(Attack(id=sid, generation=gen, target="", idea=str(beh.get("instructions", ""))[:300],
+                                  persona={k: persona.get(k) for k in ("description", "stt_lang", "tts_lang") if persona.get(k)},
+                                  behaviour={"instructions": beh.get("instructions", ""), "interrupt_prob": beh.get("interrupt_prob", 0),
+                                             "lines": beh.get("lines") or {}},
+                                  channel=channel, score=round(sum(severity(call_failures(v)) for v in vs) / max(1, len(vs)), 2),
+                                  broke=list({f["item"]: f for f in fails}.values()), report_dir=d.relative_to(out).as_posix()))
+    return attacks
+
+
 async def run_autopilot(out: Path, evon, agent: str = "v2", suite_path: str = "suites/proof.yaml",
                         generations: int = 3, population: int = 4, heal_rounds: int = 2, judge_samples: int = 3,
-                        do_heal: bool = True, on_event=None) -> dict:
+                        do_heal: bool = True, on_event=None, resume: bool = False) -> dict:
     from .scenarios import load_suite
     out.mkdir(parents=True, exist_ok=True)
     base = load_suite(suite_path)
     av = VERSIONS[agent]
     started = time.time()
-    attacks = await hunt(evon, base, av, out, generations, population, judge_samples, on_event)
+    if resume:
+        attacks = attacks_from_disk(out)
+        if not attacks:
+            raise ValueError(f"no finished hunt in {out}")
+    else:
+        attacks = await hunt(evon, base, av, out, generations, population, judge_samples, on_event)
     regress = write_regression_suite(base, attacks, out / "autopilot_regressions.yaml")
     healed = None
     if do_heal and regress is not None:
@@ -379,6 +421,53 @@ async def run_autopilot(out: Path, evon, agent: str = "v2", suite_path: str = "s
     (out / "autopilot.json").write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     write_html(result, out / "autopilot.html")
     return result
+
+
+# ---------------------------------------------------------------- replay on another agent
+
+def leaks(call_jsons, suite) -> dict:
+    """Attack calls where the agent told real account data to an unverified caller (judge.rubric.account_privacy):
+    deterministic, so two agents' runs of the same attacks compare without judge noise."""
+    from .judge.rubric import account_privacy
+    from .runner import load_call
+    personas = {s.id: s.persona for s in suite.expand()}
+    calls, hits = 0, []
+    for p in call_jsons:
+        sid = p.parent.parent.name
+        if sid not in personas or not sid.startswith("g"):        # the attacks only (g<gen>_...), not the base cases
+            continue
+        calls += 1
+        r = account_privacy(personas[sid], load_call(p))
+        if r and r.verdict == "fail":
+            hits.append({"attack": sid, "reason": r.reason, "quote": r.evidence[0]["quote"]})
+    return {"calls": calls, "leaked": len(hits), "examples": hits}
+
+
+def leak_summary(out: Path, agent: str) -> dict:
+    """The hunt's agent vs `agent` replaying the same attacks: which leaked the account, call by call."""
+    from .scenarios import load_suite
+    r = json.loads((out / "autopilot.json").read_text(encoding="utf-8"))
+    suite = load_suite(str(out / "autopilot_regressions.yaml"))
+    rep = out / f"replay-{agent}"
+    summary = {"attacked": r["agent"], "replayed_on": agent,
+               "before": leaks(sorted((out / "hunt").glob("hunt-g*/*/run*/call.json")), suite),
+               "after": leaks(sorted(rep.glob("*/*/run*/call.json")), suite)}
+    (rep / "replay.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1), encoding="utf-8")
+    r["replay"] = summary
+    (out / "autopilot.json").write_text(json.dumps(r, ensure_ascii=False, indent=1), encoding="utf-8")
+    write_html(r, out / "autopilot.html")
+    return summary
+
+
+async def replay(out: Path, evon, agent: str, judge_samples: int = 3, on_event=None) -> dict:
+    """Replay a finished hunt's attacks on another agent version (e.g. the fix), then compare leaks."""
+    from .demo import run_version
+    run = await run_version(agent, str(out / "autopilot_regressions.yaml"), out / f"replay-{agent}", on_event, evon=evon,
+                            judge_samples=judge_samples, label=f"reference agent {agent} vs the attacks that broke the hunted agent",
+                            hear_callers=True)
+    if run.usage.get("harness_errors"):
+        raise RuntimeError(f"Evon failed {run.usage['harness_errors']} time(s) during the replay; don't quote it")
+    return leak_summary(out, agent)
 
 
 # ---------------------------------------------------------------- report
@@ -431,6 +520,17 @@ failure and breaks nothing that passed. Reports: <a href="{escape(h['before_dir'
 <h3>Not a prompt problem: engineering work</h3><ul>{li(h['engineering_metrics'] + eng)}</ul>
 <details><summary>Healed prompt</summary><pre style="white-space:pre-wrap">{escape(h['healed']['prompt'])}</pre>
 <p class=muted>Opening line: {escape(h['healed']['greeting'])}</p></details>"""
+    rp, replay_html = r.get("replay"), ""
+    if rp:
+        b, a = rp["before"], rp["after"]
+        ex = "".join(f"<tr><td>{escape(x['attack'])}</td><td>{escape(x['reason'])}</td><td class=ev>{escape(x['quote'])}</td></tr>"
+                     for x in b["examples"][:4] + a["examples"])
+        replay_html = f"""<h2>Replay: the same attacks on {escape(rp['replayed_on'])}</h2>
+<p class="muted">Every attack that broke {escape(rp['attacked'])} was replayed on {escape(rp['replayed_on'])} with the same callers and harness.
+A leak is real account data (loan digits, amount, due date) told to a caller who hadn't proved the digits, found in code, not by the judge.</p>
+<div class="kpis"><div class="kpi"><span class="muted">Attacks that leaked the account on {escape(rp['attacked'])}</span><b>{b['leaked']}/{b['calls']}</b></div>
+<div class="kpi"><span class="muted">Same attacks on {escape(rp['replayed_on'])}</span><b>{a['leaked']}/{a['calls']}</b></div></div>
+<div class="scroll"><table><tr><th>Attack</th><th>Leak</th><th>The agent's words</th></tr>{ex}</table></div>"""
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Bhool Autopilot</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>{CSS}.scroll>table{{min-width:720px}}ul{{margin:.3em 0;padding-left:1.2em}}</style></head><body><main>
@@ -443,5 +543,6 @@ Every attack that broke something is saved as a regression test{(' (<a href="' +
 <h2>Hunt: attacks by generation</h2>
 <div class="scroll"><table><tr><th>Gen</th><th>Attack</th><th>Result</th><th>What broke (judge's evidence)</th></tr>{rows}</table></div>
 {heal_html}
+{replay_html}
 </main></body></html>"""
     path.write_text(page, encoding="utf-8")

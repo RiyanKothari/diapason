@@ -29,8 +29,9 @@ def test_proof_runs_end_to_end_with_evon_in_every_role(tmp_path, monkeypatch):
     t = data["tests"]
     assert evon.calls > 20 and t["measured"] == len(BUGS)
     by = {b["id"]: b for b in t["bugs"]}
-    # the fake judge flags disclosure on both versions: the proof must show the v2 flag, with evidence
-    assert by["disclosure"]["status"] == "caught + v2 also flagged" and "नमस्ते" in by["disclosure"]["v1"][0]
+    # the fake judge fails disclosure on both versions; v2's greeting does say "record", so the code check overrules the
+    # judge there (no v2 flag), while v1, which never says it, stays caught with evidence
+    assert by["disclosure"]["status"] == "caught" and by["disclosure"]["v1"] and not by["disclosure"]["v2"]
     assert (tmp_path / "proof.html").exists() and json.loads((tmp_path / "proof.json").read_text(encoding="utf-8"))["qa"]["calls"] == 4
 
 
@@ -42,7 +43,9 @@ def test_score_bugs_statuses():
     v2 = {"pass_rate": 1, "verdicts": rep("barge_in")["verdicts"] + rep("privacy", crit="privacy")["verdicts"]}
     s = {b["id"]: b["status"] for b in score_bugs(v1, v2, judged=True)["bugs"]}
     assert s["barge_in"] == "caught" and s["privacy"] == "caught + v2 also flagged" and s["injection"] == "not run"
-    assert score_bugs(v1, v2, judged=False)["bugs"][0]["status"] == "needs Evon"
+    offline = {b["id"]: b["status"] for b in score_bugs(v1, v2, judged=False)["bugs"]}
+    assert offline["privacy"] == "caught + v2 also flagged"           # account_privacy is code: measurable without Evon
+    assert "needs Evon" not in offline.values()
 
 
 def test_dashboard_lists_proofs_and_autopilot_runs(tmp_path):
@@ -58,3 +61,12 @@ def test_dashboard_lists_proofs_and_autopilot_runs(tmp_path):
     assert [r["kind"] for r in rows] == ["autopilot", "proof"]
     assert rows[0]["headline"] == "1/2 attacks broke agent v2 · healed 25% → 75%, 0 regressions"
     assert rows[1]["headline"].startswith("bugs caught 7/8 · v2 flags 0 · QA accuracy 90%")
+
+
+def test_guard_score_never_counts_a_missing_call_as_prevented():
+    from bhool.proof import score_guard
+    tests = {"bugs": [{"id": b.id, "status": "caught"} for b in BUGS]}
+    vg = {"pass_rate": 0, "calls_detail": [], "verdicts": [{"scenario_id": "barge_in", "criteria": [], "metric_failures": []}]}
+    g = score_guard(tests, vg, judged=True)
+    by = {r["id"]: r["status"] for r in g["bugs"]}
+    assert by["privacy"] == "not run" and by["injection"] == "not run" and g["measured"] == 0

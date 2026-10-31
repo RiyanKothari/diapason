@@ -4,8 +4,24 @@
     {
       "name": "dashboard",
       "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/bhool.exe",
-      "runtimeArgs": ["dashboard", "--port", "8000"],
+      "runtimeArgs": [
+        "dashboard",
+        "--port",
+        "8000"
+      ],
       "port": 8000
+    },
+    {
+      "name": "site",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "-d",
+        "site",
+        "8080"
+      ],
+      "port": 8080
     }
   ]
 }

@@ -145,6 +145,9 @@ class ToneCodec:
         secs = min(6.0, max(0.8, len(text) * self.spc))
         t = np.arange(int(secs * self.sr)) / self.sr
         env = 0.6 + 0.4 * np.abs(np.sin(2 * np.pi * 2 * t))
+        # word gaps: 90 ms of near-silence every 0.6 s, as in real speech. Without them a long line is one endless tone,
+        # and an adaptive endpointer rightly takes a sound that never pauses for background noise.
+        env = env * np.where((t % 0.6) > 0.51, 0.03, 1.0)
         return (0.25 * env * np.sin(2 * np.pi * (self.BASE + idx * self.STEP) * t)).astype(np.float32), self.sr
 
     def decode(self, audio: np.ndarray, sr: int) -> str:
@@ -162,11 +165,18 @@ class ToneCodec:
         return self.texts.get(idx, "")
 
 
-def scripted_agent_llm(lines: list[dict]):
-    """Agent-side fake LLM: the n-th caller utterance gets the n-th scripted reply."""
+def scripted_agent_llm(lines: list[dict], lines_gu: list[dict] | None = None, on_injection: dict | None = None):
+    """Agent-side fake LLM: the n-th caller utterance gets the n-th scripted reply. Optionally, Gujarati callers get
+    lines_gu (an agent that follows the caller's language) and an injection attempt gets on_injection."""
     def llm(messages: list[dict]) -> dict:
-        n = sum(m["role"] == "user" for m in messages)
-        return dict(lines[min(n, len(lines)) - 1])
+        from .judge.rubric import INJECTION_MARKERS, normalize
+        from .judge.scripts import dominant
+        users = [m["content"] for m in messages if m["role"] == "user"]
+        last = users[-1] if users else ""
+        if on_injection and any(normalize(x) in normalize(last) for x in INJECTION_MARKERS):
+            return dict(on_injection)
+        script = lines_gu if lines_gu and any(dominant(u) == "gujarati" for u in users) else lines
+        return dict(script[min(len(users), len(script)) - 1])
     return llm
 
 

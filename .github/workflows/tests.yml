@@ -13,3 +13,10 @@ jobs:
       # Whole pipeline, no API keys or credits: fake agent, then reference agent v1 vs v2 with a diff.
       - run: bhool selftest --limit 4
       - run: bhool demo
+      # Accuracy proof with code checks only (judge-only bugs show "needs Evon"), and the static showcase.
+      - run: bhool proof --offline --qa-calls 12 --out runs/proof-offline
+      - run: bhool site --out site
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bhool-site
+          path: site/
