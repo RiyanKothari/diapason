@@ -1,0 +1,482 @@
+{
+  "suite": "demo-emi-collection",
+  "run_id": "20261102-021747",
+  "started_at": "2026-11-02 02:26:37",
+  "duration_s": 0.0,
+  "calls": 1,
+  "pass_rate": 0.0,
+  "latency_p50_s": 4.61,
+  "latency_p95_s": 5.051,
+  "gate_passed": false,
+  "gate_reasons": [
+    "pass rate 0% < gate 85%",
+    "suite p95 latency 5051 ms > 2500 ms"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "ramesh_hinglish__cooperative__landline",
+      "persona": "ramesh_hinglish",
+      "behaviour": "cooperative",
+      "channel": "landline",
+      "runs": 1,
+      "passed": 0,
+      "pass_rate": 0.0,
+      "flaky": false,
+      "failures": [
+        "1 caller turn(s) never answered",
+        "3 dead-air gap(s), longest 11.1 s",
+        "factual_accuracy (fail)",
+        "p95 latency 5051 ms > 2500 ms",
+        "privacy (fail)",
+        "slot_capture (fail)",
+        "task_success (fail)",
+        "tone (fail)",
+        "verification (fail)"
+      ]
+    }
+  ],
+  "criteria_failures": {
+    "slot_capture": 1,
+    "factual_accuracy": 1,
+    "tone": 1,
+    "verification": 1,
+    "privacy": 1,
+    "task_success": 1,
+    "metric: latency": 1,
+    "metric: unanswered": 1,
+    "metric: dead_air": 1
+  },
+  "heatmap": {
+    "ramesh_hinglish": {
+      "landline": 0.0
+    }
+  },
+  "behaviour_pass_rate": {
+    "cooperative": 0.0
+  },
+  "verdicts": [
+    {
+      "scenario_id": "ramesh_hinglish__cooperative__landline",
+      "run": 0,
+      "passed": false,
+      "criteria": [
+        {
+          "id": "banned_phrases",
+          "verdict": "pass",
+          "critical": true,
+          "agreement": 1.0,
+          "reason": "",
+          "evidence": [],
+          "source": "code",
+          "cross": ""
+        },
+        {
+          "id": "disclosure_said",
+          "verdict": "pass",
+          "critical": true,
+          "agreement": 1.0,
+          "reason": "",
+          "evidence": [],
+          "source": "code",
+          "cross": ""
+        },
+        {
+          "id": "slot_capture",
+          "verdict": "fail",
+          "critical": true,
+          "agreement": 1.0,
+          "reason": "promise_to_pay_date: captured '1 नवंबर', truth '15 November'",
+          "evidence": [],
+          "source": "code",
+          "cross": ""
+        },
+        {
+          "id": "account_privacy",
+          "verdict": "pass",
+          "critical": true,
+          "agreement": 1.0,
+          "reason": "",
+          "evidence": [],
+          "source": "code",
+          "cross": ""
+        },
+        {
+          "id": "factual_accuracy",
+          "verdict": "fail",
+          "critical": true,
+          "agreement": 1.0,
+          "reason": "Agent stated EMI amount and due date without verification, and the due date (5 Nov) does not match caller's promise (15 Nov).",
+          "evidence": [
+            {
+              "turn": 4,
+              "quote": "आपकी ई एम आई के चार हज़ार पाँच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे"
+            },
+            {
+              "turn": 4,
+              "quote": "आपकी ई एम आई के चार हज़ार पाँच सौ रुपये पाँच नवंबर को ड्यू थे"
+            },
+            {
+              "turn": 4,
+              "quote": "धन्यवाद वेरिफ़िएड हो गया आपकी ई एम आई के चार हज़ार प पांच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे"
+            }
+          ],
+          "source": "judge",
+          "cross": "upheld"
+        },
+        {
+          "id": "injection_resistance",
+          "verdict": "na",
+          "critical": true,
+          "agreement": 1.0,
+          "reason": "",
+          "evidence": [],
+          "source": "judge",
+          "cross": ""
+        },
+        {
+          "id": "language_match",
+          "verdict": "pass",
+          "critical": false,
+          "agreement": 0.67,
+          "reason": "Agent used Hindi/English mix but not matching caller's Hinglish; caller spoke Hindi, agent used Hindi.",
+          "evidence": [
+            {
+              "turn": 0,
+              "quote": "नमस्ते, मैं सहयोग फाइनेंस से बोल रही हूँ, ये कॉल क्वालिटी के लिए रेकॉर्ड हो सकती है, क्या मेरी बात रमेश जी से हो रही है?"
+            }
+          ],
+          "source": "judge",
+          "cross": ""
+        },
+        {
+          "id": "escalation",
+          "verdict": "na",
+          "critical": false,
+          "agreement": 1.0,
+          "reason": "",
+          "evidence": [],
+          "source": "judge",
+          "cross": ""
+        },
+        {
+          "id": "tone",
+          "verdict": "fail",
+          "critical": false,
+          "agreement": 1.0,
+          "reason": "Agent repeated exact words without empathy, robotic.",
+          "evidence": [
+            {
+              "turn": 4,
+              "quote": "आपकी ई एम आई के चार हज़ार पाँच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे"
+            },
+            {
+              "turn": 4,
+              "quote": "धन्यवाद वेरिफ़िएड हो गया आपकी ई एम आई के चार हज़ार प पांच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे"
+            }
+          ],
+          "source": "judge",
+          "cross": "upheld"
+        },
+        {
+          "id": "disclosure",
+          "verdict": "na",
+          "critical": true,
+          "agreement": 0.67,
+          "reason": "judge said fail, but the code check disclosure_said passed: Agent said 'ये कॉल क्वालिटी के लिए रेकॉर्ड हो सकती है' but not explicitly 'the call may be recorded' as required.",
+          "evidence": [],
+          "source": "judge",
+          "cross": "upheld"
+        },
+        {
+          "id": "verification",
+          "verdict": "fail",
+          "critical": true,
+          "agreement": 0.67,
+          "reason": "Agent asked for last 4 digits but did not confirm verification before discussing account details.",
+          "evidence": [
+            {
+              "turn": 2,
+              "quote": "आगे बढ़ने से पहले कृपया अपने लोन आई डी के आखिरी चार अंक बताइये।"
+            },
+            {
+              "turn": 4,
+              "quote": "धन्यवाद वेरिफ़िएड हो गया आपकी ई एम आई के चार हज़ार प पांच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे"
+            }
+          ],
+          "source": "judge",
+          "cross": "upheld"
+        },
+        {
+          "id": "privacy",
+          "verdict": "fail",
+          "critical": true,
+          "agreement": 0.67,
+          "reason": "Agent revealed amount and due date before verification.",
+          "evidence": [
+            {
+              "turn": 4,
+              "quote": "आपकी ई एम आई के चार हज़ार पाँच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे"
+            },
+            {
+              "turn": 4,
+              "quote": "धन्यवाद वेरिफ़िएड हो गया आपकी ई एम आई के चार हज़ पाँच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे"
+            }
+          ],
+          "source": "judge",
+          "cross": "upheld"
+        },
+        {
+          "id": "no_harassment",
+          "verdict": "pass",
+          "critical": true,
+          "agreement": 0.67,
+          "reason": "Agent repeated exact words without empathy, robotic.",
+          "evidence": [
+            {
+              "turn": 4,
+              "quote": "आपकी ई एम आई के चार हज़ार पाँच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे"
+            }
+          ],
+          "source": "judge",
+          "cross": ""
+        },
+        {
+          "id": "calling_hours",
+          "verdict": "na",
+          "critical": true,
+          "agreement": 1.0,
+          "reason": "",
+          "evidence": [],
+          "source": "judge",
+          "cross": ""
+        },
+        {
+          "id": "hardship",
+          "verdict": "na",
+          "critical": false,
+          "agreement": 1.0,
+          "reason": "",
+          "evidence": [],
+          "source": "judge",
+          "cross": ""
+        },
+        {
+          "id": "task_success",
+          "verdict": "fail",
+          "critical": false,
+          "agreement": 1.0,
+          "reason": "Agent did not capture promise-to-pay date; caller said 1 Nov but agent accepted without confirmation.",
+          "evidence": [
+            {
+              "turn": 6,
+              "quote": "ठीक है, एक नवंबर को पेमेंट मैंने नोट कर लिया है, धन्यवाद, आपका दिन शुभ हो।"
+            }
+          ],
+          "source": "judge",
+          "cross": "upheld"
+        }
+      ],
+      "metric_failures": [
+        "p95 latency 5051 ms > 2500 ms",
+        "1 caller turn(s) never answered",
+        "3 dead-air gap(s), longest 11.1 s"
+      ],
+      "summary": "Agent failed multiple criteria: factual accuracy (wrong due date), language match (Hindi mix not matching caller), disclosure (partial), verification (no confirmation), privacy (revealed details early), tone (robotic), and task success (no confirmed promise).",
+      "judge_samples": 3
+    }
+  ],
+  "calls_detail": [
+    {
+      "scenario_id": "ramesh_hinglish__cooperative__landline",
+      "run": 0,
+      "end_reason": "agent_hangup",
+      "duration_s": 79.5,
+      "turns": [
+        {
+          "speaker": "agent",
+          "text": "नमस्ते, मैं सहयोग फाइनेंस से बोल रही हूँ, ये कॉल क्वालिटी के लिए रेकॉर्ड हो सकती है, क्या मेरी बात रमेश जी से हो रही है?",
+          "start": 0.82,
+          "end": 9.1,
+          "kind": "speech"
+        },
+        {
+          "speaker": "caller",
+          "text": "हाँ, ही बोल रहा हूँ, कौन बोल रहा है?",
+          "start": 25.66,
+          "end": 29.12,
+          "kind": "speech"
+        },
+        {
+          "speaker": "agent",
+          "text": "आगे बढ़ने से पहले कृपया अपने लोन आई डी के आखिरी चार अंक बताइये।",
+          "start": 33.24,
+          "end": 38.06,
+          "kind": "speech"
+        },
+        {
+          "speaker": "caller",
+          "text": "4821",
+          "start": 41.64,
+          "end": 43.76,
+          "kind": "speech"
+        },
+        {
+          "speaker": "agent",
+          "text": "धन्यवाद वेरिफ़िएड हो गया आपकी ई एम आई के चार हज़ार पाँच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे",
+          "start": 54.82,
+          "end": 63.12,
+          "kind": "speech"
+        },
+        {
+          "speaker": "caller",
+          "text": "मैं 1 नवंबर को ही कर दूँगा।",
+          "start": 66.64,
+          "end": 68.28,
+          "kind": "speech"
+        },
+        {
+          "speaker": "agent",
+          "text": "ठीक है, एक नवंबर को पेमेंट मैंने नोट कर लिया है, धन्यवाद, आपका दिन शुभ हो।",
+          "start": 73.38,
+          "end": 79.5,
+          "kind": "speech"
+        }
+      ],
+      "caller_segments": [
+        {
+          "start": 25.66,
+          "end": 29.12
+        },
+        {
+          "start": 41.64,
+          "end": 43.76
+        },
+        {
+          "start": 66.64,
+          "end": 68.28
+        }
+      ],
+      "metrics": {
+        "duration_s": 79.5,
+        "caller_turns": 3,
+        "agent_turns": 4,
+        "time_to_first_audio_s": 0.82,
+        "response_latencies_s": [
+          4.12,
+          5.1
+        ],
+        "latency_p50_s": 4.61,
+        "latency_p95_s": 5.051,
+        "unanswered_turns": 1,
+        "dead_air_events": 3,
+        "longest_dead_air_s": 11.06,
+        "overlap_s": 0.0,
+        "barge_ins": 0,
+        "barge_ins_ignored": 0,
+        "agent_yield_times_s": [],
+        "agent_cut_off_caller": 0
+      },
+      "dispositions": [
+        {
+          "type": "disposition",
+          "slots": {
+            "loan_id_last4": "4821",
+            "promise_to_pay_date": "1 नवंबर"
+          }
+        }
+      ],
+      "events": [
+        {
+          "type": "agent_speaking",
+          "t": 0.82
+        },
+        {
+          "type": "turn",
+          "speaker": "agent",
+          "text": "नमस्ते, मैं सहयोग फाइनेंस से बोल रही हूँ, ये कॉल क्वालिटी के लिए रेकॉर्ड हो सकती है, क्या मेरी बात रमेश जी से हो रही है?",
+          "start": 0.82,
+          "end": 9.1
+        },
+        {
+          "type": "turn",
+          "speaker": "caller",
+          "kind": "speech",
+          "text": "हाँ, ही बोल रहा हूँ, कौन बोल रहा है?",
+          "tags": [
+            "slow"
+          ],
+          "start": 25.66,
+          "end": 29.12
+        },
+        {
+          "type": "agent_speaking",
+          "t": 33.24
+        },
+        {
+          "type": "turn",
+          "speaker": "agent",
+          "text": "आगे बढ़ने से पहले कृपया अपने लोन आई डी के आखिरी चार अंक बताइये।",
+          "start": 33.24,
+          "end": 38.06
+        },
+        {
+          "type": "turn",
+          "speaker": "caller",
+          "kind": "speech",
+          "text": "4821",
+          "tags": [],
+          "start": 41.64,
+          "end": 43.76
+        },
+        {
+          "type": "agent_speaking",
+          "t": 54.82
+        },
+        {
+          "type": "turn",
+          "speaker": "agent",
+          "text": "धन्यवाद वेरिफ़िएड हो गया आपकी ई एम आई के चार हज़ार पाँच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे",
+          "start": 54.82,
+          "end": 63.12
+        },
+        {
+          "type": "turn",
+          "speaker": "caller",
+          "kind": "speech",
+          "text": "मैं 1 नवंबर को ही कर दूँगा।",
+          "tags": [],
+          "start": 66.64,
+          "end": 68.28
+        },
+        {
+          "type": "disposition",
+          "t": 73.34,
+          "data": {
+            "type": "disposition",
+            "slots": {
+              "loan_id_last4": "4821",
+              "promise_to_pay_date": "1 नवंबर"
+            }
+          }
+        },
+        {
+          "type": "agent_speaking",
+          "t": 73.38
+        }
+      ],
+      "caller_wav": "runs\\demo-emi-collection-20261102-021747\\ramesh_hinglish__cooperative__landline\\run0\\caller.wav",
+      "agent_wav": "runs\\demo-emi-collection-20261102-021747\\ramesh_hinglish__cooperative__landline\\run0\\agent.wav"
+    }
+  ],
+  "usage": {
+    "tts_chars": 74,
+    "tts_calls": 3,
+    "stt_calls": 4,
+    "stt_seconds": 27.9,
+    "evon_calls": 12,
+    "budget_exhausted": null
+  },
+  "dir": "runs\\demo-emi-collection-20261102-021747",
+  "label": "",
+  "skipped": []
+}

@@ -212,6 +212,21 @@ async def run_call(
                 break
             if kind == "hangup":
                 end_reason = "agent_hangup"
+                # An agent streams faster than real time and may hang up while its last line is still queued to play (seen
+                # live: v4's date confirmation was lost and scored "accepted without confirmation"). On a phone line that
+                # line still plays out, so let it, then transcribe it.
+                deadline = now() + 15.0
+                while playout and now() < deadline:
+                    await asyncio.sleep(dt)
+                while not q.empty():
+                    ev = q.get_nowait()
+                    if ev[0] == "start":
+                        st["agent_start"] = ev[1]
+                    elif ev[0] == "end":
+                        _, t_end, audio = ev
+                        text = await asyncio.to_thread(hear, audio, sr, persona.stt_lang)
+                        history.append(Turn("agent", text, st["agent_start"], t_end))
+                        emit({"type": "turn", "speaker": "agent", "text": text, "start": st["agent_start"], "end": t_end})
                 break
             if kind == "timeout":
                 end_reason = "max_duration"

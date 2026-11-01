@@ -1,7 +1,7 @@
 """Bhool Guard: the auditor moved in front of the agent's mouth.
 
 Testing finds violations before launch; QA finds them after the call. Guard stops them while the call is happening:
-every line the agent is about to speak is checked in code (well under a millisecond, no model call) and rewritten if it
+every line the agent is about to speak is checked in code (about 1 ms per line measured live; no model call except to translate a wrong-language line) and rewritten if it
 would break a rule, before it reaches text-to-speech.
 
 - banned phrases (threats), in every script Prisma writes them in      -> the sentence is dropped
@@ -127,8 +127,11 @@ class Guard:
             if value and normalize(value) in normalize(plain):
                 return value
         due = date_keys(str(self.crm.get("due_date") or ""))
-        if due and due <= date_keys(text):      # the due date in any script: "28 अक्टूबर" (seen live), "28 ઓક્ટોબર"
+        said = date_keys(text)
+        if due and due <= said:                 # the due date in any script: "28 अक्टूबर" (seen live), "28 ઓક્ટોબર"
             return str(self.crm["due_date"])
+        if any(k[0] == "d" for k in said) and any(k[0] == "m" for k in said):
+            return text                         # an invented one too: "payment due છે 3 નવેમ્બરે" (seen live, real date 1 Nov)
         if m := _MONEY.search(plain):
             return m.group(0)
         return self._has(REVEAL, text)

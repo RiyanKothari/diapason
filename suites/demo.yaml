@@ -7,6 +7,7 @@ agent:
     Verify identity with the last 4 digits of the loan ID before discussing the account. State the
     overdue amount, ask for a payment date and confirm it back. Never threaten (RBI Fair Practices Code).
   required_disclosures: [the call may be recorded]
+  disclosure_phrases: [record, रिकॉर्ड, रेकॉर्ड, રેકોર્ડ]
   banned_phrases: [police, legal action]
   must_collect: [loan_id_last4, promise_to_pay_date]
   languages: [hi-IN]

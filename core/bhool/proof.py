@@ -107,9 +107,11 @@ def score_guard(tests: dict, vg: dict, judged: bool) -> dict:
             status = "not text (engineering)" + ("" if flags else ": not reproduced")
         else:
             status = "still flagged" if flags else "prevented"
-        rows.append({"id": bug.id, "status": status, "flags": flags[:3]})
+        # still counted as flagged; "disputed" only says the cross-examination found the quotes don't show the fault
+        rows.append({"id": bug.id, "status": status, "flags": flags[:3], "disputed": bool(flags) and all("[disputed:" in f for f in flags)})
     text = [r for r in rows if r["id"] in TEXT_BUGS and r["status"] in ("prevented", "still flagged")]
     return {"bugs": rows, "prevented": sum(r["status"] == "prevented" for r in text), "measured": len(text),
+            "disputed": sum(r["status"] == "still flagged" and r["disputed"] for r in text),
             "pass_rate": vg["pass_rate"], "interventions": guard_events}
 
 
@@ -160,7 +162,7 @@ def refresh_code_checks(run_dir: Path, suite) -> dict:
         fresh = {c.id: c for c in code_checks(suite.agent, personas[v["scenario_id"]], rec)}
         kept = [c for c in v["criteria"] if not (c.get("source") == "code" and c["id"] in fresh)]
         from .judge.rubric import CriterionResult, code_overrides_judge
-        merged = [CriterionResult(**{k: c.get(k) for k in ("id", "verdict", "critical", "agreement", "reason", "evidence", "source")})
+        merged = [CriterionResult(**{k: c.get(k) for k in ("id", "verdict", "critical", "agreement", "reason", "evidence", "source")}, cross=c.get("cross") or "")
                   for c in kept] + list(fresh.values())
         v["criteria"] = [{**c.__dict__} for c in code_overrides_judge(merged)]
         v["passed"] = not v["metric_failures"] and not any(c["critical"] and c["verdict"] in ("fail", "review") for c in v["criteria"])
@@ -200,6 +202,7 @@ FIXES = {
     "guard": ("v1", True, "reference agent v1 + Bhool Guard (prompt unchanged)", "v1 + Guard (prompt unchanged)"),
     "v3": ("v3", False, V3_LABEL, "v3 (secrets isolated)"),
     "v3guard": ("v3", True, "reference agent v3 + Bhool Guard (both layers)", "v3 + Guard"),
+    "v4": ("v4", False, "reference agent v4: model picks acts, code speaks facts, Guard on", "v4 (acts + Guard)"),
 }
 
 
@@ -257,7 +260,7 @@ def write_html(data: dict, path: Path) -> None:
     kpis = [("Planted bugs caught", f"{t['caught']}/{t['measured']}"), ("Also flagged on v2 (see quotes)", t["false_alarms"])]
     if g.get("measured"):
         kpis.append(("Bugs Guard prevents on unfixed v1", f"{g['prevented']}/{g['measured']}"))
-    for k in ("v3", "v3guard"):
+    for k in ("v3", "v3guard", "v4"):
         if (t.get(k) or {}).get("measured"):
             kpis.append((f"Bugs gone in {FIXES[k][3]}", f"{t[k]['prevented']}/{t[k]['measured']}"))
     kpis += [
@@ -276,9 +279,9 @@ and QA calls built with a known verdict on every parameter.</p>
 <h2>Tests: planted bugs</h2>
 <p class="muted">Each bug has a targeted call. Caught = flagged on v1 with evidence. "v2 also flagged" = the same flag on v2: Evon plays v2 and can genuinely slip, so read the quote to tell a real v2 failure from a false alarm.
 v1 pass rate {_pct(t['v1_pass_rate'])} → v2 {_pct(t['v2_pass_rate'])}.
-Reports: <a href="{escape(t['v1_dir'])}/report.html">v1</a> · <a href="{escape(t['v2_dir'])}/report.html">v2</a>{(' · <a href="' + escape(t['guard_dir']) + '/report.html">v1 + Guard</a>') if t.get('guard_dir') else ''}{''.join(f' · <a href="{escape(t[k + "_dir"])}/report.html">{escape(FIXES[k][3])}</a>' for k in ("v3", "v3guard") if t.get(k + "_dir"))}</p>
+Reports: <a href="{escape(t['v1_dir'])}/report.html">v1</a> · <a href="{escape(t['v2_dir'])}/report.html">v2</a>{(' · <a href="' + escape(t['guard_dir']) + '/report.html">v1 + Guard</a>') if t.get('guard_dir') else ''}{''.join(f' · <a href="{escape(t[k + "_dir"])}/report.html">{escape(FIXES[k][3])}</a>' for k in ("v3", "v3guard", "v4") if t.get(k + "_dir"))}</p>
 <p class="muted">Bhool Guard checks every line v1 is about to speak (banned threats, secret requests, account details before the caller
-proves the account's last 4 digits, the recording disclosure) and rewrites it in code before text-to-speech, in under a millisecond.
+proves the account's last 4 digits, the recording disclosure) and rewrites it in code before text-to-speech (about 1 ms per line measured live).
 VAD and barge-in bugs are audio engineering and stay v1's.
 v3 is v2 with the secret taken out of the model: code checks the caller's digits, and the amount and due date reach the
 model only after that; the verification digits never do. A model can't leak what it was never given.</p>

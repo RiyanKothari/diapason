@@ -59,3 +59,25 @@ def test_noisy_channel_still_runs():
     rec = call(agent, ScriptedBrain(["हाँ", "bye"]), Behaviour(id="b", instructions="x"), channel="landline")
     assert rec.end_reason in {"caller_hangup", "agent_hangup"}
     assert rec.metrics.caller_turns >= 1
+
+
+def test_goodbye_queued_before_a_hangup_still_plays_and_is_transcribed():
+    """Seen live: v4 streamed its date confirmation and hung up at once; the line was never heard, so the call was scored
+    as 'accepted without confirmation' with an unanswered turn."""
+    from bhool.audio import float_to_pcm16
+    from bhool.call.transport import AgentEvent
+    from bhool.fakes import tone
+
+    class GoodbyeThenHangup(ScriptedAgent):
+        async def events(self):
+            async for ev in super().events():
+                if ev.kind == "hangup":
+                    yield AgentEvent("audio", audio=float_to_pcm16(tone(2.0, self.sample_rate, 220)))
+                yield ev
+
+    rec = call(GoodbyeThenHangup(replies=1), ScriptedBrain(["हाँ", "और कुछ?", "ठीक है"]), Behaviour(id="b", instructions="x"))
+    assert rec.end_reason == "agent_hangup"
+    last_caller = max(t.end for t in rec.turns if t.speaker == "caller")
+    goodbye = [t for t in rec.turns if t.speaker == "agent" and t.start > last_caller]
+    assert goodbye and goodbye[-1].end - goodbye[-1].start >= 1.9, rec.turns      # the whole 2 s line was heard
+    assert rec.metrics.unanswered_turns == 0

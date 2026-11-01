@@ -470,19 +470,20 @@ def proof(out: Path = typer.Option(None, help="Default: runs/proof-<time>"),
           rerun_guard: Path = typer.Option(None, help="Re-run only the v1 + Guard calls of this finished proof, then rescore"),
           add_v3: Path = typer.Option(None, help="Run v3 (secrets isolated) on this finished proof's cases, then rescore"),
           add_v3_guard: Path = typer.Option(None, help="Run v3 behind Guard on this finished proof's cases, then rescore"),
+          add_v4: Path = typer.Option(None, help="Run v4 (model picks acts, code speaks facts, Guard on) on this finished proof's cases, then rescore"),
           verbose: bool = False):
     """Measure accuracy: planted bugs caught by the tests (v1 vs fixed v2) and QA-Bench. No Gnani speech credits."""
     import time
     from .proof import run_proof
     _utf8_console()
     load_dotenv()
-    if rescore or rerun_guard or add_v3 or add_v3_guard:
+    if rescore or rerun_guard or add_v3 or add_v3_guard or add_v4:
         from .proof import rescore as do_rescore
-        if rerun_guard or add_v3 or add_v3_guard:
+        if rerun_guard or add_v3 or add_v3_guard or add_v4:
             from .gnani import Evon
             from .proof import rerun_guard as do_rerun
-            rescore = rerun_guard or add_v3 or add_v3_guard
-            which = "v3guard" if add_v3_guard else "v3" if add_v3 else "guard"
+            rescore = rerun_guard or add_v3 or add_v3_guard or add_v4
+            which = "v4" if add_v4 else "v3guard" if add_v3_guard else "v3" if add_v3 else "guard"
             data = asyncio.run(do_rerun(rescore, Evon(), judge_samples, _printer(verbose), which=which))
         else:
             data = do_rescore(rescore)
@@ -492,10 +493,10 @@ def proof(out: Path = typer.Option(None, help="Default: runs/proof-<time>"),
             typer.echo(f"  {b['status']:22} {b['what']}")
         g = t.get("guard") or {}
         if g.get("measured"):
-            typer.echo(f"GUARD  {g['prevented']}/{g['measured']} text bugs prevented")
-        for k, name in (("v3", "V3     "), ("v3guard", "V3+G   ")):
+            typer.echo(f"GUARD  {g['prevented']}/{g['measured']} text bugs prevented" + (f" ({g['disputed']} still-flagged disputed by cross-examination)" if g.get("disputed") else ""))
+        for k, name in (("v3", "V3     "), ("v3guard", "V3+G   "), ("v4", "V4     ")):
             if (t.get(k) or {}).get("measured"):
-                typer.echo(f"{name}{t[k]['prevented']}/{t[k]['measured']} text bugs gone")
+                typer.echo(f"{name}{t[k]['prevented']}/{t[k]['measured']} text bugs gone" + (f" ({t[k]['disputed']} still-flagged disputed by cross-examination)" if t[k].get("disputed") else ""))
         return
     evon = None
     if not offline:

@@ -30,7 +30,9 @@ class RunRequest(BaseModel):
     stubborn: bool = False         # offline only: a fake agent that ignores barge-ins
     judge: bool = True
     label: str = ""
-    max_tts_chars: int | None = None
+    # Live runs spend Gnani credits, so the dashboard always caps them; the CLI is where an uncapped run is chosen.
+    max_tts_chars: int | None = 400
+    max_stt_seconds: float | None = 60
     redact: bool = True            # dashboards get shared; mask PII by default
 
 
@@ -92,6 +94,8 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
         if state["running"]:
             raise HTTPException(409, f"a run is already in progress: {state['running']}")
         suite = load_suite(suite_path(req.suite))
+        if req.mode == "live" and not (req.max_tts_chars and req.max_stt_seconds):
+            raise HTTPException(400, "a live run needs a TTS character and an STT seconds budget")
         try:
             c = live_components(suite, url=req.url, judge=req.judge) if req.mode == "live" else offline_components(suite, req.stubborn)
         except Exception as e:
@@ -103,7 +107,7 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
             try:
                 await run_suite(suite, c.connect, c.make_brain, c.speak, c.hear, evon_judge=c.evon_judge,
                                 out_dir=runs_dir, scenarios=scenarios, on_event=broadcast, call_kwargs=c.call_kwargs,
-                                label=req.label, redact_pii=req.redact, budget=Budget(max_tts_chars=req.max_tts_chars))
+                                label=req.label, redact_pii=req.redact, budget=Budget(max_tts_chars=req.max_tts_chars, max_stt_seconds=req.max_stt_seconds))
             except Exception as e:
                 broadcast({"type": "suite_error", "error": repr(e)})
             finally:

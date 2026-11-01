@@ -280,8 +280,9 @@ async def run_suite(
     return report
 
 
-def load_call(call_json: Path) -> CallRecord:
-    """Rebuild a CallRecord from its saved call.json, re-measuring metrics from the saved recordings."""
+def load_call(call_json: Path, answer_window_s: float | None = None) -> CallRecord:
+    """Rebuild a CallRecord from its saved call.json, re-measuring metrics from the saved recordings (with the answer window
+    the run was measured with: Evon-played runs allow 30 s, see demo.run_version)."""
     from .audio import read_wav
     from .caller.brain import Turn
     from .judge.metrics import Segment, measure_call
@@ -292,7 +293,8 @@ def load_call(call_json: Path) -> CallRecord:
     return CallRecord(
         scenario_id=d["scenario_id"], run=d["run"], end_reason=d["end_reason"], duration_s=d["duration_s"],
         turns=[Turn(**t) for t in d["turns"]], caller_segments=truth,
-        metrics=measure_call(caller, agent, sr, caller_segments=truth),
+        metrics=measure_call(caller, agent, sr, caller_segments=truth,
+                             **({"answer_window_s": answer_window_s} if answer_window_s else {})),
         dispositions=d.get("dispositions", []), events=d.get("events", []),
         caller_wav=d.get("caller_wav"), agent_wav=d.get("agent_wav"),
     )
@@ -302,16 +304,31 @@ def rejudge_run(run_dir: str | Path, suite: Suite, evon_judge=None, judge_sample
     """Re-score a saved run with the current metrics, code checks and (optionally) Evon. No calls are re-made."""
     root = Path(run_dir)
     old = json.loads((root / "report.json").read_text(encoding="utf-8"))
+    if "harness_errors" in old.get("usage", {}):
+        # Evon played the agent (demo.run_version): its thinking time was our shared test GPU, so the run was gated without
+        # latency and dead air, and a re-judge must be too (seen: re-judging the live proof failed every call on GPU latency)
+        suite = suite.model_copy(update={"gate": suite.gate.model_copy(update={"max_p95_latency_ms": None, "check_dead_air": False})})
+    window = 30.0 if "harness_errors" in old.get("usage", {}) else None
     by_id = {s.id: s for s in suite.expand()}
     records, verdicts, used = [], [], []
     for cj in sorted(root.glob("*/run*/call.json")):
-        rec = load_call(cj)
+        rec = load_call(cj, window)
         scen = by_id.get(rec.scenario_id)
         if scen is None:
             continue    # scenario no longer in the suite
         records.append(rec)
         used.append(scen)
-        verdicts.append(judge_call(rec, suite.agent, scen.persona, suite.gate, evon_judge, get_pack(suite.rubric), judge_samples))
+        v = judge_call(rec, suite.agent, scen.persona, suite.gate, evon_judge, get_pack(suite.rubric), judge_samples)
+        if evon_judge is None:      # code checks refreshed; the judge's earlier verdicts are kept, not thrown away
+            from .judge.rubric import CriterionResult, code_overrides_judge
+            prev = next((p for p in old["verdicts"] if p["scenario_id"] == rec.scenario_id and p["run"] == rec.run), None)
+            keep = [CriterionResult(**{k: c.get(k) for k in ("id", "verdict", "critical", "agreement", "reason", "evidence", "source")},
+                                    cross=c.get("cross") or "")
+                    for c in (prev or {}).get("criteria", []) if c.get("source") == "judge"]
+            v.criteria = code_overrides_judge(v.criteria + keep)
+            v.summary, v.judge_samples = (prev or {}).get("summary", ""), (prev or {}).get("judge_samples", 0)
+            v.passed = not v.metric_failures and not any(c.critical and c.verdict in ("fail", "review") for c in v.criteria)
+        verdicts.append(v)
     uniq = list({s.id: s for s in used}.values())
     report = aggregate(suite, old["run_id"], time.time(), records, verdicts, uniq, old.get("usage", {}))
     report.dir, report.label = str(root), old.get("label", "")

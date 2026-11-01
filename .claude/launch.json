@@ -12,6 +12,16 @@
       "port": 8000
     },
     {
+      "name": "agent-v4",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/bhool.exe",
+      "runtimeArgs": [
+        "serve-agent",
+        "--version",
+        "v4"
+      ],
+      "port": 8765
+    },
+    {
       "name": "site",
       "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/python.exe",
       "runtimeArgs": [

@@ -71,6 +71,8 @@ LOCKED = "Identity: NOT verified yet. You do not know the account details."
 MISMATCH = "Identity: NOT verified. The caller said digits that did not match; ask once more and never hint at the right ones."
 UNLOCKED = "Identity: verified by the system. Account: amount due Rs {amount_due}, due date {due_date}."
 
+from .acts import STATUS, TTS, V4_PROMPT, ActState, decide  # noqa: E402
+
 V1_GREETING ="नमस्ते, मैं {lender} से बोल रही हूँ। आपकी EMI {amount_due} रुपये की overdue है, आज ही pay कीजिए, वरना legal action होगा।"
 V2_GREETING = "नमस्ते, मैं {lender} से बोल रही हूँ। यह call quality के लिए record हो सकती है। क्या मेरी बात {name} जी से हो रही है?"
 
@@ -85,6 +87,7 @@ class AgentVersion:
     follows_language: bool
     guard: bool = False          # Bhool Guard checks every line before it is spoken (guard.py)
     isolate_secrets: bool = False  # the model never holds the verification digits; code checks them (V3_PROMPT)
+    acts: bool = False             # the model picks a dialogue act, code speaks it with the facts (acts.py)
 
 
 VERSIONS = {
@@ -92,6 +95,9 @@ VERSIONS = {
     "v2": AgentVersion("v2", V2_PROMPT, V2_GREETING, adaptive_vad=True, yields_to_barge_in=True, follows_language=True),
     "v3": AgentVersion("v3", V3_PROMPT, V2_GREETING, adaptive_vad=True, yields_to_barge_in=True, follows_language=True,
                        isolate_secrets=True),
+    # v4: v3's isolation, plus the model never writes a sentence with a fact in it; Guard on as the last line
+    "v4": AgentVersion("v4", V4_PROMPT, V2_GREETING, adaptive_vad=True, yields_to_barge_in=True, follows_language=True,
+                       guard=True, isolate_secrets=True, acts=True),
 }
 
 DEFAULT_CRM = {"lender": "Sahyog Finance", "name": "ग्राहक", "amount_due": "4500", "due_date": "5 November",
@@ -167,6 +173,7 @@ class AgentSession:
         self.task: asyncio.Task | None = None
         self.ended = False
         self.identity = LOCKED       # isolate_secrets: what the model is told about identity (code decides)
+        self.acts = ActState(crm=self.crm) if version.acts else None
         self.guard = None
         if version.guard:
             from .guard import Guard
@@ -183,6 +190,9 @@ class AgentSession:
         return out
 
     def system(self) -> str:
+        if self.acts:
+            return self.v.prompt.format(lender=self.crm.get("lender", ""), name=self.crm.get("name", ""),
+                                        status=STATUS[self.acts.identity])
         if not self.v.isolate_secrets:
             return self.v.prompt.format(**self.crm)
         public = {k: v for k, v in self.crm.items() if k not in ("loan_id_last4", "amount_due", "due_date")}
@@ -231,13 +241,21 @@ class AgentSession:
         self.history.append({"role": "user", "content": text})
         if self.guard:
             self.guard.hear(text)
-        if self.v.isolate_secrets:
+        if self.acts:
+            self.acts.hear(text)
+        elif self.v.isolate_secrets:
             self.check_identity(text)
         out = await asyncio.to_thread(self.llm, [{"role": "system", "content": self.system()}, *self.history[-16:]])
-        say = str(out.get("say", "")).strip()
-        if self.v.follows_language and out.get("lang") in TTS_LANG:
-            self.lang = out["lang"]
-        self.slots.update({k: str(v) for k, v in (out.get("slots") or {}).items() if v})
+        if self.acts:
+            act, say, end = decide(out, self.acts)
+            self.lang = TTS[self.acts.lang]
+            self.slots.update(self.acts.slots)
+            out = {"act": act, "say": say, "end_call": end}
+        else:
+            say = str(out.get("say", "")).strip()
+            if self.v.follows_language and out.get("lang") in TTS_LANG:
+                self.lang = out["lang"]
+            self.slots.update({k: str(v) for k, v in (out.get("slots") or {}).items() if v})
         if say:
             say = await self.guarded(say)
             out = {**out, "say": say}         # the model sees what was actually said

@@ -70,3 +70,29 @@ def test_guard_score_never_counts_a_missing_call_as_prevented():
     g = score_guard(tests, vg, judged=True)
     by = {r["id"]: r["status"] for r in g["bugs"]}
     assert by["privacy"] == "not run" and by["injection"] == "not run" and g["measured"] == 0
+
+
+def test_rejudge_keeps_the_judges_verdicts_and_the_runs_own_gate(tmp_path, monkeypatch):
+    """Seen 2 Nov: a code-only rejudge dropped every judge verdict, and re-judging an Evon-played proof run failed every
+    call on the shared GPU's latency, which the run itself was never gated on."""
+    import asyncio
+    import json
+    from pathlib import Path
+    from bhool.demo import run_version
+    from bhool.runner import rejudge_run
+    from bhool.scenarios import load_suite
+    monkeypatch.chdir(Path(__file__).resolve().parents[1])
+    root = Path(asyncio.run(run_version("v2", "suites/proof.yaml", tmp_path, hear_callers=True, only="privacy")).dir)
+    cj = next(root.glob("*/run0/call.json"))
+    call = json.loads(cj.read_text(encoding="utf-8"))
+    call["metrics"]["latency_p95_s"] = 9.0                                  # a slow GPU, not the agent
+    cj.write_text(json.dumps(call, ensure_ascii=False), encoding="utf-8")
+    rep = json.loads((root / "report.json").read_text(encoding="utf-8"))
+    rep["verdicts"][0]["criteria"].append({"id": "tone", "verdict": "fail", "critical": False, "agreement": 1.0,
+                                           "reason": "judged earlier", "evidence": [], "source": "judge"})
+    rep["usage"]["harness_errors"] = 0                                      # what an Evon-played run records
+    (root / "report.json").write_text(json.dumps(rep, ensure_ascii=False), encoding="utf-8")
+    v = rejudge_run(root, load_suite("suites/proof.yaml")).verdicts[0]
+    v = v if isinstance(v, dict) else v.to_dict()
+    assert not any("latency" in f for f in v["metric_failures"])
+    assert any(c["id"] == "tone" and c["reason"] == "judged earlier" for c in v["criteria"])

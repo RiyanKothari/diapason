@@ -123,6 +123,7 @@ for _ in range(60):
         break
     time.sleep(2)
 assert URL, "tunnel did not start; see /kaggle/working/tunnel.log"
+# The key is random per session, but it is a live credential: never screenshot, record or share this cell's output.
 print("Paste these three lines into Agnani/.env (replace the existing EVON_ lines):\n")
 print(f"EVON_BASE_URL={URL}/v1")
 print(f"EVON_API_KEY={API_KEY}")
