@@ -48,24 +48,32 @@ def cohen_kappa(pairs: list[tuple[str, str]]) -> float | None:
     return None if pe >= 1 else round((po - pe) / (1 - pe), 3)
 
 
-def calibrate(report: dict, labels_csv: str | Path) -> dict:
-    """labels_csv columns: scenario_id, run, criterion, verdict (pass|fail|na).
+def calibrate(report: dict | None, labels_csv: str | Path, load=None) -> dict:
+    """labels_csv columns: scenario_id, run, criterion, verdict (pass|fail|na), and optionally run_dir (from `bhool label`,
+    which spans several runs): then each row is matched in load(run_dir)'s report instead of `report`.
 
     'review' verdicts from the judge count as disagreement on a fail, so they cannot inflate agreement.
     """
-    judged = {(v["scenario_id"], int(v["run"]), c["id"]): c["verdict"] for v in report["verdicts"] for c in v["criteria"]}
+    def verdicts(rep: dict, prefix: str = "") -> dict:
+        return {(prefix, v["scenario_id"], int(v["run"]), c["id"]): c["verdict"] for v in rep["verdicts"] for c in v["criteria"]}
+    judged = verdicts(report) if report else {}
+    loaded: set[str] = set()
     per: dict[str, list[tuple[str, str]]] = defaultdict(list)
     missing = 0
     with open(labels_csv, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            key = (row["scenario_id"].strip(), int(row["run"]), row["criterion"].strip())
+            rd = (row.get("run_dir") or "").strip() if load else ""
+            if rd and rd not in loaded:
+                judged.update(verdicts(load(rd), rd))
+                loaded.add(rd)
+            key = (rd, row["scenario_id"].strip(), int(row["run"]), row["criterion"].strip())
             human = row["verdict"].strip().lower()
             if human not in ("pass", "fail", "na"):
                 raise ValueError(f"bad verdict {human!r} in labels for {key}")
             if key not in judged:
                 missing += 1
                 continue
-            per[key[2]].append((human, judged[key]))
+            per[key[3]].append((human, judged[key]))
     out = {}
     for crit, pairs in sorted(per.items()):
         out[crit] = {"n": len(pairs), "agreement": round(sum(a == b for a, b in pairs) / len(pairs), 3),

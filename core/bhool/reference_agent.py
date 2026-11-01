@@ -132,13 +132,18 @@ class Listener:
                 events.append(("speech_start",))
             return events
         self.buf.append(x)
+        self.loud_run = self.loud_run + 1 if loud else 0
+        # Adaptive: only a sound that stays loud for 60 ms keeps the turn open. Office keyboard clicks (8 ms, ~6 a second)
+        # used to reset the end-of-turn timer forever, so a caller in an office below 30 dB SNR was never answered.
+        sustained = loud and (not self.adaptive or self.loud_run >= 3)
         if loud:
             before = self.speech_s
             self.speech_s += dt
-            self.quiet_s = 0.0
             if before < 0.3 <= self.speech_s:
                 events.append(("speech_confirmed",))   # long enough to be a real barge-in, not a blip
-        else:
+        if sustained:
+            self.quiet_s = 0.0
+        elif not loud or self.quiet_s > 0:
             self.quiet_s += dt
         if self.quiet_s >= self.end_silence_s:
             self.active, self.loud_run = False, 0

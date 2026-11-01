@@ -26,6 +26,7 @@ import re
 import time
 from dataclasses import dataclass, field
 
+from .judge.dates import date_keys
 from .judge.loanwords import variants
 from .judge.rubric import normalize
 from .judge.scripts import OWN_SCRIPT, dominant, spoken_digits
@@ -34,7 +35,24 @@ _DIGITS = str.maketrans("०१२३४५६७८९૦૧૨૩૪૫૬૭�
 _SENTENCE = re.compile(r"(?<=[।.!?])\s+")
 SCRIPT_LANG = {"gujarati": "gu-IN", "tamil": "ta-IN", "telugu": "te-IN", "kannada": "kn-IN", "malayalam": "ml-IN",
                "bengali": "bn-IN", "gurmukhi": "pa-IN"}
-TEMPLATE_LANG = {"gujarati": "gu", "latin": "en", "devanagari": "hi"}     # languages Guard has its own lines in
+# Named in English and in its own script: asked for "gu-IN", the Evon build on test answered in Kannada 6 times out of 6.
+LANG_NAMES = {"gu-IN": "Gujarati (ગુજરાતી), in Gujarati script", "ta-IN": "Tamil (தமிழ்), in Tamil script",
+              "te-IN": "Telugu (తెలుగు), in Telugu script", "kn-IN": "Kannada (ಕನ್ನಡ), in Kannada script",
+              "ml-IN": "Malayalam (മലയാളം), in Malayalam script", "bn-IN": "Bengali (বাংলা), in Bengali script",
+              "pa-IN": "Punjabi (ਪੰਜਾਬੀ), in Gurmukhi script"}
+# Languages Guard has its own lines in. Not Latin script: Hinglish and romanized Gujarati are written in it too, so a
+# Latin-script caller keeps the agent's language rather than being switched to English.
+TEMPLATE_LANG = {"gujarati": "gu", "devanagari": "hi"}
+
+
+def evon_translator(evon):
+    """Guard's `translate` hook on an Evon client: (text, "gu-IN") -> the line in that language."""
+    def translate(text: str, lang: str) -> str:
+        name = LANG_NAMES.get(lang, lang)
+        return evon.chat([{"role": "system", "content": f"Translate the line into {name}, as spoken on a phone call. Keep names "
+                                                        "and numbers. Reply with only the translation."},
+                          {"role": "user", "content": text}], temperature=0.1, max_tokens=200)
+    return translate
 
 LINES = {
     "disclose": {"hi": "यह कॉल quality के लिए record हो सकती है।", "gu": "આ કૉલ quality માટે record થઈ શકે છે.",
@@ -108,6 +126,9 @@ class Guard:
             value = str(self.crm.get(key) or "")
             if value and normalize(value) in normalize(plain):
                 return value
+        due = date_keys(str(self.crm.get("due_date") or ""))
+        if due and due <= date_keys(text):      # the due date in any script: "28 अक्टूबर" (seen live), "28 ઓક્ટોબર"
+            return str(self.crm["due_date"])
         if m := _MONEY.search(plain):
             return m.group(0)
         return self._has(REVEAL, text)

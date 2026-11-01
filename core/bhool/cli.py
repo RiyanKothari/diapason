@@ -328,12 +328,26 @@ def suggest(run_dir: Path, suite_path: Path, out: Path = typer.Option(None)):
 
 
 @app.command()
+def label(run_dirs: list[Path] = typer.Argument(..., help="Run directories whose calls to label (each has report.json)"),
+          out: Path = typer.Option(Path("runs/labels.html"), help="The page; open it in a browser, label, download CSV"),
+          base: Path = typer.Option(Path("runs"), help="run_dir values in the CSV are relative to this; pass it to calibrate")):
+    """A page for labelling calls by hand (judge verdicts hidden), to measure the judge with `bhool calibrate`."""
+    from .label import collect, write_page
+    calls = collect(run_dirs, base)
+    write_page(calls, out)
+    typer.echo(f"{len(calls)} calls, {sum(len(c['criteria']) for c in calls)} judgments to label: {out}\n"
+               f"then: bhool calibrate {base} labels.csv")
+
+
+@app.command()
 def calibrate(run_dir: Path, labels: Path):
-    """Agreement and Cohen's kappa between human labels (CSV) and the judge, per criterion."""
+    """Agreement and Cohen's kappa between human labels (CSV) and the judge, per criterion. For a CSV from
+    `bhool label` (it has a run_dir column), RUN_DIR is the base those run_dir paths are relative to (e.g. runs)."""
     from .advise import calibrate as calib
     from .diff import load_report
     _utf8_console()
-    res = calib(load_report(run_dir), labels)
+    multi = not (Path(run_dir) / "report.json").exists()
+    res = calib(None if multi else load_report(run_dir), labels, load=lambda rd: load_report(Path(run_dir) / rd))
     typer.echo(f"{'criterion':22} {'n':>4} {'agree':>6} {'kappa':>6} {'missed':>6} {'false':>6}")
     for k, v in res["criteria"].items():
         typer.echo(f"{k:22} {v['n']:>4} {v['agreement']:>6.0%} {str(v['kappa']):>6} {v['judge_missed_fail']:>6} {v['judge_false_fail']:>6}")
@@ -427,6 +441,7 @@ def serve_agent(version: str = typer.Option("v1", help="v1 (seeded bugs) or v2 (
                 guard: bool = typer.Option(False, help="Bhool Guard checks every line before it is spoken")):
     """Serve the reference EMI-collection agent (Prisma + Evon + Timbre) at ws://host:port."""
     from .gnani import Evon, Prisma, Timbre
+    from .guard import evon_translator
     from .reference_agent import VERSIONS, serve
     _utf8_console()
     load_dotenv()
@@ -442,8 +457,7 @@ def serve_agent(version: str = typer.Option("v1", help="v1 (seeded bugs) or v2 (
         llm=lambda msgs: evon.chat_json(msgs, temperature=0.4, max_tokens=300),
         tts=lambda text, v, lang: tts.synthesize(text, voice=voice, lang=lang),
         host=host, port=port,
-        translate=lambda text, lang: evon.chat([{"role": "system", "content": f"Translate the line into {lang} as spoken on a phone call. Keep names and numbers. Reply with only the translation."},
-                                               {"role": "user", "content": text}], temperature=0.1, max_tokens=200),
+        translate=evon_translator(evon),
     ))
 
 
@@ -455,19 +469,21 @@ def proof(out: Path = typer.Option(None, help="Default: runs/proof-<time>"),
           rescore: Path = typer.Option(None, help="Don't run anything: re-apply today's code checks to this finished proof's saved calls"),
           rerun_guard: Path = typer.Option(None, help="Re-run only the v1 + Guard calls of this finished proof, then rescore"),
           add_v3: Path = typer.Option(None, help="Run v3 (secrets isolated) on this finished proof's cases, then rescore"),
+          add_v3_guard: Path = typer.Option(None, help="Run v3 behind Guard on this finished proof's cases, then rescore"),
           verbose: bool = False):
     """Measure accuracy: planted bugs caught by the tests (v1 vs fixed v2) and QA-Bench. No Gnani speech credits."""
     import time
     from .proof import run_proof
     _utf8_console()
     load_dotenv()
-    if rescore or rerun_guard or add_v3:
+    if rescore or rerun_guard or add_v3 or add_v3_guard:
         from .proof import rescore as do_rescore
-        if rerun_guard or add_v3:
+        if rerun_guard or add_v3 or add_v3_guard:
             from .gnani import Evon
             from .proof import rerun_guard as do_rerun
-            rescore = rerun_guard or add_v3
-            data = asyncio.run(do_rerun(rescore, Evon(), judge_samples, _printer(verbose), which="v3" if add_v3 else "guard"))
+            rescore = rerun_guard or add_v3 or add_v3_guard
+            which = "v3guard" if add_v3_guard else "v3" if add_v3 else "guard"
+            data = asyncio.run(do_rerun(rescore, Evon(), judge_samples, _printer(verbose), which=which))
         else:
             data = do_rescore(rescore)
         t = data["tests"]
@@ -477,8 +493,9 @@ def proof(out: Path = typer.Option(None, help="Default: runs/proof-<time>"),
         g = t.get("guard") or {}
         if g.get("measured"):
             typer.echo(f"GUARD  {g['prevented']}/{g['measured']} text bugs prevented")
-        if (t.get("v3") or {}).get("measured"):
-            typer.echo(f"V3     {t['v3']['prevented']}/{t['v3']['measured']} text bugs gone with secrets isolated")
+        for k, name in (("v3", "V3     "), ("v3guard", "V3+G   ")):
+            if (t.get(k) or {}).get("measured"):
+                typer.echo(f"{name}{t[k]['prevented']}/{t[k]['measured']} text bugs gone")
         return
     evon = None
     if not offline:

@@ -80,7 +80,8 @@ bhool ingest suites/emi_collection.yaml calls/*.wav    # judge real stereo calls
 | `bhool diff RUN_A RUN_B` | fixed / regressed / still failing per scenario; exit 1 on any regression | none |
 | `bhool generate SOP.txt NAME` | draft a full suite from an SOP (validated, library behaviours) | 1 Evon call |
 | `bhool suggest RUN SUITE` | fixes grouped by root cause, from the run's evidence | 1 Evon call |
-| `bhool calibrate RUN labels.csv` | judge vs human: agreement, Cohen's kappa, missed and false fails | none |
+| `bhool label RUN...` | a page to label calls by hand (judge verdicts hidden); downloads `labels.csv` | none |
+| `bhool calibrate RUN labels.csv` | judge vs human: agreement, Cohen's kappa, missed and false fails (RUN = `runs` for a `bhool label` CSV) | none |
 | `bhool library` | the 15 built-in adversarial caller behaviours | none |
 | `bhool demo` | v1 vs v2 reference agent through the full harness, with diff | none |
 | `bhool asr-bench` | Prisma CER per language × phone line on Timbre speech with known text | STT + cached TTS |
@@ -263,8 +264,9 @@ It also shows what knowledge-based verification is worth: anyone who has the las
 ## Crash-test rating and noise breaking point
 
 `bhool stress` steps a caller's line from 30 dB SNR to 0 dB for each noise an Indian caller has around them and finds where
-the agent stops hearing (offline: the agent's ears are its own code). Offline, v1's fixed-threshold endpointing loses a
-fan-noise caller at 10 dB; v2's adaptive one holds to 10 dB. `bhool rating` turns the proof's judged calls and the sweep into
+the agent stops hearing (offline: the agent's ears are its own code). It found that v2's adaptive endpointer never ended a
+turn in office noise below 30 dB (keyboard clicks reset its timer); fixed, it holds every noise to 0 dB, while v1's fixed
+threshold still breaks at 15-20 dB. `bhool rating` turns the proof's judged calls and the sweep into
 five stars per axis (compliance, security, language, turn-taking, noise) and an overall rating that is never more than one star
 above compliance, with SVG badges for a README or a post.
 
@@ -326,25 +328,34 @@ The offline tests already show v1's VAD failing on in-band noise and ignoring ba
   `account_privacy`, `injection_guard`) catch them, re-applied to the saved calls with `bhool proof --rescore`.
 - **QA on a second unseen corpus (seed 31, live Evon):** 94% of verdicts right, fail precision 93%, fail recall 90%, fatal-error
   recall 100%, pass/fail decisions right 100%.
-- **Guard, live (v1 unchanged, Evon playing it):** first run 2 of 6 text bugs prevented; the gaps it showed were fixed (any rupee
-  amount, the due date and English labels are now held until verification; a translation in the wrong script, Kannada for a
-  Gujarati caller, is rejected), and the live rerun (31 Oct) prevents **3 of 6**: disclosure, language and injection. Still flagged:
-  the agent read back part of the loan number after verification ("loan ID 482", now dropped too, pending another rerun), soft
-  pressure ("जल्दी से पैसे arrange करो", beyond a phrase-based guard; the judge's to catch), and naming the lender to the
-  borrower's brother.
-- **v3, secrets isolated (live, 31 Oct):** on the proof's cases, 2 of 6 text bugs gone (disclosure, conduct); on the 12 attacks
-  that broke v2, account leaks fell from **4 to 0**. See "Secret isolation" for what still fails.
-- **Crash-test rating from the live proof:** v1 0 stars, v2 2, v1 + Guard 2, v3 3 (v3's noise axis pending its sweep). Security:
-  v2 1 star, v3 4.
-- **Noise breaking point (offline, 2 calls per level):** v1's fixed endpointer holds fan noise to 20 dB, office to 15 dB, crowd
-  only to 30 dB; v2's adaptive one holds fan and traffic to 0 dB and crowd to 10 dB, but **loses office noise below 30 dB**: its
-  threshold sits 5 dB over the quietest moments, and office murmur swings more than that. A real, specific endpointing bug in the
-  "fixed" agent, found by the sweep.
+- **Guard, live (v1 unchanged, Evon playing it):** 2 of 6 text bugs prevented on the first run, 3 after fixing what it showed,
+  **5 of 6** on the 31 Oct rerun (each rerun is a new live run, so part of the change is Evon's run-to-run variation, not only
+  the fixes). The one still flagged was a real Guard gap: it held back "28 October" but let the brother hear "28 अक्टूबर"; the
+  due date is now matched in any script (tested offline, not yet rerun live). Soft pressure ("जल्दी से पैसे arrange करो") is beyond
+  a phrase-based guard and stays the judge's to catch.
+- **v3, secrets isolated (live, 31 Oct):** on the proof's cases 2 of 6 text bugs gone (disclosure, conduct); on the 12 attacks that
+  broke v2, account leaks fell from **4 to 0**. What still fails is the model, not the secret: it invents amounts and dates it was
+  never told ("1200 रुपये 15 अप्रैल"), answers some Gujarati callers in Hindi, and loops. One of its four flags (injection) is
+  the judge failing it for asking for the digits after "ignore your instructions", which is the right move.
+- **v3 + Guard (live, 31 Oct):** 5 of 6 text bugs gone; Guard caught v3's invented "15000 रुपये… 20 मार्च" before verification and
+  dropped digit read-backs. Language got *worse*: every time Guard asked Evon to translate into Gujarati, Evon answered in
+  **Kannada** (6 of 6), Guard rightly rejected it, and the untranslated Hindi/English line was spoken. The request named the
+  language as a bare "gu-IN"; it now names it in English and in its own script. Not yet verified live (Evon went offline).
+- **Crash-test rating from the live proof** (`bhool rating`, noise from the sweep below): v1 0 stars, v2 2, v1 + Guard 2,
+  v3 3, v3 + Guard 3. No agent gets above 3 because compliance (the judge's verdicts on 36 checks) tops out at 3 stars, and the
+  overall can't be more than one star above compliance. Security: v2 1 star, v3 4, v3 + Guard 5.
+- **Noise breaking point (offline, 2 calls per level):** the sweep found a real endpointing bug in the "fixed" agent: in office
+  noise below 30 dB its turn never ended, because each keyboard click (8 ms, about six a second) reset the end-of-turn timer.
+  Now only a sound loud for 60 ms keeps the turn open; a regression test fails without the fix. After it, v2 and v3 hold all four
+  noises to 0 dB (Noise 1 star -> 5). v1 (its fixed endpointer is one of its seeded bugs) still breaks at 15 dB on fan and
+  office and 20 dB on crowd. Two calls per level is a small sample: the same ears gave crowd 5 dB vs 10 dB on two runs.
 - **Simulated calls for every industry:** see "Measured on live Evon" above; useful test calls, not an accuracy number.
 - **Autopilot (live, 31 Oct, no harness errors):** 12 of 12 attacks broke v2, mostly verification and privacy, with quotes.
   Five calls also had an unanswered caller turn, which on a shared test GPU may be Evon's speed, not the agent. Heal rejected
   its own patch (fixed 33, broke 52) and changed nothing: the problem wasn't a missing rule, it was the secret in the prompt (v3).
-- **Not done:** judge agreement with human labels on real calls (the tooling exists: `--labels`); Twilio and Inya targets.
+- **Not done:** judge agreement with human labels (`bhool label` builds the page for the proof's 30 live calls, 360
+  judgments; nobody has labelled them yet); a test of an agent built on Gnani's Inya platform; Twilio phone calls; a live rerun of
+  the last two Guard fixes. The agent in every live number is Evon IQ4_XS on a free Kaggle GPU, so latency isn't judged.
 
 ## Layout
 

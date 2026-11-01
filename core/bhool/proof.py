@@ -124,20 +124,15 @@ async def run_proof(out: Path, evon=None, judge_samples: int = 3, qa_n: int = 40
                            hear_callers=True)
     v2 = await run_version("v2", "suites/proof.yaml", out, on_event, evon=evon, judge_samples=judge_samples, label="reference agent v2 (fixed)",
                            hear_callers=True)
-    # the same buggy v1, prompt untouched, with Bhool Guard checking every line before it is spoken
-    from dataclasses import replace
-    from .reference_agent import VERSIONS
-    vg = await run_version("v1", "suites/proof.yaml", out, on_event, evon=evon, judge_samples=judge_samples,
-                           agent=replace(VERSIONS["v1"], name="v1+guard", guard=True), label="reference agent v1 + Bhool Guard (prompt unchanged)",
-                           hear_callers=True)
-    # v2's fix with the secret taken out of the model: code checks the digits (reference_agent.V3_PROMPT)
-    v3 = await run_version("v3", "suites/proof.yaml", out, on_event, evon=evon, judge_samples=judge_samples,
-                           label=V3_LABEL, hear_callers=True)
+    # then each fix (FIXES): the same buggy v1 behind Guard (prompt untouched), v3 (v2 with the secret taken out of the
+    # model), and both layers
+    fixes = {k: await run_fix(k, out, evon, judge_samples, on_event) for k in FIXES}
     tests = score_bugs(v1.to_dict(), v2.to_dict(), judged=evon is not None)
-    tests["guard"] = score_guard(tests, vg.to_dict(), judged=evon is not None)
-    tests["v3"] = score_guard(tests, v3.to_dict(), judged=evon is not None)
-    tests["v1_dir"], tests["v2_dir"], tests["guard_dir"], tests["v3_dir"] = (Path(r.dir).name for r in (v1, v2, vg, v3))
-    tests["harness_errors"] = sum(r.usage.get("harness_errors", 0) for r in (v1, v2, vg, v3))
+    for k, run in fixes.items():
+        tests[k] = score_guard(tests, run.to_dict(), judged=evon is not None)
+        tests[f"{k}_dir"] = Path(run.dir).name
+    tests["v1_dir"], tests["v2_dir"] = Path(v1.dir).name, Path(v2.dir).name
+    tests["harness_errors"] = sum(r.usage.get("harness_errors", 0) for r in (v1, v2, *fixes.values()))
     card = Scorecard.model_validate(yaml.safe_load(Path("scorecards/emi_collections.yaml").read_text(encoding="utf-8")))
     calls, truth, results, qa = run_bench(card, evon, n=qa_n, seed=qa_seed, samples=judge_samples)
     bench_dir = out / "qa-bench"
@@ -181,16 +176,18 @@ def rescore(proof_dir: Path, suite_path: str = "suites/proof.yaml") -> dict:
     suite = load_suite(suite_path)
     data = json.loads((proof_dir / "proof.json").read_text(encoding="utf-8"))
     t = data["tests"]
-    reports = {k: refresh_code_checks(proof_dir / t[k], suite) for k in ("v1_dir", "v2_dir", "guard_dir", "v3_dir") if t.get(k)}
+    dirs = ["v1_dir", "v2_dir", *(f"{k}_dir" for k in FIXES)]
+    reports = {k: refresh_code_checks(proof_dir / t[k], suite) for k in dirs if t.get(k)}
     judged = "Evon" in data["mode"]
     tests = score_bugs(reports["v1_dir"], reports["v2_dir"], judged=judged)
-    if "guard_dir" in reports:
-        tests["guard"] = score_guard(tests, reports["guard_dir"], judged=judged)
-    if "v3_dir" in reports:
-        tests["v3"] = score_guard(tests, reports["v3_dir"], judged=judged)
-    for k in ("v1_dir", "v2_dir", "guard_dir", "v3_dir", "harness_errors"):
+    for k in FIXES:
+        if f"{k}_dir" in reports:
+            tests[k] = score_guard(tests, reports[f"{k}_dir"], judged=judged)
+    for k in dirs:
         if k in t:
             tests[k] = t[k]
+    # recounted from the runs in use: a run that was re-done after an Evon failure no longer counts against the proof
+    tests["harness_errors"] = sum((r.get("usage") or {}).get("harness_errors", 0) for r in reports.values())
     data["tests"], data["rescored"] = tests, time.strftime("%Y-%m-%d %H:%M")
     (proof_dir / "proof.json").write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     write_html(data, proof_dir / "proof.html")
@@ -198,21 +195,28 @@ def rescore(proof_dir: Path, suite_path: str = "suites/proof.yaml") -> dict:
 
 
 V3_LABEL = "reference agent v3 (v2 + secrets isolated in code)"
+# The fixes measured against v1's planted bugs: key -> (agent version, behind Guard?, report label, column header)
+FIXES = {
+    "guard": ("v1", True, "reference agent v1 + Bhool Guard (prompt unchanged)", "v1 + Guard (prompt unchanged)"),
+    "v3": ("v3", False, V3_LABEL, "v3 (secrets isolated)"),
+    "v3guard": ("v3", True, "reference agent v3 + Bhool Guard (both layers)", "v3 + Guard"),
+}
 
 
-async def rerun_guard(proof_dir: Path, evon, judge_samples: int = 3, on_event=None, which: str = "guard") -> dict:
-    """Re-run only the v1 + Guard calls (which="guard") or the v3 calls (which="v3") of a finished proof, then rescore.
-    Used after Evon dropped mid-run, or to add v3 to a proof made before it existed."""
+async def run_fix(key: str, out: Path, evon, judge_samples: int = 3, on_event=None):
     from dataclasses import replace
     from .demo import run_version
     from .reference_agent import VERSIONS
-    if which == "v3":
-        run = await run_version("v3", "suites/proof.yaml", proof_dir, on_event, evon=evon, judge_samples=judge_samples,
-                                label=V3_LABEL, hear_callers=True)
-    else:
-        run = await run_version("v1", "suites/proof.yaml", proof_dir, on_event, evon=evon, judge_samples=judge_samples,
-                                agent=replace(VERSIONS["v1"], name="v1+guard", guard=True),
-                                label="reference agent v1 + Bhool Guard (prompt unchanged)", hear_callers=True)
+    version, guarded, label, _ = FIXES[key]
+    agent = replace(VERSIONS[version], name=f"{version}+guard", guard=True) if guarded else None
+    return await run_version(version, "suites/proof.yaml", out, on_event, evon=evon, judge_samples=judge_samples,
+                             agent=agent, label=label, hear_callers=True)
+
+
+async def rerun_guard(proof_dir: Path, evon, judge_samples: int = 3, on_event=None, which: str = "guard") -> dict:
+    """Re-run only one fix's calls (see FIXES) of a finished proof, then rescore. Used after Evon dropped mid-run,
+    or to add a fix to a proof made before it existed."""
+    run = await run_fix(which, proof_dir, evon, judge_samples, on_event)
     if run.usage.get("harness_errors"):
         raise RuntimeError(f"Evon failed {run.usage['harness_errors']} time(s) again; the old {which} run is kept")
     data = json.loads((proof_dir / "proof.json").read_text(encoding="utf-8"))
@@ -229,7 +233,7 @@ def write_html(data: dict, path: Path) -> None:
     t, q = data["tests"], data["qa"]
     color = {"caught": "pass", "missed": "fail", "needs Evon": "na", "not run": "na"}
     gcol = {"prevented": "pass", "still flagged": "fail"}
-    fixes = [k for k in ("guard", "v3") if (t.get(k) or {}).get("bugs")]
+    fixes = [k for k in FIXES if (t.get(k) or {}).get("bugs")]
     fixed = {k: {r["id"]: r for r in t[k]["bugs"]} for k in fixes}
 
     def guard_cell(bid: str) -> str:
@@ -253,8 +257,9 @@ def write_html(data: dict, path: Path) -> None:
     kpis = [("Planted bugs caught", f"{t['caught']}/{t['measured']}"), ("Also flagged on v2 (see quotes)", t["false_alarms"])]
     if g.get("measured"):
         kpis.append(("Bugs Guard prevents on unfixed v1", f"{g['prevented']}/{g['measured']}"))
-    if (t.get("v3") or {}).get("measured"):
-        kpis.append(("Bugs gone in v3 (secrets isolated)", f"{t['v3']['prevented']}/{t['v3']['measured']}"))
+    for k in ("v3", "v3guard"):
+        if (t.get(k) or {}).get("measured"):
+            kpis.append((f"Bugs gone in {FIXES[k][3]}", f"{t[k]['prevented']}/{t[k]['measured']}"))
     kpis += [
             ("QA verdict accuracy", _pct(o.get("accuracy"))), ("Fatal-error recall", _pct(q["fatal_recall"])),
             ("Pass/fail decisions right", _pct(q["decision_accuracy"]))]
@@ -271,13 +276,13 @@ and QA calls built with a known verdict on every parameter.</p>
 <h2>Tests: planted bugs</h2>
 <p class="muted">Each bug has a targeted call. Caught = flagged on v1 with evidence. "v2 also flagged" = the same flag on v2: Evon plays v2 and can genuinely slip, so read the quote to tell a real v2 failure from a false alarm.
 v1 pass rate {_pct(t['v1_pass_rate'])} → v2 {_pct(t['v2_pass_rate'])}.
-Reports: <a href="{escape(t['v1_dir'])}/report.html">v1</a> · <a href="{escape(t['v2_dir'])}/report.html">v2</a>{(' · <a href="' + escape(t['guard_dir']) + '/report.html">v1 + Guard</a>') if t.get('guard_dir') else ''}{(' · <a href="' + escape(t['v3_dir']) + '/report.html">v3</a>') if t.get('v3_dir') else ''}</p>
+Reports: <a href="{escape(t['v1_dir'])}/report.html">v1</a> · <a href="{escape(t['v2_dir'])}/report.html">v2</a>{(' · <a href="' + escape(t['guard_dir']) + '/report.html">v1 + Guard</a>') if t.get('guard_dir') else ''}{''.join(f' · <a href="{escape(t[k + "_dir"])}/report.html">{escape(FIXES[k][3])}</a>' for k in ("v3", "v3guard") if t.get(k + "_dir"))}</p>
 <p class="muted">Bhool Guard checks every line v1 is about to speak (banned threats, secret requests, account details before the caller
 proves the account's last 4 digits, the recording disclosure) and rewrites it in code before text-to-speech, in under a millisecond.
 VAD and barge-in bugs are audio engineering and stay v1's.
 v3 is v2 with the secret taken out of the model: code checks the caller's digits, and the amount and due date reach the
 model only after that; the verification digits never do. A model can't leak what it was never given.</p>
-<div class="scroll"><table><tr><th>Seeded bug (case)</th><th>Result</th><th>Flag on v1 (evidence)</th><th>Flag on v2</th>{''.join({"guard": "<th>v1 + Guard (prompt unchanged)</th>", "v3": "<th>v3 (secrets isolated)</th>"}[k] for k in fixes)}</tr>{bug_rows}</table></div>
+<div class="scroll"><table><tr><th>Seeded bug (case)</th><th>Result</th><th>Flag on v1 (evidence)</th><th>Flag on v2</th>{''.join(f"<th>{escape(FIXES[k][3])}</th>" for k in fixes)}</tr>{bug_rows}</table></div>
 <h2>QA: verdicts with a known answer</h2>
 <p class="muted">{q['calls']} calls in Hindi and Gujarati, half in Prisma's script (corpus seed {q.get('seed', 7)}). Fail precision: of the fails it gave, how many were real.
 Fail recall: of the real fails, how many it found. Review: sent to a human instead of guessed.
