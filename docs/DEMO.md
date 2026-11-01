@@ -1,63 +1,80 @@
 # Demo kit: 60-second video, walkthrough, posts
 
-Every number below is measured (see README "Status, honestly"). Re-check them against the latest `runs/` before recording;
-if a run changes a number, change it here first. No real company names anywhere: industries and fictional brands only.
+Every number here is copied from README "Results and limitations" and backed by a file in [results/](../results/). If a new
+run changes a number, change it in the README first, then here. No real company names anywhere: industries and fictional
+brands only. Never show the Kaggle notebook's output on screen (it prints the Evon key).
 
-## 60-second video
+## Numbers to quote (and only these)
 
-| Time | Screen | Voice-over (or captions) |
+| Say | Source |
+|---|---|
+| The tests caught 8 of 8 bugs planted in an agent | results/proof/proof.json |
+| The same buggy agent behind Bhool Guard, prompt unchanged: 6 of 6 bugs prevented | results/proof/proof.json (guard) |
+| Taking the secret out of the model: account leaks across 12 attacks fell from 4 to 0 | results/autopilot/replay-v3.json |
+| v4, where the model picks the act and code speaks the facts, passed 5 of 6 test calls; every earlier version 0 | results/proof/calls-v4.json |
+| The fixed agent hears callers down to 0 dB SNR; v1 stopped at 10-20 dB | results/stress/stress.json |
+| The auditor, on calls it never saw: 90.4% of verdicts right, every fatal breach caught, no false fatal alarms | README QA-Bench |
+| Prisma on a 5 dB crowded-market phone line: 5.5% character error (1.4% clean) | README asr-bench |
+
+Say "measured on Evon-played test calls over a simulated phone line" once, on screen or in the caption. Don't use the star
+ratings in the video (they need explaining), "under a millisecond" (the live figure is about 1 ms), or any language beyond
+Hindi, Hinglish, Gujarati and English.
+
+## 60-second video: one story
+
+| Time | Screen | Caption / voice-over |
 |---|---|---|
-| 0-5 s | Black, then a phone waveform | "Before your AI agent talks to a million Indians, it has to survive these callers." |
-| 5-15 s | Dashboard live view: a Gujarati caller on a noisy line, transcript and per-turn latency ticking, a red flag | "Bhool Bhulaiya calls your agent like real Indian customers do: Gujarati, Hinglish, fan noise, interruptions, someone's brother picking up." |
-| 15-25 s | The flag opens: the agent's exact words, quoted, timestamped | "Every failure comes with the agent's own words as proof. No quote, no fail: it goes to a human instead." |
-| 25-35 s | QA Studio: industry tiles, then the parameter × call heatmap; click a red cell, the audio jumps to that moment | "The same auditor scores real calls for 22 industries: collections, microfinance, airlines, clinics. Click a verdict, hear the moment." |
-| 35-45 s | Proof page: QA verdict accuracy 90%, fatal-error recall 100%, 0 false fatal alarms | "And we measured the auditor: on calls it had never seen, it caught every fatal compliance breach with zero false alarms." |
-| 45-52 s | Proof table, third column "v1 + Guard": the same buggy agent, prompt untouched, with Guard; a crossed-out line "वरना legal action होगा" replaced live | "Then we stopped testing after the fact. Guard checks every sentence before the agent says it, in under a millisecond: the threat never reaches the customer." |
-| 52-55 s | Crash-test rating badges: v1 ★, v1 + Guard ★★★, v2 ★★★★ | "And every agent gets a crash-test rating, from measured calls." |
-| 55-60 s | Logo line | "Built entirely on Gnani: Prisma hears, Timbre speaks, Evon thinks and judges." |
+| 0-5 s | A phone waveform, then the showcase title | "Before your AI agent talks to a million Indians, crash-test it." |
+| 5-17 s | Showcase replay, left side: v1 says "वरना legal action होगा" to Ramesh; red flags appear with the quote | "A synthetic customer calls. The agent threatens him and states his debt before checking who he is. Every flag quotes its words." |
+| 17-27 s | Right side: the same agent behind Guard; the threat is crossed out, the verification question appears instead | "Same agent, prompt untouched, behind Bhool Guard: every sentence checked in code before it's spoken. 6 of 6 bugs prevented." |
+| 27-35 s | Autopilot replay: 12 attacks, leaks 4 → 0 | "An AI red team attacked it 12 ways. Taking the secret out of the model: leaks 4 → 0." |
+| 35-46 s | Live dashboard call: the caller says 4821, Prisma's transcript "फोर थाउज़ंड एट हंडरेड ट्वेंटी वन", then v4 verifying | "Then a live call found what no offline test could: Prisma writes '4821' as English words in Devanagari. Fixed, and v4 verifies first try." |
+| 46-54 s | Noise sweep grid: v1 red from 20 dB, fixed agent green to 0 dB | "Fan, traffic, office, crowd: the fixed agent hears the caller down to 0 dB. v1 stopped at 20." |
+| 54-60 s | Logo line and link | "Built on Gnani: Prisma hears, Timbre speaks, Evon calls, guards and judges." |
 
-Shots to capture (all exist today): dashboard live run (`bhool dashboard`, run `suites/demo.yaml` offline for a clean take),
-`/studio` with a voiced call selected, `runs/proof-live-3/proof.html`, `runs/industries-live-2/segments.html`.
+Shots (all exist): the showcase (`bhool site`, then open `site/index.html`), `results/live-gnani/` call for the transcript,
+the dashboard (`bhool dashboard`) for a live take, `site/autopilot/autopilot.html`, `site/stress/stress.html`.
+Burn the captions in: most people watch muted.
 
 ## The link to share
 
-Build the showcase after the latest live run (`bhool site`) and deploy `site/` (`npx vercel site --prod` or a `gh-pages`
-branch). Put that link in the post and the submission: judges can open the proof, the Studio and the voiced calls without
-installing anything.
+`bhool site` builds the showcase; deploy `site/` (Vercel or a `gh-pages` branch) and put the link in the post, the
+written explanation and the README. The submission form has no repo field, so the link in the post is how a reviewer finds
+the evidence.
 
 ## 3-minute walkthrough (for the submission)
 
 1. The gap (20 s): voice agents are tested by people making test calls; nothing tests them the way Indian customers call.
-2. Test before launch (50 s): suite YAML, personas x behaviours x phone lines, the live view, the report, the CI gate.
-3. Audit after launch (50 s): QA Studio, scorecards per industry with their regulations, evidence, review queue, coaching.
-4. How we know it works (40 s): `bhool proof` and QA-Bench, the measured numbers, and what failed and how we fixed it
-   (the judge citing the caller's words; dates now checked in code).
-5. What's next (20 s): human-labelled calibration on real calls, phone and Inya targets, autopilot repair loop live.
+2. Before launch (40 s): personas x behaviours x phone lines, the live view, the report, the CI gate, the red team.
+3. During the call (40 s): Guard on v1; secret isolation (v3); v4, where the model picks the act and code speaks the facts.
+4. How we know (50 s): the proof table, QA-Bench, the judge measured against my labels on live calls (and where it is weak:
+   it misses most privacy leaks, which a code check catches), the live digit bug.
+5. Next (30 s): an Inya-built agent tested black-box, real phone calls, labels from someone other than me.
 
 ## LinkedIn post (draft)
 
-> Voice AI in India is tested by people making test calls. Real customers call from a fan-noisy shop in Surat, switch to
-> Gujarati mid-sentence, interrupt, or hand the phone to their brother.
+> Voice AI in India gets tested by people making test calls. Real customers call from a noisy shop, switch to Gujarati
+> mid-sentence, interrupt, or hand the phone to their brother.
 >
-> So I built Bhool Bhulaiya: synthetic Indian callers that phone a voice agent before launch, and an auditor that scores
-> every real call after it, on Gnani's stack: Prisma (speech-to-text), Timbre (voices) and Evon (the callers' and the judge's brain).
+> So I built Bhool Bhulaiya on Gnani's Prisma, Timbre and Evon: synthetic Indian callers that crash-test a voice agent before
+> launch, a guard that checks every sentence before the agent speaks it, and an auditor that quotes the agent's own words.
 >
-> What I measured, not claimed:
-> • On calls the auditor had never seen: 90% of verdicts right, 100% of fatal compliance breaches caught, 0 false fatal alarms.
-> • 7 of 8 bugs I planted in a test agent caught, plus one I didn't plant: the "fixed" agent told a borrower's brother about the loan.
-> • 22 industry playbooks (collections, microfinance, airlines, clinics, BNPL...) with their regulations: RBI, IRDAI, DGCA, TRAI, HIPAA.
-> • Every fail cites the agent's own words. No quote, no fail: it goes to a human.
+> Measured, on Evon-played test calls over a simulated phone line:
+> • 8 of 8 bugs I planted in an agent caught. Behind the guard, the same agent: 6 of 6 prevented, prompt untouched.
+> • 12 red-team attacks: account leaks 4 → 0 once the secret was taken out of the model.
+> • An agent where the model picks the move and code speaks every fact: 5 of 6 test calls passed, every earlier version 0.
+> • Fan, traffic, office and crowd noise: the fixed agent hears the caller down to 0 dB.
 >
-> What didn't work first time is in the README too.
+> The best bug came from a live call: Prisma writes "4821" as "फोर थाउज़ंड एट हंडरेड ट्वेंटी वन", so no caller could
+> ever verify. What didn't work (and where my own judge is weak) is in the README too.
 >
-> 60-second demo below. Built for the #GreatIndianAIInternshipChallenge by @Gnani.ai #GnaniAI
+> 60-second demo below. #GreatIndianAIInternshipChallenge #GnaniAI
 
 ## X post (draft)
 
-> Built a crash-test lab for Indian voice agents on @Gnani_ai's Prisma + Timbre + Evon: synthetic callers in Hindi, Gujarati,
-> Tamil on noisy lines, and an auditor that quotes the agent's own words for every fail.
-> Measured on unseen calls: 90% verdicts right, 100% fatal breaches caught, 0 false fatal alarms. Demo 👇
-> #GnaniAI #GreatIndianAIInternshipChallenge
+> Built a crash-test lab for Indian voice agents on Gnani's Prisma + Timbre + Evon: synthetic callers in Hindi, Hinglish and
+> Gujarati on noisy lines, a guard that checks every sentence before it's spoken, an auditor that quotes the agent.
+> Same buggy agent behind the guard: 6/6 bugs prevented. Demo 👇 #GnaniAI #GreatIndianAIInternshipChallenge
 
-Handles and hashtags: confirm the exact Gnani handles on LinkedIn and X before posting. Organic engagement only; the rules
+Handles and hashtags: confirm Gnani's exact handles on LinkedIn and X before posting. Organic engagement only; the rules
 disqualify engagement swaps and paid boosts.

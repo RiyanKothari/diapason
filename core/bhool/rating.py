@@ -85,7 +85,8 @@ def build_rating(proof_dir: Path, stress_path: Path | None, out: Path) -> dict:
     stress = json.loads(stress_path.read_text(encoding="utf-8")) if stress_path and stress_path.exists() else None
     dirs = {"v1": t["v1_dir"], "v2": t["v2_dir"], **({"v1+guard": t["guard_dir"]} if t.get("guard_dir") else {}),
             **({"v3": t["v3_dir"]} if t.get("v3_dir") else {}),
-            **({"v3+guard": t["v3guard_dir"]} if t.get("v3guard_dir") else {})}
+            **({"v3+guard": t["v3guard_dir"]} if t.get("v3guard_dir") else {}),
+            **({"v4": t["v4_dir"]} if t.get("v4_dir") else {})}
     ratings = {}
     for name, d in dirs.items():
         report = json.loads((proof_dir / d / "report.json").read_text(encoding="utf-8"))

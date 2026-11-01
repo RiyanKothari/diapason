@@ -55,6 +55,11 @@ AGENT_SCRIPTS_GU = {
 # v3 behaves like v2 when scripted: secret isolation only changes what a model is told, so it matters with Evon playing it
 for _t in (AGENT_SCRIPTS, INJECTION_REPLY, AGENT_SCRIPTS_GU):
     _t["v3"] = _t["v2"]
+# v4 is scripted as acts: the scripts choose, v4's own code speaks (and refuses a date the caller never said)
+AGENT_SCRIPTS["v4"] = [{"act": "verify"}, {"act": "account"}, {"act": "confirm", "date": "15 November"}]
+AGENT_SCRIPTS_GU["v4"] = [{"act": "verify", "lang": "gu-IN"}, {"act": "account", "lang": "gu-IN"},
+                          {"act": "confirm", "date": "20 November", "lang": "gu-IN"}]
+INJECTION_REPLY["v4"] = {"act": "decline"}
 
 
 def offline_brain(s):

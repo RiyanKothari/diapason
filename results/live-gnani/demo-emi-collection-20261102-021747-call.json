@@ -1,0 +1,181 @@
+{
+  "scenario_id": "ramesh_hinglish__cooperative__landline",
+  "run": 0,
+  "end_reason": "agent_hangup",
+  "duration_s": 79.5,
+  "turns": [
+    {
+      "speaker": "agent",
+      "text": "नमस्ते, मैं सहयोग फाइनेंस से बोल रही हूँ, ये कॉल क्वालिटी के लिए रेकॉर्ड हो सकती है, क्या मेरी बात रमेश जी से हो रही है?",
+      "start": 0.82,
+      "end": 9.1,
+      "kind": "speech"
+    },
+    {
+      "speaker": "caller",
+      "text": "हाँ, ही बोल रहा हूँ, कौन बोल रहा है?",
+      "start": 25.66,
+      "end": 29.12,
+      "kind": "speech"
+    },
+    {
+      "speaker": "agent",
+      "text": "आगे बढ़ने से पहले कृपया अपने लोन आई डी के आखिरी चार अंक बताइये।",
+      "start": 33.24,
+      "end": 38.06,
+      "kind": "speech"
+    },
+    {
+      "speaker": "caller",
+      "text": "4821",
+      "start": 41.64,
+      "end": 43.76,
+      "kind": "speech"
+    },
+    {
+      "speaker": "agent",
+      "text": "धन्यवाद वेरिफ़िएड हो गया आपकी ई एम आई के चार हज़ार पाँच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे",
+      "start": 54.82,
+      "end": 63.12,
+      "kind": "speech"
+    },
+    {
+      "speaker": "caller",
+      "text": "मैं 1 नवंबर को ही कर दूँगा।",
+      "start": 66.64,
+      "end": 68.28,
+      "kind": "speech"
+    },
+    {
+      "speaker": "agent",
+      "text": "ठीक है, एक नवंबर को पेमेंट मैंने नोट कर लिया है, धन्यवाद, आपका दिन शुभ हो।",
+      "start": 73.38,
+      "end": 79.5,
+      "kind": "speech"
+    }
+  ],
+  "caller_segments": [
+    {
+      "start": 25.66,
+      "end": 29.12
+    },
+    {
+      "start": 41.64,
+      "end": 43.76
+    },
+    {
+      "start": 66.64,
+      "end": 68.28
+    }
+  ],
+  "metrics": {
+    "duration_s": 79.5,
+    "caller_turns": 3,
+    "agent_turns": 4,
+    "time_to_first_audio_s": 0.82,
+    "response_latencies_s": [
+      4.12,
+      5.1
+    ],
+    "latency_p50_s": 4.61,
+    "latency_p95_s": 5.051,
+    "unanswered_turns": 1,
+    "dead_air_events": 3,
+    "longest_dead_air_s": 11.06,
+    "overlap_s": 0.0,
+    "barge_ins": 0,
+    "barge_ins_ignored": 0,
+    "agent_yield_times_s": [],
+    "agent_cut_off_caller": 0
+  },
+  "dispositions": [
+    {
+      "type": "disposition",
+      "slots": {
+        "loan_id_last4": "4821",
+        "promise_to_pay_date": "1 नवंबर"
+      }
+    }
+  ],
+  "events": [
+    {
+      "type": "agent_speaking",
+      "t": 0.82
+    },
+    {
+      "type": "turn",
+      "speaker": "agent",
+      "text": "नमस्ते, मैं सहयोग फाइनेंस से बोल रही हूँ, ये कॉल क्वालिटी के लिए रेकॉर्ड हो सकती है, क्या मेरी बात रमेश जी से हो रही है?",
+      "start": 0.82,
+      "end": 9.1
+    },
+    {
+      "type": "turn",
+      "speaker": "caller",
+      "kind": "speech",
+      "text": "हाँ, ही बोल रहा हूँ, कौन बोल रहा है?",
+      "tags": [
+        "slow"
+      ],
+      "start": 25.66,
+      "end": 29.12
+    },
+    {
+      "type": "agent_speaking",
+      "t": 33.24
+    },
+    {
+      "type": "turn",
+      "speaker": "agent",
+      "text": "आगे बढ़ने से पहले कृपया अपने लोन आई डी के आखिरी चार अंक बताइये।",
+      "start": 33.24,
+      "end": 38.06
+    },
+    {
+      "type": "turn",
+      "speaker": "caller",
+      "kind": "speech",
+      "text": "4821",
+      "tags": [],
+      "start": 41.64,
+      "end": 43.76
+    },
+    {
+      "type": "agent_speaking",
+      "t": 54.82
+    },
+    {
+      "type": "turn",
+      "speaker": "agent",
+      "text": "धन्यवाद वेरिफ़िएड हो गया आपकी ई एम आई के चार हज़ार पाँच सौ रुपये पाँच नवंबर को ड्यू थे आप पेमेंट कब तक कर पाएंगे",
+      "start": 54.82,
+      "end": 63.12
+    },
+    {
+      "type": "turn",
+      "speaker": "caller",
+      "kind": "speech",
+      "text": "मैं 1 नवंबर को ही कर दूँगा।",
+      "tags": [],
+      "start": 66.64,
+      "end": 68.28
+    },
+    {
+      "type": "disposition",
+      "t": 73.34,
+      "data": {
+        "type": "disposition",
+        "slots": {
+          "loan_id_last4": "4821",
+          "promise_to_pay_date": "1 नवंबर"
+        }
+      }
+    },
+    {
+      "type": "agent_speaking",
+      "t": 73.38
+    }
+  ],
+  "caller_wav": "runs\\demo-emi-collection-20261102-021747\\ramesh_hinglish__cooperative__landline\\run0\\caller.wav",
+  "agent_wav": "runs\\demo-emi-collection-20261102-021747\\ramesh_hinglish__cooperative__landline\\run0\\agent.wav"
+}

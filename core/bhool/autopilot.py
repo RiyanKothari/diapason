@@ -291,6 +291,11 @@ def compare(before: dict, after: dict) -> dict:
             "still": [f"{s}:{i}" for s in sorted(sids) for i in a.get(s, {}) if i in b.get(s, {})]}
 
 
+def prompt_items(items: list[str]) -> list[str]:
+    """`scenario:item` entries that aren't timing metrics."""
+    return [x for x in items if not x.split(":", 1)[-1].startswith("metric:")]
+
+
 async def heal(evon, suite: Suite, agent: AgentVersion, out: Path, rounds: int = 2, judge_samples: int = 3,
                on_event=None) -> dict:
     from .demo import run_version
@@ -337,7 +342,10 @@ async def heal(evon, suite: Suite, agent: AgentVersion, out: Path, rounds: int =
                              "error": f"Evon failed {rep['usage']['harness_errors']} time(s) during the re-test; result discarded"})
             break
         diff = compare(current_rep, rep)
-        ok = bool(diff["fixed"]) and not diff["broken"]
+        # A prompt patch is judged on the rubric. Timing metrics swing with machine and tunnel load (in the live heal, 7 of the
+        # 52 "broken" items were metrics), so they're still reported but don't decide acceptance.
+        fixed, broken = prompt_items(diff["fixed"]), prompt_items(diff["broken"])
+        ok = bool(fixed) and not broken
         attempts.append({"round": r, "accepted": ok, "rules": rules, "greeting": patched.greeting if patched.greeting != current.greeting else "",
                          "engineering": data.get("engineering") or [], **diff, "pass_rate": rep["pass_rate"],
                          "report_dir": Path(rep["dir"]).relative_to(out).as_posix()})
@@ -346,8 +354,8 @@ async def heal(evon, suite: Suite, agent: AgentVersion, out: Path, rounds: int =
         if ok:
             current, current_rep, feedback = patched, rep, ""
         else:
-            feedback = (f"\nYOUR LAST PATCH WAS REJECTED. It fixed {diff['fixed'] or 'nothing'} but broke "
-                        f"{diff['broken'] or 'nothing'}. Propose a different patch.")
+            feedback = (f"\nYOUR LAST PATCH WAS REJECTED. It fixed {fixed or 'nothing'} but broke "
+                        f"{broken or 'nothing'}. Propose a different patch.")
     total = compare(before, current_rep)
     return {"before_pass_rate": before["pass_rate"], "after_pass_rate": current_rep["pass_rate"],
             "before_dir": Path(before["dir"]).relative_to(out).as_posix(),

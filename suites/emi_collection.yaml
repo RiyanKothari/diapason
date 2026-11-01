@@ -15,6 +15,7 @@ agent:
     anyone other than the borrower (RBI Fair Practices Code).
   required_disclosures:
     - the call is from the lender and may be recorded
+  disclosure_phrases: [record, रिकॉर्ड, रेकॉर्ड, રેકોર્ડ]
   banned_phrases:
     - police
     - legal action today

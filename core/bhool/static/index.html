@@ -72,6 +72,8 @@ a{color:var(--fg);text-underline-offset:3px}.scroll{overflow-x:auto}.empty{color
       <label>Mode<select id="mode"><option value="offline">Offline: fake agent, zero credits</option><option value="live">Live: Gnani Prisma + Evon + Timbre</option></select></label>
       <label>Scenarios<input id="limit" type="number" min="1" value="4"></label>
       <label id="urlWrap" hidden>Agent URL<input id="url" type="text" placeholder="ws://127.0.0.1:8765"></label>
+      <label class="budget" hidden>TTS chars budget<input id="ttsCap" type="number" min="1" value="400"></label>
+      <label class="budget" hidden>STT seconds budget<input id="sttCap" type="number" min="1" value="60"></label>
       <label class="check" id="stubWrap"><input id="stubborn" type="checkbox"> fake agent ignores barge-ins</label>
       <button id="run">Run suite</button>
     </div>
@@ -230,10 +232,11 @@ function connect() {
   ws.onmessage = (m) => onEvent(JSON.parse(m.data));
   ws.onclose = () => setTimeout(connect, 1500);
 }
-$("mode").onchange = () => { const live = $("mode").value === "live"; $("urlWrap").hidden = !live; $("stubWrap").hidden = live; showEstimate(); };
+$("mode").onchange = () => { const live = $("mode").value === "live"; $("urlWrap").hidden = !live; $("stubWrap").hidden = live; document.querySelectorAll(".budget").forEach((b) => { b.hidden = !live; }); showEstimate(); };
 $("suite").onchange = showEstimate; $("limit").oninput = showEstimate;
 $("run").onclick = async () => {
-  const body = { suite: $("suite").value, mode: $("mode").value, limit: +$("limit").value || null, url: $("url").value || null, stubborn: $("stubborn").checked };
+  const body = { suite: $("suite").value, mode: $("mode").value, limit: +$("limit").value || null, url: $("url").value || null, stubborn: $("stubborn").checked,
+    max_tts_chars: +$("ttsCap").value || null, max_stt_seconds: +$("sttCap").value || null };
   const r = await fetch("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) alert((await r.json()).detail || "could not start");
 };

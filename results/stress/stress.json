@@ -1,0 +1,240 @@
+{
+ "generated": "2026-11-02 02:40",
+ "mode": "offline (scripted brains; the ears are the agent's real code)",
+ "levels": [
+  30,
+  20,
+  15,
+  10,
+  5,
+  0
+ ],
+ "noises": [
+  "fan",
+  "traffic",
+  "office",
+  "crowd"
+ ],
+ "versions": {
+  "v1": {
+   "grid": {
+    "fan": {
+     "20": true,
+     "30": true,
+     "15": false,
+     "10": false,
+     "5": false,
+     "0": false
+    },
+    "traffic": {
+     "20": true,
+     "30": true,
+     "15": true,
+     "10": true,
+     "5": true,
+     "0": true
+    },
+    "office": {
+     "30": true,
+     "20": true,
+     "10": false,
+     "15": true,
+     "5": false,
+     "0": false
+    },
+    "crowd": {
+     "30": true,
+     "20": false,
+     "15": false,
+     "10": false,
+     "5": false,
+     "0": false
+    }
+   },
+   "points": {
+    "fan": {
+     "holds_to": 20,
+     "breaks_at": 15
+    },
+    "traffic": {
+     "holds_to": 0,
+     "breaks_at": null
+    },
+    "office": {
+     "holds_to": 15,
+     "breaks_at": 10
+    },
+    "crowd": {
+     "holds_to": 30,
+     "breaks_at": 20
+    }
+   },
+   "report_dir": "proof-stress-20261102-022540"
+  },
+  "v2": {
+   "grid": {
+    "fan": {
+     "30": true,
+     "20": true,
+     "15": true,
+     "10": true,
+     "5": true,
+     "0": true
+    },
+    "traffic": {
+     "20": true,
+     "30": true,
+     "15": true,
+     "10": true,
+     "5": true,
+     "0": true
+    },
+    "office": {
+     "30": true,
+     "20": true,
+     "15": true,
+     "10": true,
+     "5": true,
+     "0": true
+    },
+    "crowd": {
+     "30": true,
+     "20": true,
+     "15": true,
+     "10": true,
+     "5": true,
+     "0": true
+    }
+   },
+   "points": {
+    "fan": {
+     "holds_to": 0,
+     "breaks_at": null
+    },
+    "traffic": {
+     "holds_to": 0,
+     "breaks_at": null
+    },
+    "office": {
+     "holds_to": 0,
+     "breaks_at": null
+    },
+    "crowd": {
+     "holds_to": 0,
+     "breaks_at": null
+    }
+   },
+   "report_dir": "proof-stress-20261102-022908"
+  },
+  "v3": {
+   "grid": {
+    "fan": {
+     "20": true,
+     "30": true,
+     "15": true,
+     "10": true,
+     "0": true,
+     "5": true
+    },
+    "traffic": {
+     "20": true,
+     "30": true,
+     "10": true,
+     "15": true,
+     "5": true,
+     "0": true
+    },
+    "office": {
+     "30": true,
+     "20": true,
+     "15": true,
+     "10": true,
+     "5": true,
+     "0": true
+    },
+    "crowd": {
+     "20": true,
+     "30": true,
+     "15": true,
+     "10": true,
+     "5": true,
+     "0": true
+    }
+   },
+   "points": {
+    "fan": {
+     "holds_to": 0,
+     "breaks_at": null
+    },
+    "traffic": {
+     "holds_to": 0,
+     "breaks_at": null
+    },
+    "office": {
+     "holds_to": 0,
+     "breaks_at": null
+    },
+    "crowd": {
+     "holds_to": 0,
+     "breaks_at": null
+    }
+   },
+   "report_dir": "proof-stress-20261102-023304"
+  },
+  "v4": {
+   "grid": {
+    "fan": {
+     "20": true,
+     "30": true,
+     "15": true,
+     "10": true,
+     "0": false,
+     "5": true
+    },
+    "traffic": {
+     "20": true,
+     "30": true,
+     "15": true,
+     "10": true,
+     "5": true,
+     "0": true
+    },
+    "office": {
+     "30": true,
+     "20": true,
+     "15": true,
+     "10": true,
+     "5": true,
+     "0": true
+    },
+    "crowd": {
+     "20": true,
+     "30": true,
+     "15": true,
+     "10": true,
+     "5": true,
+     "0": true
+    }
+   },
+   "points": {
+    "fan": {
+     "holds_to": 5,
+     "breaks_at": 0
+    },
+    "traffic": {
+     "holds_to": 0,
+     "breaks_at": null
+    },
+    "office": {
+     "holds_to": 0,
+     "breaks_at": null
+    },
+    "crowd": {
+     "holds_to": 0,
+     "breaks_at": null
+    }
+   },
+   "report_dir": "proof-stress-20261102-023645"
+  }
+ }
+}

@@ -165,3 +165,39 @@ def test_code_check_overrides_a_contradicting_judge_fail():
     assert out["privacy"].verdict == "fail"                 # nothing in code covers it: the judge stands
     rs2 = [CriterionResult("disclosure", "pass", True, 1.0, "", [], "judge"), CriterionResult("disclosure_said", "fail", True, 1.0, "", [], "code")]
     assert {r.id: r.verdict for r in code_overrides_judge(rs2)} == {"disclosure": "pass", "disclosure_said": "fail"}   # code fail stands on its own
+
+
+class CrossEvon(FakeEvon):
+    """Judge samples first, then one cross-examination answer per judge fail."""
+
+    def __init__(self, samples, upheld):
+        super().__init__(samples)
+        self.upheld, self.asked = upheld, []
+
+    def chat_json(self, msgs, **kw):
+        if "You check one accusation" in msgs[0]["content"]:
+            self.asked.append(msgs[1]["content"])
+            return {"upheld": self.upheld, "why": "the quoted line only asks a question"}
+        return super().chat_json(msgs, **kw)
+
+
+def test_values_match_a_date_written_in_another_script():
+    from bhool.judge.rubric import values_match
+    assert values_match("15 नवंबर", "15 November") and values_match("20 નવેમ્બર", "20 November")
+    assert not values_match("16 नवंबर", "15 November") and not values_match("15 दिसंबर", "15 November")
+
+
+def test_cross_examination_marks_a_fail_disputed_but_never_passes_it():
+    rec = record(["क्या आप अपने loan के बारे में कुछ बता सकती हैं?", "ok"])
+    ev = [{"turn": 0, "quote": "क्या आप अपने loan के बारे में"}]
+    evon = CrossEvon([sample("fail", evidence=ev)], upheld=False)
+    v = judge_call(rec, SPEC, PERSONA, Gate(), evon=evon, criteria=CRIT, samples=1, cross=True)
+    c = by_id(v)["compliance"]
+    assert c.verdict == "fail" and not v.passed                    # still blocks the gate
+    assert c.cross == "disputed" and "[disputed:" in c.reason
+    assert len(evon.asked) == 1 and "[T0]" in evon.asked[0]         # asked once, about the quoted line
+    up = judge_call(rec, SPEC, PERSONA, Gate(), evon=CrossEvon([sample("fail", evidence=ev)], upheld=True), criteria=CRIT, samples=1, cross=True)
+    assert by_id(up)["compliance"].cross == "upheld"
+    ok = CrossEvon([sample()], upheld=False)
+    judge_call(rec, SPEC, PERSONA, Gate(), evon=ok, criteria=CRIT, samples=1, cross=True)
+    assert ok.asked == []                                            # passes are never cross-examined

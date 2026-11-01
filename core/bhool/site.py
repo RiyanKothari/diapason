@@ -91,7 +91,9 @@ def build_site(out: Path, runs_dir: Path = Path("runs"), scorecards_dir: Path = 
 
     stress_data = json.loads((stress / "stress.json").read_text(encoding="utf-8")) if stress else None
     replay = json.loads((auto / "autopilot.json").read_text(encoding="utf-8")).get("replay") if auto else None
-    (out / "index.html").write_text(_landing(proof, p, sims, data, voiced, bool(auto), repo_url, stress_data, rating, replay), encoding="utf-8")
+    asr_dir = _latest(runs_dir, "asr_bench.json")
+    asr = json.loads((asr_dir / "asr_bench.json").read_text(encoding="utf-8")) if asr_dir else None
+    (out / "index.html").write_text(_landing(proof, p, sims, data, voiced, bool(auto), repo_url, stress_data, rating, replay, asr), encoding="utf-8")
     return {"out": str(out), "audits": len(data["audits"]), "voiced_calls": voiced, "proof": proof.name if proof else None,
             "stress": stress.name if stress else None, "rating": bool(rating),
             "simulations": [n for n, _ in sims], "autopilot": auto.name if auto else None,
@@ -119,7 +121,8 @@ SHOWCASE_CASE = "verify_disclose_conduct"
 RULE_NAMES = {"disclosure": "no recording disclosure", "disclosure_said": "no recording disclosure", "verification": "details before verification",
               "privacy": "privacy breach", "no_harassment": "threat / pressure", "banned_phrases": "banned threat", "calling_hours": "false urgency",
               "injection_resistance": "obeyed an injection", "language_match": "wrong language", "factual_accuracy": "factual error",
-              "tone": "tone", "task_success": "task not done", "slot_capture": "details not captured"}
+              "tone": "tone", "task_success": "task not done", "slot_capture": "details not captured",
+              "account_privacy": "privacy breach", "injection_guard": "leaked under attack", "language_script": "wrong language"}
 
 
 def _replay(proof: Path, t: dict) -> dict | None:
@@ -151,12 +154,13 @@ def _replay(proof: Path, t: dict) -> dict | None:
             if target is not None and c["id"] not in target["flags"]:
                 target["flags"].append(c["id"])
         mix = proof / d / SHOWCASE_CASE / "run0" / "mix.wav"
+        rules = sorted({RULE_NAMES.get(c["id"], c["id"]) for c in fails})     # a code check and the judge on one rule count once
         n_guard = sum(len(x["guard"]) for x in turns)
         sides.append({"label": label, "guarded": guarded, "turns": turns, "passed": verdict["passed"],
                       "meta": f"{len(turns)} turns · {call['duration_s']:.0f} s · {call['end_reason'].replace('_', ' ')}",
-                      "summary": (f"{len(fails)} rule{'s' if len(fails) != 1 else ''} broken" if fails else "no rule broken")
+                      "summary": (f"{len(rules)} rule{'s' if len(rules) != 1 else ''} broken" if rules else "no rule broken")
                                  + (f" · Guard rewrote {n_guard} line{'s' if n_guard != 1 else ''}" if guarded else ""),
-                      "note": "; ".join(sorted({RULE_NAMES.get(c["id"], c["id"]) for c in fails})) or "every check passed",
+                      "note": "; ".join(rules) or "every check passed",
                       "audio": f"proof/{d}/{SHOWCASE_CASE}/run0/mix.wav" if mix.exists() else None,
                       "peaks": _waveform(mix) if mix.exists() else [0.1] * 120, "duration": round(call["duration_s"], 1)})
     duration = max(x["duration"] for x in sides)
@@ -167,7 +171,7 @@ def _replay(proof: Path, t: dict) -> dict | None:
 
 
 def _landing(proof: Path | None, p: dict | None, sims: list, data: dict, voiced: int, has_auto: bool, repo_url: str,
-             stress: dict | None = None, rating: dict | None = None, replay: dict | None = None) -> str:
+             stress: dict | None = None, rating: dict | None = None, replay: dict | None = None, asr: dict | None = None) -> str:
     kpis = []
     if p:
         t, q = p["tests"], p["qa"]
@@ -180,11 +184,29 @@ def _landing(proof: Path | None, p: dict | None, sims: list, data: dict, voiced:
         if g.get("measured"):
             kpis.append({"label": "bugs Guard prevents on the unfixed agent", "value": g["prevented"], "den": g["measured"],
                          "display": f"{g['prevented']}/{g['measured']}"})
+        v4 = t.get("v4") or {}
+        if v4.get("measured") and proof and t.get("v4_dir") and (proof / t["v4_dir"] / "report.json").exists():
+            calls = json.loads((proof / t["v4_dir"] / "report.json").read_text(encoding="utf-8"))["verdicts"]
+            ok = sum(v["passed"] for v in calls)
+            kpis.append({"label": f"proof calls agent v4 passes on every check (model picks the act, code speaks the facts); "
+                                  f"v4 removes {v4['prevented']}/{v4['measured']} of v1's bugs", "value": ok, "den": len(calls),
+                         "display": f"{ok}/{len(calls)}"})
     if replay and replay["before"]["calls"]:
         b, a = replay["before"], replay["after"]
         kpis.append({"label": f"red-team attacks that leaked the account: {replay['attacked']} {b['leaked']}/{b['calls']} → "
                               f"{replay['replayed_on']} (secrets isolated) {a['leaked']}/{a['calls']}",
                      "value": None, "display": f"{b['leaked']} → {a['leaked']}"})          # None: shown as is, not counted up
+    if stress:      # the noise numbers: where the seeded v1 stops hearing, and the best fixed agent that hears through all of it
+        pts = {v: r["points"] for v, r in stress.get("versions", {}).items()}
+        held = [v for v in ("v4", "v3", "v2") if v in pts and all(x["breaks_at"] is None and x["holds_to"] == 0 for x in pts[v].values())]
+        v1 = [x["breaks_at"] for x in pts.get("v1", {}).values() if x["breaks_at"] is not None]
+        if held and v1:
+            kpis.append({"label": f"SNR down to which {held[0]} still hears the caller through fan, traffic, office and crowd noise "
+                                  f"(v1 stopped hearing at {max(v1)} dB)", "value": None, "display": "0 dB"})
+    if asr and asr.get("by_preset", {}).get("market") is not None:
+        by = asr["by_preset"]
+        kpis.append({"label": f"Prisma character error on a 5 dB crowded-market phone line (clean line: {100 * by['clean']:.1f}%)",
+                     "value": None, "display": f"{100 * by['market']:.1f}%"})
     n_ind = sum(c.get("group") == "industries" for c in data["scorecards"])
     kpis += [{"label": "industry playbooks with their regulations", "value": n_ind, "display": str(n_ind)},
              {"label": "calls voiced through Timbre → phone line → Prisma", "value": voiced, "display": str(voiced)}]
@@ -201,10 +223,10 @@ def _landing(proof: Path | None, p: dict | None, sims: list, data: dict, voiced:
     moments = [
         {"k": "Before launch", "title": "Crash tests", "href": "proof/proof.html",
          "text": "Synthetic Indian callers phone the agent through a phone-line simulator, in real time.",
-         "points": ["Hindi, Hinglish, Gujarati, Tamil… personas with hidden facts", "fan, traffic and crowd noise; 8 kHz μ-law; packet loss",
+         "points": ["Hindi, Hinglish and Gujarati personas with hidden facts", "fan, traffic and crowd noise; 8 kHz μ-law; packet loss",
                     "barge-ins, injection, a brother who answers", "a red-team that designs new attacks from what broke the agent"]},
         {"k": "During the call", "title": "Bhool Guard", "href": "#replay",
-         "text": "Every sentence is checked in code before it reaches text-to-speech, in under a millisecond.",
+         "text": "Every sentence is checked in code before it reaches text-to-speech: about 1 ms measured live, no model call unless a line needs translating.",
          "points": ["threats and secret requests never spoken", "no account detail until the caller proves the last 4 digits",
                     "the recording disclosure always said", "a Hindi reply to a Gujarati caller translated"]},
         {"k": "After the call", "title": "QA for every call", "href": "studio.html",
