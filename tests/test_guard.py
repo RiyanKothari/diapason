@@ -170,3 +170,40 @@ def test_v3_model_never_holds_the_secret_until_code_verifies_the_caller():
     assert "4500" in s.system() and "5 November" in s.system() and "4821" not in s.system()   # the digits never reach it
     v2 = AgentSession(VERSIONS["v2"], None, None, None, None, None, 16000, crm)
     assert "4821" in v2.system()                                                               # why v2 could leak them
+
+
+def test_adaptive_endpointer_closes_the_turn_through_office_keyboard_clicks():
+    import numpy as np
+    from bhool.channel.sim import ChannelProfile, apply_channel
+    from bhool.fakes import ToneCodec
+    from bhool.reference_agent import Listener
+    speech, sr = ToneCodec().encode("हाँ मैं रमेश बोल रहा हूँ, बताइए क्या बात है")
+    x = np.concatenate([np.zeros(2 * sr), speech, np.zeros(3 * sr)])
+    for snr in (20, 10):                      # before the fix: the turn never ended below 30 dB
+        y, ysr, _ = apply_channel(x, sr, ChannelProfile(noise="office", snr_db=snr), seed=1)
+        L, f = Listener(ysr, adaptive=True), int(0.02 * ysr)
+        ends = [i / ysr for i in range(0, y.size - f, f) for e in L.feed(y[i:i + f]) if e[0] == "utterance"]
+        talk_end = 2 + speech.size / sr
+        assert len(ends) == 1 and talk_end < ends[0] < talk_end + 1.0, (snr, ends, talk_end)
+
+
+def test_guard_holds_the_due_date_in_hindi_words_until_verified():
+    g = Guard(crm={"loan_id_last4": "5519", "amount_due": "6100", "due_date": "28 October"})
+    g.filter("नमस्ते, यह call record हो सकती है।")
+    g.hear("मैं उसका भाई बोल रहा हूँ")
+    out = g.filter("सुरेश, कुल 6 on 28 अक्टूबर को. आज ही भुगतान करें.")          # seen live, said to the brother
+    assert "अक्टूबर" not in out and g.events[-1].rule == "account_before_verification"
+
+
+def test_guard_asks_for_the_language_by_name_and_keeps_latin_script_callers_in_their_language():
+    from bhool.guard import evon_translator
+    class Fake:
+        def chat(self, msgs, **kw):
+            self.system = msgs[0]["content"]
+            return "ચુકવણી 20 નવેમ્બરે."
+    f = Fake()
+    assert evon_translator(f)("Payment on 20 November.", "gu-IN") == "ચુકવણી 20 નવેમ્બરે."
+    assert "Gujarati (ગુજરાતી)" in f.system and "gu-IN" not in f.system     # a bare "gu-IN" got Kannada back, live
+    g = Guard(crm=CRM)
+    g.hear("haan bolo, main Ramesh bol raha hoon")                           # Hinglish in Latin script is not English
+    assert "record" in g.filter("नमस्ते जी।", "hi-IN") and "recorded" not in g.filter("ठीक है।", "hi-IN")

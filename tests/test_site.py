@@ -34,6 +34,23 @@ def test_static_site_has_everything_without_a_server(tmp_path):
     studio = json.loads((out / "data" / "studio.json").read_text(encoding="utf-8"))
     assert [a["path"] for a in studio["audits"]] == ["segments-x/emi_collections"]
     assert (out / "data" / "audit" / "segments-x__emi_collections.json").exists()
-    assert (out / "proof" / "v1" / "case" / "run0" / "mix.wav").exists()
-    assert not (out / "proof" / "v1" / "case" / "run0" / "caller.wav").exists()     # only the mixed call is played
+    assert not (out / "proof" / "v1" / "case" / "run0" / "mix.wav").exists()      # Evon proof calls are codec tones:
+    assert not (out / "proof" / "v1" / "case" / "run0" / "caller.wav").exists()   # only the replayed showcase call is kept
     assert (out / "segments-x" / "segments.html").exists()
+
+
+def test_site_keeps_only_the_showcase_calls_audio(tmp_path):
+    from bhool.site import SHOWCASE_CASE, build_site
+    runs = tmp_path / "runs"
+    proof = runs / "proof-x"
+    for d in ("v1", "g"):
+        for case in (SHOWCASE_CASE, "privacy"):
+            (proof / d / case / "run0").mkdir(parents=True)
+            (proof / d / case / "run0" / "mix.wav").write_bytes(b"RIFF")
+    (proof / "proof.json").write_text(json.dumps({"generated": "now", "mode": "offline", "tests": {
+        "caught": 0, "measured": 0, "false_alarms": 0, "bugs": [], "v1_dir": "v1", "v2_dir": "v1", "guard_dir": "g"},
+        "qa": {"overall": {}, "parameters": {}}}), encoding="utf-8")
+    out = tmp_path / "site"
+    build_site(out, runs_dir=runs, scorecards_dir=tmp_path / "none", proof=proof)
+    kept = sorted(p.relative_to(out / "proof").as_posix() for p in (out / "proof").rglob("*.wav"))
+    assert kept == [f"g/{SHOWCASE_CASE}/run0/mix.wav", f"v1/{SHOWCASE_CASE}/run0/mix.wav"]

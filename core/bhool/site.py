@@ -66,7 +66,14 @@ def build_site(out: Path, runs_dir: Path = Path("runs"), scorecards_dir: Path = 
     proof = proof or _latest(runs_dir, "proof.json")
     p = json.loads((proof / "proof.json").read_text(encoding="utf-8")) if proof else None
     if proof:
-        _copy_tree(proof, out / "proof")
+        # proof calls with Evon are carried as codec tones, not voices: only the replayed showcase call's audio is kept
+        _copy_tree(proof, out / "proof", keep_audio=set())
+        for key in ("v1_dir", "guard_dir"):
+            mix = proof / p["tests"].get(key, "") / SHOWCASE_CASE / "run0" / "mix.wav"
+            if p["tests"].get(key) and mix.exists():
+                dst = out / "proof" / mix.relative_to(proof)
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(mix, dst)
     sims = []
     for d in sorted(runs_dir.iterdir()):
         if d.is_dir() and (d / "segments.json").exists() and not d.name.startswith("_"):

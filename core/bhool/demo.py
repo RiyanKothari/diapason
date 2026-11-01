@@ -153,7 +153,8 @@ async def run_version(version: str, suite_path: str | Path | Suite, out_dir: str
         evon = CountedEvon(evon)
         agent_stt, agent_tts, speak, hear = _codec_speech()
         agent_llm = lambda msgs: evon.chat_json(msgs, temperature=0.4, max_tokens=300)  # noqa: E731
-        translate = lambda text, lang: evon.chat([{"role": "system", "content": f"Translate the line into {lang} as spoken on a phone call. Keep names and numbers. Reply with only the translation."}, {"role": "user", "content": text}], temperature=0.1, max_tokens=200)  # noqa: E731
+        from .guard import evon_translator
+        translate = evon_translator(evon)
         make_brain = lambda s, r: EvonBrain(evon, s.persona, s.behaviour, seed=s.seed + r)  # noqa: E731
     else:
         translate = None
