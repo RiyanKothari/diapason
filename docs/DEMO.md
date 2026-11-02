@@ -8,12 +8,12 @@ brands only. Never show the Kaggle notebook's output on screen (it prints the Ev
 
 | Say | Source |
 |---|---|
-| The tests caught 8 of 8 bugs planted in an agent | results/proof/proof.json |
-| The same buggy agent behind Bhool Guard, prompt unchanged: 6 of 6 bugs prevented | results/proof/proof.json (guard) |
+| The tests caught all 7 bugs planted in an agent (8 of 8 test cases) | results/proof/proof.json |
+| The same buggy agent behind Bhool Guard, prompt unchanged: every code check passes on all 6 text bugs (the judge confirmed 2; 4 await a usable verdict) | results/proof/proof.json (guard) |
 | Taking the secret out of the model: account leaks across 12 attacks fell from 4 to 0 | results/autopilot/replay-v3.json |
 | v4, where the model picks the act and code speaks the facts, passed 5 of 6 test calls; every earlier version 0 | results/proof/calls-v4.json |
 | The fixed agent hears callers down to 0 dB SNR; v1 stopped at 10-20 dB | results/stress/stress.json |
-| The auditor, on calls it never saw: 90.4% of verdicts right, every fatal breach caught, no false fatal alarms | README QA-Bench |
+| The auditor, on calls it never saw: 93.6% of 560 verdicts right, every fatal breach caught, no false fatal alarms | results/qa-bench/qa.json, results/proof/proof.json (qa) |
 | Prisma on a 5 dB crowded-market phone line: 5.5% character error (1.4% clean) | README asr-bench |
 
 Say "measured on Evon-played test calls over a simulated phone line" once, on screen or in the caption. Don't use the star
@@ -26,10 +26,10 @@ Hindi, Hinglish, Gujarati and English.
 |---|---|---|
 | 0-5 s | A phone waveform, then the showcase title | "Before your AI agent talks to a million Indians, crash-test it." |
 | 5-17 s | Showcase replay, left side: v1 says "वरना legal action होगा" to Ramesh; red flags appear with the quote | "A synthetic customer calls. The agent threatens him and states his debt before checking who he is. Every flag quotes its words." |
-| 17-27 s | Right side: the same agent behind Guard; the threat is crossed out, the verification question appears instead | "Same agent, prompt untouched, behind Bhool Guard: every sentence checked in code before it's spoken. 6 of 6 bugs prevented." |
+| 17-27 s | Right side: the same agent behind Guard; the threat is crossed out, the verification question appears instead | "Same agent, prompt untouched, behind Bhool Guard: every sentence checked in code before it's spoken. Every code check passes on all 6 text bugs." |
 | 27-35 s | Autopilot replay: 12 attacks, leaks 4 → 0 | "An AI red team attacked it 12 ways. Taking the secret out of the model: leaks 4 → 0." |
 | 35-46 s | Live dashboard call: the caller says 4821, Prisma's transcript "फोर थाउज़ंड एट हंडरेड ट्वेंटी वन", then v4 verifying | "Then a live call found what no offline test could: Prisma writes '4821' as English words in Devanagari. Fixed, and v4 verifies first try." |
-| 46-54 s | Noise sweep grid: v1 red from 20 dB, fixed agent green to 0 dB | "Fan, traffic, office, crowd: the fixed agent hears the caller down to 0 dB. v1 stopped at 20." |
+| 46-54 s | Noise sweep grid: v1 red from 10-20 dB, fixed agent green to 0 dB | "Fan, office, crowd: the fixed agent hears the caller down to 0 dB. v1 stopped at 10-20." |
 | 54-60 s | Logo line and link | "Built on Gnani: Prisma hears, Timbre speaks, Evon calls, guards and judges." |
 
 Shots (all exist): the showcase (`bhool site`, then open `site/index.html`), `results/live-gnani/` call for the transcript,
@@ -60,7 +60,7 @@ the evidence.
 > launch, a guard that checks every sentence before the agent speaks it, and an auditor that quotes the agent's own words.
 >
 > Measured, on Evon-played test calls over a simulated phone line:
-> • 8 of 8 bugs I planted in an agent caught. Behind the guard, the same agent: 6 of 6 prevented, prompt untouched.
+> • All 7 bugs I planted in an agent caught. Behind the guard, prompt untouched, every code check passes on all 6 text bugs.
 > • 12 red-team attacks: account leaks 4 → 0 once the secret was taken out of the model.
 > • An agent where the model picks the move and code speaks every fact: 5 of 6 test calls passed, every earlier version 0.
 > • Fan, traffic, office and crowd noise: the fixed agent hears the caller down to 0 dB.
@@ -74,7 +74,7 @@ the evidence.
 
 > Built a crash-test lab for Indian voice agents on Gnani's Prisma + Timbre + Evon: synthetic callers in Hindi, Hinglish and
 > Gujarati on noisy lines, a guard that checks every sentence before it's spoken, an auditor that quotes the agent.
-> Same buggy agent behind the guard: 6/6 bugs prevented. Demo 👇 #GnaniAI #GreatIndianAIInternshipChallenge
+> An agent where the model picks the move and code speaks the facts: 5/6 test calls passed, every earlier version 0. Demo 👇 #GnaniAI #GreatIndianAIInternshipChallenge
 
 Handles and hashtags: confirm Gnani's exact handles on LinkedIn and X before posting. Organic engagement only; the rules
 disqualify engagement swaps and paid boosts.

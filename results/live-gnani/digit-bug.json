@@ -1,0 +1,13 @@
+{
+ "what": "The caller's '4821' from the 2 Nov live dashboard call (v3 + Guard), re-transcribed by Prisma hi-IN",
+ "source": "demo-emi-collection-20261102-020506/ramesh_hinglish__cooperative__landline/run0/caller.wav",
+ "clip_s": [
+  31.5,
+  34.0
+ ],
+ "transcribed_at": "2026-11-03 00:39",
+ "prisma_text": "फोर थाउज़ंड एट हंडरेड ट्वेंटी वन",
+ "digits_with_old_parser": "",
+ "digits_with_new_parser": "4821",
+ "loan_id_last4": "4821"
+}

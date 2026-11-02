@@ -24,8 +24,10 @@ FILES = [   # (source under runs/, destination under results/, what it proves)
     ("stress-v5/stress.html", "stress/stress.html", "the same, as a page"),
     ("autopilot-live-7/autopilot.json", "autopilot/autopilot.json", "red team: 12 of 12 attacks broke v2"),
     ("autopilot-live-7/replay-v3/replay.json", "autopilot/replay-v3.json", "the same 12 attacks on v3: account leaks 4 -> 0"),
-    ("judge-bench.json", "judge-bench/judge-bench.json", "the judge vs hand labels on 27 live calls"),
+    ("judge-bench.json", "judge-bench/judge-bench.json", "the judge and the code checks vs 27 hand labels on 17 live calls"),
     ("injection-bench.json", "judge-bench/injection-wording.json", "old vs new injection wording on 13 labelled calls"),
+    ("asr-bench/asr_bench.json", "prisma/asr_bench.json", "Prisma character error per language and phone line (18 utterances)"),
+    ("digit-bug.json", "live-gnani/digit-bug.json", "Prisma's transcript of a caller's '4821', and what each digit parser makes of it"),
 ]
 LIVE = {  # dashboard calls through real Gnani speech (Timbre voices, Prisma ears), 2 Nov
     "demo-emi-collection-20261102-020506": "v3 + Guard before the digit fix: '4821' became 'फोर थाउज़ंड एट हंडरेड ट्वेंटी वन', never verified",
@@ -51,6 +53,28 @@ def main() -> None:
             dst = f"proof/calls-{name}.json"
             shutil.copy2(RUNS / PROOF / tests[key] / "report.json", OUT / dst)
             rows.append((dst, f"every proof call of {name}: transcript, metrics, each verdict with its quote"))
+    seed23 = RUNS / "proof-live-3" / "proof.json"          # the earlier QA-Bench corpus, quoted in the README
+    if seed23.exists():
+        (OUT / "qa-bench").mkdir(parents=True, exist_ok=True)
+        qa = json.loads(seed23.read_text(encoding="utf-8"))["qa"]
+        (OUT / "qa-bench/seed-23.json").write_text(json.dumps(qa, ensure_ascii=False, indent=1), encoding="utf-8")
+        rows.append(("qa-bench/seed-23.json", "the auditor's accuracy on an earlier corpus (seed 23)"))
+    voiced = []
+    for wav in sorted(RUNS.glob("*/*/audio/*.wav")):
+        if wav.parts[-4].startswith("_"):
+            continue
+        qa = wav.parents[1] / "qa.json"
+        calls = json.loads(qa.read_text(encoding="utf-8"))["calls"] if qa.exists() else []
+        c = next((c for c in calls if c["call_id"] == wav.stem), None)
+        meta = json.loads(wav.with_suffix(".json").read_text(encoding="utf-8")) if wav.with_suffix(".json").exists() else {}
+        if c:
+            voiced.append({"call": f"{wav.parts[-4]}/{wav.parts[-3]}/{wav.stem}", "lang": meta.get("lang"), "audio_s": c.get("audio_s"),
+                           "score": c.get("score"), "passed": c.get("passed"), "fatal": c.get("fatal"),
+                           "turns": [{k: t[k] for k in ("speaker", "text", "start", "end") if k in t} for t in c.get("turns", [])]})
+    if voiced:
+        (OUT / "live-gnani").mkdir(parents=True, exist_ok=True)
+        (OUT / "live-gnani/voiced-calls.json").write_text(json.dumps(voiced, ensure_ascii=False, indent=1), encoding="utf-8")
+        rows.append(("live-gnani/voiced-calls.json", f"{len(voiced)} QA calls voiced by Timbre over a phone line and transcribed by Prisma, with verdicts"))
     for d, what in LIVE.items():
         for f in sorted((RUNS / d).glob("*/run0/call.json")) + [RUNS / d / "report.json"]:
             if f.exists():

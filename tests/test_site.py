@@ -29,7 +29,7 @@ def test_static_site_has_everything_without_a_server(tmp_path):
     info = build_site(out, runs_dir=runs, scorecards_dir=ROOT / "scorecards")
     assert info["proof"] == "proof-x" and info["simulations"] == ["segments-x"]
     landing = (out / "index.html").read_text(encoding="utf-8")
-    assert "90%" in landing and "7/8" in landing and "studio.html" in landing
+    assert "90.4%" in landing and "7/8" in landing and "studio.html" in landing
     assert 'window.BHOOL_DATA = "data/"' in (out / "studio.html").read_text(encoding="utf-8")
     studio = json.loads((out / "data" / "studio.json").read_text(encoding="utf-8"))
     assert [a["path"] for a in studio["audits"]] == ["segments-x/emi_collections"]

@@ -1,0 +1,459 @@
+{
+  "presets": [
+    "clean",
+    "market",
+    "bad_network"
+  ],
+  "grid": {
+    "hi-en": {
+      "clean": 0.041,
+      "market": 0.106,
+      "bad_network": 0.052
+    },
+    "hi-IN": {
+      "clean": 0.0,
+      "market": 0.0,
+      "bad_network": 0.0
+    },
+    "gu-IN": {
+      "clean": 0.0,
+      "market": 0.058,
+      "bad_network": 0.0
+    },
+    "en-IN": {
+      "clean": 0.0,
+      "market": 0.0,
+      "bad_network": 0.069
+    }
+  },
+  "by_preset": {
+    "clean": 0.014,
+    "market": 0.055,
+    "bad_network": 0.029
+  },
+  "entities_by_preset": {
+    "clean": 1.0,
+    "market": 0.889,
+    "bad_network": 0.889
+  },
+  "rows": [
+    {
+      "lang": "hi-en",
+      "stt_lang": "hi-IN",
+      "preset": "clean",
+      "seed": 0,
+      "cer": 0.0,
+      "stt_ms": 894,
+      "ref": "मेरा ई एम आई ऑलरेडी पे हो गया है, आप बार बार कॉल क्यों कर रहे हो?",
+      "hyp": "मेरा ई एम आई ऑलरेडी पे हो गया है, आप बार बार कॉल क्यों कर रहे हो?",
+      "channel": {
+        "profile": "clean",
+        "seed": 0,
+        "clipped_pct": 0.0,
+        "out_rms": 0.07152
+      },
+      "spoken": "मेरा EMI already pay हो गया है, आप बार बार call क्यों कर रहे हो?",
+      "cer_naive": 0.323,
+      "entities": 1,
+      "entity_hits": 1,
+      "entities_lost": []
+    },
+    {
+      "lang": "hi-en",
+      "stt_lang": "hi-IN",
+      "preset": "market",
+      "seed": 0,
+      "cer": 0.111,
+      "stt_ms": 534,
+      "ref": "मेरा ई एम आई ऑलरेडी पे हो गया है, आप बार बार कॉल क्यों कर रहे हो?",
+      "hyp": "मेरा इ एम आई ऑलरेडी पे हो गया, आप बार बार कॉल क्यों कर रहे?",
+      "channel": {
+        "profile": "market",
+        "seed": 0,
+        "snr_db_measured": 5.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 6.13,
+        "underruns": 0,
+        "out_rms": 0.05832
+      },
+      "spoken": "मेरा EMI already pay हो गया है, आप बार बार call क्यों कर रहे हो?",
+      "cer_naive": 0.419,
+      "entities": 1,
+      "entity_hits": 1,
+      "entities_lost": []
+    },
+    {
+      "lang": "hi-en",
+      "stt_lang": "hi-IN",
+      "preset": "bad_network",
+      "seed": 0,
+      "cer": 0.063,
+      "stt_ms": 362,
+      "ref": "मेरा ई एम आई ऑलरेडी पे हो गया है, आप बार बार कॉल क्यों कर रहे हो?",
+      "hyp": "मेरा इ एम आई ऑलरेडी पे हो गया है, बार बार कॉल क्यों कर रहे हो?",
+      "channel": {
+        "profile": "bad_network",
+        "seed": 0,
+        "snr_db_measured": 12.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 15.57,
+        "underruns": 5,
+        "out_rms": 0.03649
+      },
+      "spoken": "मेरा EMI already pay हो गया है, आप बार बार call क्यों कर रहे हो?",
+      "cer_naive": 0.371,
+      "entities": 1,
+      "entity_hits": 1,
+      "entities_lost": []
+    },
+    {
+      "lang": "hi-en",
+      "stt_lang": "hi-IN",
+      "preset": "clean",
+      "seed": 0,
+      "cer": 0.082,
+      "stt_ms": 339,
+      "ref": "मैं पंद्रह नवंबर तक पैंतालीस सौ रुपये पे कर दूंगी।",
+      "hyp": "मैं पंद्रह नोवर तक पैंतालीस सौ रुपये पे कर दूँगी।",
+      "channel": {
+        "profile": "clean",
+        "seed": 0,
+        "clipped_pct": 0.0,
+        "out_rms": 0.08159
+      },
+      "spoken": "मैं पंद्रह November तक पैंतालीस सौ रुपये pay कर दूंगी।",
+      "cer_naive": 0.226,
+      "entities": 2,
+      "entity_hits": 2,
+      "entities_lost": []
+    },
+    {
+      "lang": "hi-en",
+      "stt_lang": "hi-IN",
+      "preset": "market",
+      "seed": 0,
+      "cer": 0.102,
+      "stt_ms": 231,
+      "ref": "मैं पंद्रह नवंबर तक पैंतालीस सौ रुपये पे कर दूंगी।",
+      "hyp": "मैं पंद्रह नवंबर तक पैंतालीस सौ रुपए पे करूँगी",
+      "channel": {
+        "profile": "market",
+        "seed": 0,
+        "snr_db_measured": 5.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 3.41,
+        "underruns": 0,
+        "out_rms": 0.06521
+      },
+      "spoken": "मैं पंद्रह November तक पैंतालीस सौ रुपये pay कर दूंगी।",
+      "cer_naive": 0.302,
+      "entities": 2,
+      "entity_hits": 2,
+      "entities_lost": []
+    },
+    {
+      "lang": "hi-en",
+      "stt_lang": "hi-IN",
+      "preset": "bad_network",
+      "seed": 0,
+      "cer": 0.041,
+      "stt_ms": 209,
+      "ref": "मैं पंद्रह नवंबर तक पैंतालीस सौ रुपये पे कर दूंगी।",
+      "hyp": "मैं पंद्रह नवंबर तक पैंतालीस सौ रुपए पे कर दूंगी",
+      "channel": {
+        "profile": "bad_network",
+        "seed": 0,
+        "snr_db_measured": 12.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 18.18,
+        "underruns": 4,
+        "out_rms": 0.04193
+      },
+      "spoken": "मैं पंद्रह November तक पैंतालीस सौ रुपये pay कर दूंगी।",
+      "cer_naive": 0.245,
+      "entities": 2,
+      "entity_hits": 2,
+      "entities_lost": []
+    },
+    {
+      "lang": "hi-IN",
+      "stt_lang": "hi-IN",
+      "preset": "clean",
+      "seed": 0,
+      "cer": 0.0,
+      "stt_ms": 357,
+      "ref": "मेरे लोन के आखिरी चार अंक चार आठ दो एक हैं।",
+      "hyp": "मेरे लोन के आखिरी चार अंक चार आठ दो एक हैं",
+      "channel": {
+        "profile": "clean",
+        "seed": 0,
+        "clipped_pct": 0.0,
+        "out_rms": 0.10963
+      },
+      "spoken": "मेरे loan के आखिरी चार अंक चार आठ दो एक हैं।",
+      "cer_naive": 0.093,
+      "entities": 1,
+      "entity_hits": 1,
+      "entities_lost": []
+    },
+    {
+      "lang": "hi-IN",
+      "stt_lang": "hi-IN",
+      "preset": "market",
+      "seed": 0,
+      "cer": 0.0,
+      "stt_ms": 178,
+      "ref": "मेरे लोन के आखिरी चार अंक चार आठ दो एक हैं।",
+      "hyp": "मेरे लोन के आखिरी चार अंक चार आठ दो एक हैं",
+      "channel": {
+        "profile": "market",
+        "seed": 0,
+        "snr_db_measured": 5.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 1.11,
+        "underruns": 0,
+        "out_rms": 0.09153
+      },
+      "spoken": "मेरे loan के आखिरी चार अंक चार आठ दो एक हैं।",
+      "cer_naive": 0.093,
+      "entities": 1,
+      "entity_hits": 1,
+      "entities_lost": []
+    },
+    {
+      "lang": "hi-IN",
+      "stt_lang": "hi-IN",
+      "preset": "bad_network",
+      "seed": 0,
+      "cer": 0.0,
+      "stt_ms": 254,
+      "ref": "मेरे लोन के आखिरी चार अंक चार आठ दो एक हैं।",
+      "hyp": "मेरे लोन के आखिरी चार अंक चार आठ दो एक हैं",
+      "channel": {
+        "profile": "bad_network",
+        "seed": 0,
+        "snr_db_measured": 12.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 10.0,
+        "underruns": 10,
+        "out_rms": 0.06201
+      },
+      "spoken": "मेरे loan के आखिरी चार अंक चार आठ दो एक हैं।",
+      "cer_naive": 0.093,
+      "entities": 1,
+      "entity_hits": 1,
+      "entities_lost": []
+    },
+    {
+      "lang": "gu-IN",
+      "stt_lang": "gu-IN",
+      "preset": "clean",
+      "seed": 0,
+      "cer": 0.0,
+      "stt_ms": 454,
+      "ref": "મને સમજાતું નથી કે કેટલા પૈસા બાકી છે.",
+      "hyp": "મને સમજાતું નથી કે કેટલા પૈસા બાકી છે",
+      "channel": {
+        "profile": "clean",
+        "seed": 0,
+        "clipped_pct": 0.0,
+        "out_rms": 0.055
+      },
+      "spoken": "મને સમજાતું નથી કે કેટલા પૈસા બાકી છે.",
+      "cer_naive": 0.0,
+      "entities": 1,
+      "entity_hits": 1,
+      "entities_lost": []
+    },
+    {
+      "lang": "gu-IN",
+      "stt_lang": "gu-IN",
+      "preset": "market",
+      "seed": 0,
+      "cer": 0.0,
+      "stt_ms": 395,
+      "ref": "મને સમજાતું નથી કે કેટલા પૈસા બાકી છે.",
+      "hyp": "મને સમજાતું નથી કે કેટલા પૈસા બાકી છે",
+      "channel": {
+        "profile": "market",
+        "seed": 0,
+        "snr_db_measured": 5.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 2.63,
+        "underruns": 0,
+        "out_rms": 0.05204
+      },
+      "spoken": "મને સમજાતું નથી કે કેટલા પૈસા બાકી છે.",
+      "cer_naive": 0.0,
+      "entities": 1,
+      "entity_hits": 1,
+      "entities_lost": []
+    },
+    {
+      "lang": "gu-IN",
+      "stt_lang": "gu-IN",
+      "preset": "bad_network",
+      "seed": 0,
+      "cer": 0.0,
+      "stt_ms": 249,
+      "ref": "મને સમજાતું નથી કે કેટલા પૈસા બાકી છે.",
+      "hyp": "મને સમજાતું નથી કે કેટલા પૈસા બાકી છે",
+      "channel": {
+        "profile": "bad_network",
+        "seed": 0,
+        "snr_db_measured": 12.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 7.89,
+        "underruns": 7,
+        "out_rms": 0.03796
+      },
+      "spoken": "મને સમજાતું નથી કે કેટલા પૈસા બાકી છે.",
+      "cer_naive": 0.0,
+      "entities": 1,
+      "entity_hits": 1,
+      "entities_lost": []
+    },
+    {
+      "lang": "gu-IN",
+      "stt_lang": "gu-IN",
+      "preset": "clean",
+      "seed": 0,
+      "cer": 0.0,
+      "stt_ms": 327,
+      "ref": "હું વીસ તારીખે ત્રણ હજાર બસો રૂપિયા ભરી દઈશ.",
+      "hyp": "હું વીસ તારીખે ત્રણ હજાર બસો રૂપિયા ભરી દઈશ",
+      "channel": {
+        "profile": "clean",
+        "seed": 0,
+        "clipped_pct": 0.0,
+        "out_rms": 0.12442
+      },
+      "spoken": "હું વીસ તારીખે ત્રણ હજાર બસો રૂપિયા ભરી દઈશ.",
+      "cer_naive": 0.0,
+      "entities": 3,
+      "entity_hits": 3,
+      "entities_lost": []
+    },
+    {
+      "lang": "gu-IN",
+      "stt_lang": "gu-IN",
+      "preset": "market",
+      "seed": 0,
+      "cer": 0.116,
+      "stt_ms": 186,
+      "ref": "હું વીસ તારીખે ત્રણ હજાર બસો રૂપિયા ભરી દઈશ.",
+      "hyp": "હું વીસ તારીખે ત્રણ હજાર બસો રૂપિયા ભર્યા",
+      "channel": {
+        "profile": "market",
+        "seed": 0,
+        "snr_db_measured": 5.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 0.69,
+        "underruns": 0,
+        "out_rms": 0.09707
+      },
+      "spoken": "હું વીસ તારીખે ત્રણ હજાર બસો રૂપિયા ભરી દઈશ.",
+      "cer_naive": 0.116,
+      "entities": 3,
+      "entity_hits": 2,
+      "entities_lost": [
+        "ભરી દઈશ"
+      ]
+    },
+    {
+      "lang": "gu-IN",
+      "stt_lang": "gu-IN",
+      "preset": "bad_network",
+      "seed": 0,
+      "cer": 0.0,
+      "stt_ms": 135,
+      "ref": "હું વીસ તારીખે ત્રણ હજાર બસો રૂપિયા ભરી દઈશ.",
+      "hyp": "હું વીસ તારીખે ત્રણ હજાર બસો રૂપિયા ભરી દઈશ",
+      "channel": {
+        "profile": "bad_network",
+        "seed": 0,
+        "snr_db_measured": 12.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 14.58,
+        "underruns": 8,
+        "out_rms": 0.05982
+      },
+      "spoken": "હું વીસ તારીખે ત્રણ હજાર બસો રૂપિયા ભરી દઈશ.",
+      "cer_naive": 0.0,
+      "entities": 3,
+      "entity_hits": 3,
+      "entities_lost": []
+    },
+    {
+      "lang": "en-IN",
+      "stt_lang": "en-IN",
+      "preset": "clean",
+      "seed": 0,
+      "cer": 0.0,
+      "stt_ms": 280,
+      "ref": "My loan ID ends with four eight two one, please check again.",
+      "hyp": "my loan id ends with four eight two one please check again",
+      "channel": {
+        "profile": "clean",
+        "seed": 0,
+        "clipped_pct": 0.0,
+        "out_rms": 0.04989
+      },
+      "spoken": "My loan ID ends with four eight two one, please check again.",
+      "cer_naive": 0.0,
+      "entities": 1,
+      "entity_hits": 1,
+      "entities_lost": []
+    },
+    {
+      "lang": "en-IN",
+      "stt_lang": "en-IN",
+      "preset": "market",
+      "seed": 0,
+      "cer": 0.0,
+      "stt_ms": 170,
+      "ref": "My loan ID ends with four eight two one, please check again.",
+      "hyp": "my loan id ends with four eight two one please check again",
+      "channel": {
+        "profile": "market",
+        "seed": 0,
+        "snr_db_measured": 5.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 6.13,
+        "underruns": 0,
+        "out_rms": 0.04471
+      },
+      "spoken": "My loan ID ends with four eight two one, please check again.",
+      "cer_naive": 0.0,
+      "entities": 1,
+      "entity_hits": 1,
+      "entities_lost": []
+    },
+    {
+      "lang": "en-IN",
+      "stt_lang": "en-IN",
+      "preset": "bad_network",
+      "seed": 0,
+      "cer": 0.069,
+      "stt_ms": 160,
+      "ref": "My loan ID ends with four eight two one, please check again.",
+      "hyp": "my loan id ends with four eight one please check again",
+      "channel": {
+        "profile": "bad_network",
+        "seed": 0,
+        "snr_db_measured": 12.0,
+        "clipped_pct": 0.0,
+        "loss_pct_actual": 15.57,
+        "underruns": 5,
+        "out_rms": 0.03258
+      },
+      "spoken": "My loan ID ends with four eight two one, please check again.",
+      "cer_naive": 0.069,
+      "entities": 1,
+      "entity_hits": 0,
+      "entities_lost": [
+        "four eight two one"
+      ]
+    }
+  ]
+}

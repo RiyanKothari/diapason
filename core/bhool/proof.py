@@ -31,6 +31,7 @@ def _crit(*ids: str) -> Callable[[dict], list[str]]:
                 q = "; ".join(f'T{e["turn"]} “{e["quote"]}”' for e in c.get("evidence") or [])
                 out.append(f"{c['id']}: {c.get('reason') or ''} {q}".strip())
         return out
+    f.ids = ids          # score_guard needs to know which checks decide the bug
     return f
 
 
@@ -103,14 +104,19 @@ def score_guard(tests: dict, vg: dict, judged: bool) -> dict:
             rows.append({"id": bug.id, "status": "not run", "flags": []})
             continue
         flags = [s for v in by_case.get(bug.case, []) for s in bug.signal(v)]
+        # "review" is not a pass: the judge gave no usable verdict, or a fail it couldn't quote (seen 2 Nov: all three judge
+        # samples unusable on two v1 + Guard calls, which then counted as "prevented")
+        unjudged = [c["id"] for v in by_case.get(bug.case, []) for c in v["criteria"]
+                    if c["id"] in getattr(bug.signal, "ids", ()) and c["verdict"] == "review"]
         if bug.id not in TEXT_BUGS:
             status = "not text (engineering)" + ("" if flags else ": not reproduced")
         else:
-            status = "still flagged" if flags else "prevented"
+            status = "still flagged" if flags else "unjudged" if unjudged else "prevented"
         # still counted as flagged; "disputed" only says the cross-examination found the quotes don't show the fault
         rows.append({"id": bug.id, "status": status, "flags": flags[:3], "disputed": bool(flags) and all("[disputed:" in f for f in flags)})
     text = [r for r in rows if r["id"] in TEXT_BUGS and r["status"] in ("prevented", "still flagged")]
     return {"bugs": rows, "prevented": sum(r["status"] == "prevented" for r in text), "measured": len(text),
+            "unjudged": sum(r["status"] == "unjudged" for r in rows),
             "disputed": sum(r["status"] == "still flagged" and r["disputed"] for r in text),
             "pass_rate": vg["pass_rate"], "interventions": guard_events}
 
@@ -259,12 +265,13 @@ def write_html(data: dict, path: Path) -> None:
     g = t.get("guard") or {}
     kpis = [("Planted bugs caught", f"{t['caught']}/{t['measured']}"), ("Also flagged on v2 (see quotes)", t["false_alarms"])]
     if g.get("measured"):
-        kpis.append(("Bugs Guard prevents on unfixed v1", f"{g['prevented']}/{g['measured']}"))
+        kpis.append(("Bugs Guard prevents on unfixed v1" + (f" ({g['unjudged']} more without a usable judge verdict)" if g.get("unjudged") else ""),
+                     f"{g['prevented']}/{g['measured']}"))
     for k in ("v3", "v3guard", "v4"):
         if (t.get(k) or {}).get("measured"):
             kpis.append((f"Bugs gone in {FIXES[k][3]}", f"{t[k]['prevented']}/{t[k]['measured']}"))
     kpis += [
-            ("QA verdict accuracy", _pct(o.get("accuracy"))), ("Fatal-error recall", _pct(q["fatal_recall"])),
+            (f"QA verdict accuracy ({o.get('n', 0)} verdicts)", f"{100 * (o.get('accuracy') or 0):.1f}%"), ("Fatal-error recall", _pct(q["fatal_recall"])),
             ("Pass/fail decisions right", _pct(q["decision_accuracy"]))]
     kpi = "".join(f"<div class='kpi'><span class='muted'>{k}</span><b>{escape(str(v))}</b></div>" for k, v in kpis)
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
