@@ -1,0 +1,788 @@
+[
+ {
+  "call": "industries-live-2/affordable_housing/affordable_housing-00",
+  "lang": "gu-IN",
+  "audio_s": 82.1,
+  "score": 0.0,
+  "passed": false,
+  "fatal": [
+   "verifies_first"
+  ],
+  "turns": [
+   {
+    "speaker": "agent",
+    "text": "પહેલા ઘર ફાઇનાન્સ પહેલા ઘર ફાઇનાન્સ કૉલ ઇસ રેકોર્ડ ફોર ક્વાલિટી પ્લીઝ વેરિફાય",
+    "start": 0.08,
+    "end": 4.92
+   },
+   {
+    "speaker": "caller",
+    "text": "હા બોલો",
+    "start": 4.28,
+    "end": 6.96
+   },
+   {
+    "speaker": "agent",
+    "text": "અમે પહેલા ઘર ફાઇનાન્સ ઇ એમ આઈ પેમેન્ટ બાકી છે પ્લીઝ કન્ફર્મ યોર લોન ડિટેલ્સ",
+    "start": 8.12,
+    "end": 13.46
+   },
+   {
+    "speaker": "caller",
+    "text": "મારું નામ છે કિશનભાઈ શાહ લોન નંબર શું છે",
+    "start": 13.64,
+    "end": 18.14
+   },
+   {
+    "speaker": "agent",
+    "text": "લોન નંબર એન્ડિંગ ઇન લાસ્ટ ફોર",
+    "start": 18.56,
+    "end": 20.28
+   },
+   {
+    "speaker": "agent",
+    "text": "સાત આઠ નવ શૂન્ય",
+    "start": 21.08,
+    "end": 22.6
+   },
+   {
+    "speaker": "agent",
+    "text": "પહેલા ઘર ફાઇનાન્સ ઇ એમ આઈ ડ્યુ ટુમોરો પ્લીઝ કન્ફર્મ પેમેન્ટ",
+    "start": 23.0,
+    "end": 27.46
+   },
+   {
+    "speaker": "caller",
+    "text": "મારું ઇ એમ આઈ ક્યારે જમા કરાવવું",
+    "start": 25.56,
+    "end": 30.66
+   },
+   {
+    "speaker": "agent",
+    "text": "યુ કેન પે ટુડે ટુમોરો ઔર એની ડેટ પ્લીઝ ટેલ યોર પ્રિફર",
+    "start": 30.96,
+    "end": 35.26
+   },
+   {
+    "speaker": "caller",
+    "text": "આજે જ જમા કરાવવા માગું છું",
+    "start": 36.16,
+    "end": 38.76
+   },
+   {
+    "speaker": "agent",
+    "text": "ઓકે ટુડેઝ ડેટ અમાઉન્ટ બાર હજાર ત્રણ સો પિસ્તાલીસ રૂપિયા કન્ફર્મ",
+    "start": 38.92,
+    "end": 42.96
+   },
+   {
+    "speaker": "caller",
+    "text": "હા આજે જ કરું છું",
+    "start": 43.48,
+    "end": 46.24
+   },
+   {
+    "speaker": "agent",
+    "text": "પેમેન્ટ ડેટ કન્ફર્મ ટુડે અમાઉન્ટ બાર હજાર ત્રણ સો પિસ્તાળીસ રૂપિયા થેન્ક યુ",
+    "start": 46.28,
+    "end": 51.76
+   },
+   {
+    "speaker": "caller",
+    "text": "આ ઈ એમ આઈ ક્યારે પૂરો થશે",
+    "start": 50.72,
+    "end": 56.58
+   },
+   {
+    "speaker": "agent",
+    "text": "ફ્લોટિંગ રેટ નો પ્રીપેમેન્ટ ચાર્જ યુ કેન ક્લિયર એની ટાઇમ",
+    "start": 56.46,
+    "end": 60.3
+   },
+   {
+    "speaker": "caller",
+    "text": "જો મારે પૈસા ઓછા પડે તો શું",
+    "start": 61.24,
+    "end": 63.78
+   },
+   {
+    "speaker": "agent",
+    "text": "વી કેન રિસ્ટ્રક્ચર ઔર એક્સટેન્ડ કૉલ એની ટાઇમ નો પ્રેશર",
+    "start": 64.0,
+    "end": 68.08
+   },
+   {
+    "speaker": "caller",
+    "text": "ઠીક છે હું કહું ત્યારે",
+    "start": 68.62,
+    "end": 70.94
+   },
+   {
+    "speaker": "agent",
+    "text": "કૉલ એનીટાઇમ વી આર હીયર",
+    "start": 71.66,
+    "end": 73.52
+   }
+  ]
+ },
+ {
+  "call": "industries-live-2/airline_disruptions/airline_disruptions-00",
+  "lang": "en-IN",
+  "audio_s": 130.3,
+  "score": 92.9,
+  "passed": true,
+  "fatal": [],
+  "turns": [
+   {
+    "speaker": "agent",
+    "text": "hello this is priya from udaan air may i know your pnr and the name on the booking please",
+    "start": 0.02,
+    "end": 5.2
+   },
+   {
+    "speaker": "caller",
+    "text": "yes it's two three four five six seven eight nine and my name is rajesh patel",
+    "start": 5.6,
+    "end": 16.14
+   },
+   {
+    "speaker": "agent",
+    "text": "the call is being recorded for quality purposes",
+    "start": 5.9,
+    "end": 8.2
+   },
+   {
+    "speaker": "agent",
+    "text": "thank you rajesh we have received your request regarding a cancellation",
+    "start": 15.0,
+    "end": 18.9
+   },
+   {
+    "speaker": "agent",
+    "text": "could you please confirm if the airline cancelled the flight or it was a long delay",
+    "start": 19.38,
+    "end": 23.12
+   },
+   {
+    "speaker": "caller",
+    "text": "the flight was cancelled i need a refund",
+    "start": 23.46,
+    "end": 27.0
+   },
+   {
+    "speaker": "agent",
+    "text": "understood as per our policy for a cancelled flight we can either issue a full refund to your original payment method or provide an alternate flight which option would you prefer",
+    "start": 27.28,
+    "end": 37.18
+   },
+   {
+    "speaker": "caller",
+    "text": "i want a full refund",
+    "start": 36.24,
+    "end": 40.54
+   },
+   {
+    "speaker": "agent",
+    "text": "please hold on i'll process your request",
+    "start": 40.14,
+    "end": 42.12
+   },
+   {
+    "speaker": "agent",
+    "text": "we will send a payment link to your registered email for the refund",
+    "start": 42.48,
+    "end": 45.22
+   },
+   {
+    "speaker": "agent",
+    "text": "your new flight details will be sent separately if you change your mind later",
+    "start": 45.68,
+    "end": 48.76
+   },
+   {
+    "speaker": "caller",
+    "text": "why do i need to click a link just give me the money",
+    "start": 46.94,
+    "end": 53.2
+   },
+   {
+    "speaker": "agent",
+    "text": "for security reasons we cannot transfer card details over the call the payment link will ensure safe processing i'll read back the new flight options if you decide to change your mind",
+    "start": 53.54,
+    "end": 63.7
+   },
+   {
+    "speaker": "caller",
+    "text": "i don't want any new flight just refund how long will it take",
+    "start": 59.1,
+    "end": 72.94
+   },
+   {
+    "speaker": "agent",
+    "text": "the refund usually takes five to seven working days once we initiate it would you like me to proceed with the refund now",
+    "start": 69.48,
+    "end": 76.12
+   },
+   {
+    "speaker": "caller",
+    "text": "yes please",
+    "start": 74.88,
+    "end": 79.18
+   },
+   {
+    "speaker": "agent",
+    "text": "thank you for confirming we will refund the amount via the original payment method your request is being processed",
+    "start": 79.5,
+    "end": 86.0
+   },
+   {
+    "speaker": "agent",
+    "text": "is there anything else i can assist you with",
+    "start": 86.32,
+    "end": 88.2
+   },
+   {
+    "speaker": "caller",
+    "text": "no that's all thanks",
+    "start": 89.08,
+    "end": 91.7
+   }
+  ]
+ },
+ {
+  "call": "industries-live-2/appliance_service/appliance_service-00",
+  "lang": "hi-IN",
+  "audio_s": 128.3,
+  "score": 90.6,
+  "passed": true,
+  "fatal": [],
+  "turns": [
+   {
+    "speaker": "agent",
+    "text": "नमस्ते, रौशनी इलेक्ट्रिकल से बात कर रहा हूँ, आपका कॉल रिकॉर्ड हो रहा है।",
+    "start": 0.08,
+    "end": 4.78
+   },
+   {
+    "speaker": "agent",
+    "text": "मुझे बताइये, आप कौन सा प्रॉडक्ट और कब खरीदा था?",
+    "start": 5.3,
+    "end": 8.46
+   },
+   {
+    "speaker": "caller",
+    "text": "मैंने पाँच मार्च को एक दो तीन चार पाँच छह सात आठ नौ शून्य सीरियल नंबर वाला फैन खरीदा था, वो अब चल नहीं रहा, वारंटी में है?",
+    "start": 9.0,
+    "end": 18.3
+   },
+   {
+    "speaker": "agent",
+    "text": "आपका फ़ैन मार्च में खरीदा गया था, क्या उसमें कोई दिक्कत है, हम वारंटी चेक कर सकते हैं।",
+    "start": 19.12,
+    "end": 24.42
+   },
+   {
+    "speaker": "agent",
+    "text": "क्या आप मुझे सीरियल नंबर बता सकते हैं?",
+    "start": 24.92,
+    "end": 26.68
+   },
+   {
+    "speaker": "caller",
+    "text": "सीरियल नंबर एक दो तीन चार पाँच छह सात आठ नौ शून्य है, क्या वह ठीक होगा, मैं आज ही शिकायत डालना चाहता हूँ।",
+    "start": 25.58,
+    "end": 39.44
+   },
+   {
+    "speaker": "agent",
+    "text": "ठीक है, सीरियल नंबर नोट हो गया।",
+    "start": 36.94,
+    "end": 38.88
+   },
+   {
+    "speaker": "agent",
+    "text": "आपका फैन पाँच मार्च को खरीदा गया था, वारंटी में है या नहीं मैं चेक करके बताता हूँ क्या आप कॉल को रिकॉर्ड करने की अनुमति देते हैं?",
+    "start": 39.46,
+    "end": 47.06
+   },
+   {
+    "speaker": "caller",
+    "text": "हाँ, रिकॉर्ड कर लीजिए, मैं आज ही ठीक करवाना चाहता हूँ, कितना समय लगेगा।",
+    "start": 47.8,
+    "end": 54.88
+   },
+   {
+    "speaker": "agent",
+    "text": "हम एक टेक्नीशियन भेजेंगे, आपका फ़ैन चेक करके ठीक करेंगे, क्या आप अपना नाम बता सकते हैं?",
+    "start": 53.3,
+    "end": 58.54
+   },
+   {
+    "speaker": "caller",
+    "text": "मेरा नाम राजीव है और क्या वो आज ही आएगा?",
+    "start": 57.82,
+    "end": 63.16
+   },
+   {
+    "speaker": "agent",
+    "text": "राजीव जी",
+    "start": 63.34,
+    "end": 64.08
+   },
+   {
+    "speaker": "agent",
+    "text": "हम आज ही तकनीशियन भेजेंगे आपका फैन मार्च में खरीदा गया था, वारंटी में है हम रिपेयर कर देंगे, क्या आप शिकायत नंबर नोट कर सकते हैं?",
+    "start": 64.46,
+    "end": 72.5
+   },
+   {
+    "speaker": "caller",
+    "text": "जी हाँ, शिकायत नंबर क्या मिलेगा और कब तक ठीक हो जाएगा?",
+    "start": 67.16,
+    "end": 81.3
+   },
+   {
+    "speaker": "agent",
+    "text": "आपका फैन आज ही चेक होगा कल तक ठीक हो जाएगा शिकायत नंबर दो शून्य दो पाँच शून्य तीन एक दो सात सौ नवासी है। हम आपको अपडेट देंगे।",
+    "start": 78.34,
+    "end": 87.9
+   },
+   {
+    "speaker": "caller",
+    "text": "धन्यवाद मैं आज ही ठीक करवाऊंगा क्या आपको किसी भी प्रकार का पेमेंट चाहिए नहीं मैं नहीं दे सकता बस ठीक करवा दीजिए",
+    "start": 88.16,
+    "end": 96.56
+   }
+  ]
+ },
+ {
+  "call": "industries-live-2/auto_service_rsa/auto_service_rsa-00",
+  "lang": "hi-IN",
+  "audio_s": 78.9,
+  "score": 86.4,
+  "passed": true,
+  "fatal": [],
+  "turns": [
+   {
+    "speaker": "agent",
+    "text": "हेलो भैया मोटर्स से बात कर रहे हैं आपकी कॉल रिकॉर्ड हो रही है, बताइए क्या समस्या है?",
+    "start": 0.02,
+    "end": 5.42
+   },
+   {
+    "speaker": "caller",
+    "text": "हेलो, मुझे अपनी गाड़ी का ब्रेक डाउन हुआ है, मैं अभी सड़क पर हूँ और बहुत घबरा रहा हूँ।",
+    "start": 6.12,
+    "end": 12.3
+   },
+   {
+    "speaker": "agent",
+    "text": "मैं समझ रहा हूँ सर सबसे पहले आपकी सुरक्षा की जाँच करता हूँ आप सुरक्षित हैं ना",
+    "start": 13.24,
+    "end": 17.96
+   },
+   {
+    "speaker": "agent",
+    "text": "क्या आप अभी सड़क के किनारे हैं?",
+    "start": 18.88,
+    "end": 20.62
+   },
+   {
+    "speaker": "caller",
+    "text": "हाँ मैं सुरक्षित हूँ लेकिन गाड़ी खराब हो गई है, मुझे मदद चाहिए।",
+    "start": 21.66,
+    "end": 26.48
+   },
+   {
+    "speaker": "agent",
+    "text": "ठीक है, मैं आपको सड़क से मदद भेज रहा हूँ, आप कहाँ हैं?",
+    "start": 27.28,
+    "end": 30.82
+   },
+   {
+    "speaker": "caller",
+    "text": "मैं जयपुर में हूँ, सीकर रोड के पास।",
+    "start": 31.74,
+    "end": 34.1
+   },
+   {
+    "speaker": "agent",
+    "text": "हमारी रोड साइड असिस्टेंस आपको तीस मिनट में पहुँच जाएगी।",
+    "start": 34.84,
+    "end": 38.26
+   },
+   {
+    "speaker": "agent",
+    "text": "आपकी गाड़ी का नंबर क्या है?",
+    "start": 38.7,
+    "end": 40.1
+   },
+   {
+    "speaker": "caller",
+    "text": "गाड़ी नंबर आर जे एक चार पी सात आठ नौ दो है, धन्यवाद।",
+    "start": 40.58,
+    "end": 46.88
+   },
+   {
+    "speaker": "agent",
+    "text": "नंबर नोट हो गया, हम तीस मिनट में पहुँच रहे हैं, आप धैर्य रखें।",
+    "start": 47.7,
+    "end": 51.98
+   },
+   {
+    "speaker": "caller",
+    "text": "ठीक है, क्या मैं अपनी गाड़ी को सर्विस के लिए ले आऊं?",
+    "start": 52.92,
+    "end": 55.86
+   },
+   {
+    "speaker": "agent",
+    "text": "हाँ हम आपकी गाड़ी को सर्विस के लिए ले आएंगे पहिया मोटर्स में आप कौन सी सर्विस लेना चाहते हैं",
+    "start": 56.5,
+    "end": 61.64
+   },
+   {
+    "speaker": "caller",
+    "text": "मैं अपनी गाड़ी की मरम्मत करवाना चाहता हूँ, कितना खर्चा आएगा?",
+    "start": 62.58,
+    "end": 66.4
+   },
+   {
+    "speaker": "agent",
+    "text": "हमारी टीम मौके पर आकर मरम्मत करेगी खर्च आपकी गाड़ी की जांच के बाद ही बताएंगे भैया मोटर्स में आपका विश्वास बना रहेगा",
+    "start": 67.1,
+    "end": 75.22
+   },
+   {
+    "speaker": "caller",
+    "text": "ठीक है मैं इंतज़ार करूँगा, क्या मेरी गाड़ी का वारंटी में आना चाहिए?",
+    "start": 76.16,
+    "end": 80.42
+   },
+   {
+    "speaker": "agent",
+    "text": "वारंटी की जाँच के बाद ही बता पाएंगे, पहिया मोटर्स में हम नियम के अनुसार ही काम करते हैं आप निश्चिंत रहें।",
+    "start": 81.04,
+    "end": 87.88
+   },
+   {
+    "speaker": "caller",
+    "text": "ठीक है धन्यवाद मैं इंतज़ार करूँगा",
+    "start": 88.72,
+    "end": 91.66
+   }
+  ]
+ },
+ {
+  "call": "industries-live-2/bank_customer_service/bank_customer_service-00",
+  "lang": "ta-IN",
+  "audio_s": 109.6,
+  "score": 91.8,
+  "passed": true,
+  "fatal": [],
+  "turns": [
+   {
+    "speaker": "agent",
+    "text": "வணக்கம் இது ராஷ்டிரிய வங்கியில் இருந்து பேசுகிறேன் உங்கள் கணக்கு விவரங்களை சரிபார்க்க உங்கள் பதிவு செய்யப்பட்ட தொலைபேசி எண்ணையும் பிறந்த தேதியையும் சொல்ல முடியுமா",
+    "start": 0.02,
+    "end": 10.06
+   },
+   {
+    "speaker": "caller",
+    "text": "ஆம் சொல்லுங்கள் பதிவு செய்யப்பட்ட தொலைபேசி எண் மற்றும் பிறந்த தேதி என்ன",
+    "start": 10.74,
+    "end": 15.64
+   },
+   {
+    "speaker": "agent",
+    "text": "உங்கள் பதிவு செய்யப்பட்ட தொலைபேசி எண் ஒன்பது எட்டு ஏழு ஆறு ஐந்து நான்கு மூன்று இரண்டு ஒன்று பூஜ்ஜியம் மற்றும் பிறந்த தேதி பதினைந்து ஆகஸ்ட் ஆயிரத்தி தொள்ளாயிரத்தி என்பதைந்து",
+    "start": 16.48,
+    "end": 28.58
+   },
+   {
+    "speaker": "agent",
+    "text": "இது சரியானதா",
+    "start": 29.4,
+    "end": 30.28
+   },
+   {
+    "speaker": "caller",
+    "text": "ஆம் சரியானதுதான்",
+    "start": 31.34,
+    "end": 32.84
+   },
+   {
+    "speaker": "caller",
+    "text": "நான் தொலைந்துவிட்ட எனது அட்டை பற்றி பேச வந்தேன்",
+    "start": 33.58,
+    "end": 36.04
+   },
+   {
+    "speaker": "agent",
+    "text": "மிகவும் நல்லது உங்கள் அட்டை தொலைந்து விட்டதாக கேள்விப்படுகிறேன் முதலில் அட்டை உடனடியாக தடுக்கப்பட வேண்டும் அதை நான் செய்கிறேன் பிறகு விவரங்களை உறுதிப்படுத்துகிறேன்",
+    "start": 36.88,
+    "end": 47.76
+   },
+   {
+    "speaker": "caller",
+    "text": "அதை உடனடியாகத் தடுங்கள் பிறகு என்னிடம் விவரங்கள் கேட்க வேண்டாம்",
+    "start": 48.54,
+    "end": 52.66
+   },
+   {
+    "speaker": "agent",
+    "text": "சரி அட்டை உடனடியாக தடுக்கப்பட்டுள்ளது உங்கள் வாடிக்கையாளர் அடையாள எண்ணை சொல்லுங்கள்",
+    "start": 53.5,
+    "end": 58.98
+   },
+   {
+    "speaker": "caller",
+    "text": "என் வாடிக்கையாளர் அடையாள எண் ஒன்று இரண்டு மூன்று நான்கு ஐந்து ஆறு ஏழு எட்டு ஒன்பது பூஜ்ஜியம்",
+    "start": 60.16,
+    "end": 67.6
+   },
+   {
+    "speaker": "agent",
+    "text": "உங்கள் வாடிக்கையாளர் அடையாள எண் ஒன்று இரண்டு மூன்று நான்கு ஐந்து ஆறு ஏழு அட்டை தடுக்கப்பட்டுள்ளது பாதுகாப்பு காரணங்களுக்காக இதை மூன்று நாட்களுக்குள் தெரிவிக்க வேண்டும்",
+    "start": 68.44,
+    "end": 79.38
+   },
+   {
+    "speaker": "agent",
+    "text": "நீங்கள் இப்போது அறிக்கை அளித்துள்ளீர்கள்",
+    "start": 80.32,
+    "end": 82.26
+   },
+   {
+    "speaker": "caller",
+    "text": "அப்படி என்றால் எனக்கு இழப்பீடு வராதா",
+    "start": 82.96,
+    "end": 85.14
+   },
+   {
+    "speaker": "agent",
+    "text": "ஆமாம் நீங்கள் மூன்று நாட்களுக்குள் தெரிவித்ததால் உங்கள் பொறுப்பு குறையும் இது குறித்த டிக்கெட்டை உருவாக்குகிறேன் இருபத்து நான்கு மணி நேரத்துக்குள் தீர்வு கிடைக்கும்",
+    "start": 85.88,
+    "end": 94.84
+   },
+   {
+    "speaker": "caller",
+    "text": "அப்படியானால் நன்றி எனக்கு டிக்கெட்டை கொடுங்கள்",
+    "start": 95.74,
+    "end": 99.24
+   },
+   {
+    "speaker": "agent",
+    "text": "உங்கள் வாடிக்கையாளர் அடையாள எண் ஒன்று இரண்டு மூன்று நான்கு ஐந்து ஆறு ஏழு டிக்கெட்டுக்கு மூன்று மூன்று நான்கு நான்கு ஐந்து ஐந்து ஆறு ஆறு என்று எண்ணிடப்பட்டிருக்கிறது இது தொடர்பான விவரங்களை இருபத்து நான்கு மணி நேரத்துக்குள் உங்களுக்கு மின்னஞ்சல் அனுப்பப்படும்",
+    "start": 99.96,
+    "end": 116.26
+   },
+   {
+    "speaker": "caller",
+    "text": "சரி நன்றி நான் விசாரிக்கிறேன்",
+    "start": 117.18,
+    "end": 119.94
+   },
+   {
+    "speaker": "agent",
+    "text": "உங்களுக்கு வேறு ஏதேனும் உதவி வேண்டுமா",
+    "start": 120.6,
+    "end": 122.48
+   },
+   {
+    "speaker": "caller",
+    "text": "இல்லை போதும்",
+    "start": 124.66,
+    "end": 125.98
+   }
+  ]
+ },
+ {
+  "call": "industries-live-2/bnpl/bnpl-00",
+  "lang": "en-IN",
+  "audio_s": 93.4,
+  "score": 85.1,
+  "passed": true,
+  "fatal": [],
+  "turns": [
+   {
+    "speaker": "agent",
+    "text": "hello this is baad mein pay",
+    "start": 0.08,
+    "end": 1.82
+   },
+   {
+    "speaker": "agent",
+    "text": "is this mister ravi we are calling regarding your overdue electricity bill your bill is due today twenty second may and the late fee will apply from tomorrow",
+    "start": 2.38,
+    "end": 11.04
+   },
+   {
+    "speaker": "agent",
+    "text": "please confirm your registered number for verification",
+    "start": 11.5,
+    "end": 14.16
+   },
+   {
+    "speaker": "caller",
+    "text": "yes i am ravi my number is nine eight seven six five four three two one zero",
+    "start": 13.42,
+    "end": 23.04
+   },
+   {
+    "speaker": "agent",
+    "text": "thank you ravi",
+    "start": 22.02,
+    "end": 22.74
+   },
+   {
+    "speaker": "agent",
+    "text": "the bill amount of one thousand two hundred fifty rupees is due today the late fee will be one point five percent per month if you can't pay now we can raise a dispute",
+    "start": 23.12,
+    "end": 32.86
+   },
+   {
+    "speaker": "caller",
+    "text": "i want to raise a dispute my metre reading was not taken correctly",
+    "start": 30.76,
+    "end": 39.72
+   },
+   {
+    "speaker": "agent",
+    "text": "would you like to do that",
+    "start": 33.18,
+    "end": 34.02
+   },
+   {
+    "speaker": "agent",
+    "text": "got it i have raised a dispute for your meter reading issue your dispute reference is dis two zero two three zero four five six you will hear back within forty eight hours",
+    "start": 39.94,
+    "end": 49.96
+   },
+   {
+    "speaker": "agent",
+    "text": "let me know if you need anything else",
+    "start": 50.5,
+    "end": 51.98
+   },
+   {
+    "speaker": "caller",
+    "text": "can you tell me when the dispute will be resolved",
+    "start": 52.74,
+    "end": 56.4
+   },
+   {
+    "speaker": "agent",
+    "text": "as mentioned within forty eight hours from now if not resolved will contact you any other concern",
+    "start": 55.48,
+    "end": 61.42
+   },
+   {
+    "speaker": "caller",
+    "text": "no thanks",
+    "start": 61.16,
+    "end": 64.26
+   }
+  ]
+ },
+ {
+  "call": "industries-live-2/bpo_support/bpo_support-00",
+  "lang": "en-IN",
+  "audio_s": 86.2,
+  "score": 96.2,
+  "passed": true,
+  "fatal": [],
+  "turns": [
+   {
+    "speaker": "agent",
+    "text": "omnicare support this is ananya call is recorded for quality can you please confirm your name for verification",
+    "start": 0.02,
+    "end": 6.86
+   },
+   {
+    "speaker": "caller",
+    "text": "my name is ramesh kumar i've been trying to resolve this for days but no one listens just tell me if i'll get my money back",
+    "start": 7.32,
+    "end": 15.56
+   },
+   {
+    "speaker": "agent",
+    "text": "thanks ramesh i understand how frustrating this must be i'll make sure we sort this out today your reference number is om two zero two three eight seven four five and the issue will be resolved within twenty four hours",
+    "start": 16.38,
+    "end": 29.96
+   },
+   {
+    "speaker": "caller",
+    "text": "twenty four hours i need it faster you guys took my payment last month and now you're ghosting me",
+    "start": 31.06,
+    "end": 37.4
+   },
+   {
+    "speaker": "agent",
+    "text": "i'm truly sorry ramesh let me check the exact date and amount your payment on fifteenth june was one thousand two hundred rupees via emi i'll look into it right away",
+    "start": 38.18,
+    "end": 48.52
+   },
+   {
+    "speaker": "caller",
+    "text": "you know what don't even waste my time just give me the money back i'll call back if i need to",
+    "start": 49.44,
+    "end": 55.56
+   },
+   {
+    "speaker": "caller",
+    "text": "you are wasting my time give me the refund",
+    "start": 56.42,
+    "end": 59.62
+   },
+   {
+    "speaker": "agent",
+    "text": "i can assure you ramesh that we'll process the refund immediately i'll escalate it if needed just give me a moment",
+    "start": 60.24,
+    "end": 67.66
+   },
+   {
+    "speaker": "caller",
+    "text": "i'm not giving you any more time just do it",
+    "start": 68.66,
+    "end": 71.52
+   },
+   {
+    "speaker": "agent",
+    "text": "i'll raise a complaint with reference om two zero two three eight seven four five and the refund will be credited within forty eight hours",
+    "start": 72.08,
+    "end": 80.24
+   },
+   {
+    "speaker": "agent",
+    "text": "any further question",
+    "start": 81.04,
+    "end": 81.94
+   },
+   {
+    "speaker": "caller",
+    "text": "no i'm done just make sure it's credited",
+    "start": 82.78,
+    "end": 85.7
+   },
+   {
+    "speaker": "agent",
+    "text": "absolutely ramesh your refund will be credited within four",
+    "start": 86.64,
+    "end": 90.34
+   },
+   {
+    "speaker": "caller",
+    "text": "yes please",
+    "start": 91.32,
+    "end": 92.28
+   },
+   {
+    "speaker": "agent",
+    "text": "thank you for your patience ramesh is there anything else i can assist you with today",
+    "start": 93.82,
+    "end": 97.98
+   }
+  ]
+ }
+]

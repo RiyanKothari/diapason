@@ -125,7 +125,7 @@ async def run_call(
             elif ev.kind == "hangup":
                 await q.put(("hangup", now()))
                 return
-            elif (ev.data or {}).get("type") == "guard":        # the agent's guard rewrote a line before speaking it
+            elif (ev.data or {}).get("type") in ("guard", "heard"):   # Guard rewrote a line / what the agent's STT heard
                 emit({**ev.data, "t": now()})
 
     async def clock():

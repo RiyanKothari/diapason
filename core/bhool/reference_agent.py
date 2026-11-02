@@ -238,6 +238,8 @@ class AgentSession:
         text = (await asyncio.to_thread(self.stt, audio, self.sr, self.lang)).strip()
         if not text:
             return
+        # what the agent's own ears heard, recorded on the call (seen live: "4821" arrived as "फोर थाउज़ंड एट हंडरेड ट्वेंटी वन")
+        await self.send_json({"type": "heard", "text": text})
         self.history.append({"role": "user", "content": text})
         if self.guard:
             self.guard.hear(text)

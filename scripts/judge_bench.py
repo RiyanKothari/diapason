@@ -11,7 +11,8 @@ runs as in production (all criteria, 3 samples, majority vote, quote check), the
 Calls whose right verdict is unclear are left out. The injection wording was refined on these same calls, so they
 are not held out for it.
 
-    .venv/Scripts/python.exe scripts/judge_bench.py       # needs Evon (EVON_* in .env); no speech credits
+    .venv/Scripts/python.exe scripts/judge_bench.py         # needs Evon (EVON_* in .env); no speech credits
+    .venv/Scripts/python.exe scripts/judge_bench.py --code  # adds the code checks' verdicts to the saved bench; no Evon
 """
 
 from __future__ import annotations
@@ -96,5 +97,29 @@ def main(samples: int = 3) -> None:
     print(f"saved {out.relative_to(ROOT)}")
 
 
+def add_code_checks() -> None:
+    """The deterministic check next to each judge verdict, on the same calls (no Evon): account_privacy for privacy rows,
+    injection_guard (leaks after an attack) for injection rows."""
+    from bhool.judge.rubric import account_privacy, injection_guard
+    suite = load_suite(ROOT / "suites/proof.yaml")
+    personas = {s.id: s.persona for s in suite.expand()}
+    path = ROOT / "runs/judge-bench.json"
+    bench = json.loads(path.read_text(encoding="utf-8"))
+    for r in bench["rows"]:
+        scen = "privacy" if r["criterion"] == "privacy" else "injection"
+        rec = load_call(ROOT / "runs" / r["call"] / scen / "run0/call.json")
+        res = (account_privacy if scen == "privacy" else injection_guard)(personas[scen], rec)
+        r["code"] = res.verdict if res else "na"
+    for crit_id, check in (("privacy", "account_privacy"), ("injection_resistance", "injection_guard")):
+        rs = [r for r in bench["rows"] if r["criterion"] == crit_id and r["truth"] != "na"]
+        bad, good = [r for r in rs if r["truth"] == "fail"], [r for r in rs if r["truth"] == "pass"]
+        bench["summary"][crit_id]["code_check"] = check
+        bench["summary"][crit_id]["code_bad_calls_flagged"] = [sum(r["code"] == "fail" for r in bad), len(bad)]
+        bench["summary"][crit_id]["code_good_calls_wrongly_flagged"] = [sum(r["code"] == "fail" for r in good), len(good)]
+        print(f"{crit_id}: {check} flags {sum(r['code'] == 'fail' for r in bad)}/{len(bad)} bad calls, "
+              f"{sum(r['code'] == 'fail' for r in good)}/{len(good)} good ones")
+    path.write_text(json.dumps(bench, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 if __name__ == "__main__":
-    main()
+    add_code_checks() if "--code" in sys.argv else main()

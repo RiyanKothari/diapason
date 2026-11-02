@@ -155,12 +155,21 @@ def _replay(proof: Path, t: dict) -> dict | None:
                 target["flags"].append(c["id"])
         mix = proof / d / SHOWCASE_CASE / "run0" / "mix.wav"
         rules = sorted({RULE_NAMES.get(c["id"], c["id"]) for c in fails})     # a code check and the judge on one rule count once
+        undecided = sorted({RULE_NAMES.get(c["id"], c["id"]) for c in verdict["criteria"] if c["verdict"] == "review"})
+        if rules:
+            summary = f"{len(rules)} rule{'s' if len(rules) != 1 else ''} broken"
+        elif undecided:      # not a pass: the judge gave no usable (or no quotable) verdict on these
+            summary = f"no rule broken; the judge left {len(undecided)} check{'s' if len(undecided) != 1 else ''} undecided"
+        else:
+            summary = "no rule broken"
+        note = "; ".join(rules) if rules else ("undecided: " + "; ".join(undecided)) if undecided else "every check passed"
+        if verdict.get("metric_failures"):
+            note += " · " + "; ".join(verdict["metric_failures"])
         n_guard = sum(len(x["guard"]) for x in turns)
         sides.append({"label": label, "guarded": guarded, "turns": turns, "passed": verdict["passed"],
                       "meta": f"{len(turns)} turns · {call['duration_s']:.0f} s · {call['end_reason'].replace('_', ' ')}",
-                      "summary": (f"{len(rules)} rule{'s' if len(rules) != 1 else ''} broken" if rules else "no rule broken")
-                                 + (f" · Guard rewrote {n_guard} line{'s' if n_guard != 1 else ''}" if guarded else ""),
-                      "note": "; ".join(rules) or "every check passed",
+                      "summary": summary + (f" · Guard rewrote {n_guard} line{'s' if n_guard != 1 else ''}" if guarded else ""),
+                      "note": note,
                       "audio": f"proof/{d}/{SHOWCASE_CASE}/run0/mix.wav" if mix.exists() else None,
                       "peaks": _waveform(mix) if mix.exists() else [0.1] * 120, "duration": round(call["duration_s"], 1)})
     duration = max(x["duration"] for x in sides)
@@ -177,13 +186,17 @@ def _landing(proof: Path | None, p: dict | None, sims: list, data: dict, voiced:
         t, q = p["tests"], p["qa"]
         o = q.get("overall") or {}
         g = t.get("guard") or {}
-        kpis += [{"label": "of QA verdicts right, on calls the judge never saw", "value": round(100 * (o.get("accuracy") or 0)), "suffix": "%", "display": _pct(o.get("accuracy"))},
+        acc = o.get("accuracy") or 0
+        kpis += [{"label": f"of QA verdicts right, on calls the judge never saw ({o.get('n', 0)} verdicts)", "value": None,
+                  "display": f"{100 * acc:.1f}%"},
                  {"label": "of fatal compliance breaches caught", "value": round(100 * (q.get("fatal_recall") or 0)), "suffix": "%", "display": _pct(q.get("fatal_recall"))},
                  {"label": "false fatal alarms", "value": q.get("fatal_false_alarms") or 0, "display": str(q.get("fatal_false_alarms"))},
-                 {"label": "planted bugs caught by the tests", "value": t["caught"], "den": t["measured"], "display": f"{t['caught']}/{t['measured']}"}]
+                 {"label": "tests of the bugs planted in agent v1 that catch them (7 bugs; one is tested twice)", "value": t["caught"], "den": t["measured"], "display": f"{t['caught']}/{t['measured']}"}]
         if g.get("measured"):
-            kpis.append({"label": "bugs Guard prevents on the unfixed agent", "value": g["prevented"], "den": g["measured"],
-                         "display": f"{g['prevented']}/{g['measured']}"})
+            label = "bugs Guard prevents on the unfixed agent, of those the judge gave a verdict on"
+            if g.get("unjudged"):
+                label += f" ({g['unjudged']} more: every code check passes, no usable judge verdict yet)"
+            kpis.append({"label": label, "value": g["prevented"], "den": g["measured"], "display": f"{g['prevented']}/{g['measured']}"})
         v4 = t.get("v4") or {}
         if v4.get("measured") and proof and t.get("v4_dir") and (proof / t["v4_dir"] / "report.json").exists():
             calls = json.loads((proof / t["v4_dir"] / "report.json").read_text(encoding="utf-8"))["verdicts"]
@@ -202,7 +215,7 @@ def _landing(proof: Path | None, p: dict | None, sims: list, data: dict, voiced:
         v1 = [x["breaks_at"] for x in pts.get("v1", {}).values() if x["breaks_at"] is not None]
         if held and v1:
             kpis.append({"label": f"SNR down to which {held[0]} still hears the caller through fan, traffic, office and crowd noise "
-                                  f"(v1 stopped hearing at {max(v1)} dB)", "value": None, "display": "0 dB"})
+                                  f"(v1 stopped hearing between {min(v1)} and {max(v1)} dB)", "value": None, "display": "0 dB"})
     if asr and asr.get("by_preset", {}).get("market") is not None:
         by = asr["by_preset"]
         kpis.append({"label": f"Prisma character error on a 5 dB crowded-market phone line (clean line: {100 * by['clean']:.1f}%)",

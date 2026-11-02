@@ -18,6 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+video = ["imageio-ffmpeg>=0.5"]      # scripts/make_video.py (also needs Chrome or Edge)
 
 [project.scripts]
 bhool = "bhool.cli:app"

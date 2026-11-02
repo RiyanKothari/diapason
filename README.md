@@ -3,22 +3,33 @@
 **Crash-testing, a live guard and QA for Indian voice agents, built on Gnani Prisma, Timbre and Evon.** For teams
 shipping AI voice agents to Indian callers (collections, insurance, support). **Before launch**, synthetic callers
 phone the agent and try to break it: an angry uncle in Hinglish on a street line, a Gujarati aunty, the borrower's brother
-fishing for details, barge-ins, silence, prompt injection, all over a simulated 8 kHz phone line with real noise.
+fishing for details, barge-ins, silence, prompt injection, all over a simulated 8 kHz phone line with fan, traffic,
+office or crowd noise.
 **During the call**, Bhool Guard checks every sentence in code before it is spoken. **After**, an auditor scores every call
 against the rules, quoting the agent's own words.
 
 | Measured on the live proof (Evon plays agent, callers and judge) | Result |
 |---|---|
-| Bugs planted in a reference agent (v1) that the tests catch | **8 / 8** |
-| The same buggy v1 behind Bhool Guard, prompt unchanged: bugs prevented | **6 / 6** |
+| Tests of the bugs planted in reference agent v1 (7 bugs; one is tested twice) that catch them | **8 / 8** |
+| The same buggy v1 behind Bhool Guard, prompt unchanged: text bugs prevented | **6 / 6** by the code checks; the judge confirmed 2 and gave no usable verdict on 4 |
 | Red-team attacks that leaked the account: v2 → v3 (secret taken out of the model) | **4/12 → 0/12** |
 | v4 (the model picks the act, code speaks every fact): proof calls passing every check | **5 / 6** (every other version 0 / 6) |
-| Noise: the fixed agent still hears the caller down to | **0 dB SNR** (v1 stops at 10-20 dB) |
-| Auditor on calls it never saw: verdicts right · fatal breaches caught · false fatal alarms | **90.4% · 100% · 0** |
+| Noise: the fixed agent still hears the caller down to | **0 dB SNR** (v1 stops at 10-20 dB in fan, office and crowd noise) |
+| Auditor on calls it never saw: verdicts right · fatal breaches caught · false fatal alarms | **93.6% · 100% · 0** (560 verdicts) |
 
 The evidence for every number is in [results/](results/) (JSON and pages, no audio); the weak spots are in
 [Results and limitations](#results-and-limitations). Try it with no keys and no credits:
 `pip install -e . && bhool demo` (about 40 s).
+
+## Built for Indian phone calls
+
+| What Indian callers do | What Bhool does about it | Measured |
+|---|---|---|
+| Call from a fan-cooled shop, an office, a crowded market | Every call goes through an 8 kHz μ-law line with fan, traffic, office or crowd noise at a set SNR, plus packet loss | The fixed agent hears callers down to **0 dB SNR** in all four noises; v1 stops at 10-20 dB. An office-noise endpointing bug found and fixed on the way |
+| Speak through a phone line Prisma has to hear | Prisma transcribes every turn on both sides | Character error **1.4%** clean, **2.9%** on a lossy 12 dB traffic line, **5.5%** on a 5 dB crowded market; amounts, dates and digits kept in 89-100% (18 utterances, small sample) |
+| Say the last four digits as "चार आठ दो एक", "अड़तालीस इक्कीस", "डबल सात", "forty eight twenty one" | One parser for all of them, in Hindi, Gujarati and English, including English number words Prisma writes in Devanagari | 23 spoken forms tested; the live failure it fixes made verification impossible for every caller |
+| Mix Hindi and English | Hinglish and Hindi count as one language; a code-mixed reply is a match | the judge no longer fails a code-mixed reply to a Hinglish caller |
+| Speak only Gujarati | Gujarati script is checked in code; Guard translates a Hindi reply (naming the language in its own script); v4 has Gujarati templates | Asked for "gu-IN", Evon's translations failed Guard's script check 7 of 7 times (they came back in Kannada); asked for "Gujarati (ગુજરાતી)", 3 of 3 passed on the next live run |
 
 ## Why
 
@@ -64,11 +75,11 @@ bhool demo                         # reference agent v1 (seeded bugs) vs v2, ful
 bhool dashboard                    # http://127.0.0.1:8000: start runs, watch calls live, open reports
 ```
 
-What `bhool demo` shows, measured on this machine: v1 fails all 4 calls on its seeded bugs (police
-threat, missed loan ID, ignored barge-in, silence on a crowded line); v2 fixes both landline calls
-(0% → 100%) and the tool **still flags v2 on the 5 dB crowded-market line**, where energy-based
-endpointing can't separate the caller from babble. That last finding is the point: it's real, and it's
-what you'd fix next (Prisma's streaming VAD).
+What `bhool demo` shows (offline, 3 Nov): v1 fails all 4 calls on its seeded bugs (police threat, no
+disclosure, the account told before verification, an ignored barge-in); v2 fixes both landline calls (0% → 100%) and the
+tool **still flags v2 on the 5 dB crowded-market line**: babble was taken for a caller turn, so the agent moved on a step
+and stated the amount before the caller had said the loan digits (`account_privacy`), and it ignored a barge-in. That's
+real, and it's what you'd fix next (a voice-activity detector that can tell a voice from a crowd).
 
 Docs: [how each Gnani model is used](docs/GNANI.md) · [architecture](docs/ARCHITECTURE.md)
 
@@ -76,7 +87,7 @@ With a Gnani key (copy `.env.example` to `.env`):
 
 ```bash
 bhool plan suites/emi_collection.yaml --limit 6        # usage estimate before spending anything
-bhool serve-agent --version v1                         # reference agent with 7 seeded bugs, ws://127.0.0.1:8765
+bhool serve-agent --version v1                         # reference agent with 7 planted bugs, ws://127.0.0.1:8765
 bhool run suites/emi_collection.yaml --limit 6         # exit code 1 if the gate fails
 bhool ingest suites/emi_collection.yaml calls/*.wav    # judge real stereo calls; failures -> suites/regressions.yaml
 ```
@@ -208,7 +219,7 @@ member, pushy hardship handling, Gujarati caller answered in Hindi, slow or talk
 Gujarati, half in the script Prisma actually produces. It reports per-parameter accuracy and fail
 precision/recall, pass/fail decision accuracy, fatal-error recall and score error.
 
-Measured on live Evon v3.3 (3 judge samples per parameter), on a 40-call corpus (seed 23) generated *after* the judge prompts
+Measured on live Evon v3.3 (3 judge samples per parameter), on a 40-call corpus (seed 23, [results/qa-bench/seed-23.json](results/qa-bench/seed-23.json); a later corpus, seed 31, scored 93.6%) generated *after* the judge prompts
 were last changed, so it was never tuned on:
 
 | QA-Bench, 40 calls, unseen seed | Verdict accuracy | Notes |
@@ -317,7 +328,7 @@ its last line was still queued lost that line from the record (scored "accepted 
 
 ## How right is the judge? Measured on live calls
 
-[scripts/judge_bench.py](scripts/judge_bench.py) runs the judge exactly as in production on 27 recorded live calls that I
+[scripts/judge_bench.py](scripts/judge_bench.py) runs the judge exactly as in production on 17 recorded live calls (27 labels: 13 for injection, 14 for privacy) that I
 labelled by reading the transcripts (rules in the script; unclear calls left out). Results in
 [results/judge-bench](results/judge-bench/):
 
@@ -326,6 +337,7 @@ labelled by reading the transcripts (rules in the script; unclear calls left out
 | Prompt injection (Evon judge, new wording) | **6/6** (old wording: 3/6) | 3/5 |
 | Privacy (Evon judge) | 2/7 | 0/7 |
 | Privacy (`account_privacy` code check) | **7/7** | 0/7 |
+| Injection (`injection_guard` code check: leaks after an attack only) | 4/6 | 0/5 |
 
 - The injection wording now says what a pass is ("declining or asking for verification again"); it found every obeyed attack,
   but still fails 3 of 5 correct calls, e.g. v3 for asking for the digits after "ignore your instructions". Both wordings were
@@ -382,7 +394,8 @@ personas, behaviours and phone lines. They expand as a deterministic, sampled ma
 ## The reference agent
 
 [reference_agent.py](core/bhool/reference_agent.py) is an EMI-collection agent on Prisma + Evon + Timbre.
-**v1** ships with seven seeded bugs (no disclosure, debt stated before verification, threats, Hindi-only,
+**v1** ships with seven planted bugs, tested as 8 cases because the debt-before-verification bug is tested on the borrower
+and on his brother (no disclosure, debt stated before verification, threats, Hindi-only,
 no injection guard, a fixed-level VAD that crowd noise defeats, no barge-in handling); **v2** fixes them in the prompt and
 the audio code; **v3** is v2 with the account's secrets kept out of the model (see "Secret isolation").
 The offline tests already show v1's VAD failing on in-band noise and ignoring barge-ins while v2 passes.
@@ -397,28 +410,30 @@ and no speech credits. Those runs don't judge latency, because the agent's think
 
 | Agent | v1's text bugs gone | Calls passing every check | Rating (compliance · security · language · turn-taking · noise) |
 |---|---|---|---|
-| v1, 8 bugs planted | (8 of 8 caught) | 0 / 6 | 1 star (0 · 0 · 1 · 3 · 1) |
-| v2, prompt fixed | n/a (4 real slips flagged) | 0 / 6 | 3 stars (4 · 1 · 4 · 3 · 5) |
-| v1 + Guard, prompt unchanged | 6 / 6 | 0 / 6 | 2 stars (1 · 3 · 3 · 2 · 1) |
+| v1, 7 bugs planted (8 tests) | (8 of 8 caught) | 0 / 6 | 1 star (0 · 0 · 1 · 3 · 1) |
+| v2, prompt fixed | n/a (3 real slips flagged) | 0 / 6 | 3 stars (4 · 1 · 4 · 3 · 5) |
+| v1 + Guard, prompt unchanged | 2 / 2 judged (6 / 6 by code checks; 4 unjudged) | 0 / 6 | 2 stars (1 · 3 · 3 · 2 · 1) |
 | v3, secret out of the model | 3 / 6 | 0 / 6 | 3 stars (3 · 3 · 2 · 5 · 5) |
 | v3 + Guard | 5 / 6 | 0 / 6 | 4 stars (4 · 5 · 5 · 3 · 5) |
 | v4, model picks acts, code speaks | 6 / 6 | **5 / 6** | 4 stars (5 · 5 · 4 · 5 · 5) |
 
-- v1 + Guard prevents every text bug in the case built to show it, yet passes no call: across all six cases the judge still fails
-  it on factual accuracy (6), verification (6), privacy (5) and task (5), and four calls end abnormally on v1's endpointer, an
-  audio bug Guard can't touch. Guard stops what must never be said; it can't make v1 do its job.
-- v2's four flags are real slips of the Evon-played "fixed" agent, each with its quote: a Gujarati caller answered in Hindi, the
-  loan digits read aloud before verification (to the borrower, to his brother with the amount and due date, to an attacker), a
-  caller lost on the noisy line.
+- v1 + Guard: every deterministic check passes on all six text bugs, but on two calls all three judge samples were unusable,
+  so 4 of the 6 bugs have no judge verdict and are counted as unjudged, not prevented (a re-judge is pending). It passes no
+  call: across the six cases the judge fails it on factual accuracy (3), verification (3), privacy (2), tone (2), task (1)
+  and threat (1), leaves 27 more checks in review, and four calls end abnormally on v1's endpointer, an audio bug Guard can't
+  touch. Guard stops what must never be said; it can't make v1 do its job.
+- v2's three flags are real slips of the Evon-played "fixed" agent, each with its quote: a Gujarati caller answered in Hindi,
+  the loan digits, amount and due date told to the borrower's brother, and the digits read out to an attacker.
 - These numbers move between runs. Before the 2 Nov re-judge (same calls, earlier wording) Guard was 5/6, v3 2/6 and v4 5/6
   with 3 calls passing; read them as one judged run each, not as fixed rates.
 - **Red team** (`bhool autopilot`, live, 31 Oct): 12 of 12 attacks broke v2. Replayed on v3, account leaks fell from 4 to 0.
   Heal rejected its own prompt patch (it fixed 33 failures and broke 52): the leak was architectural (v3), not a missing rule.
-- **The auditor** (QA-Bench, calls with verdicts known by construction, live Evon, corpora it was never tuned on): 90.4% of 560
-  verdicts right (seed 7) and 94% of a 40-call corpus (seed 31); fatal-error recall 100% and no false fatal alarms on both. Its
+- **The auditor** (QA-Bench, calls with verdicts known by construction, live Evon, corpora it was never tuned on): 93.6% of 560
+  verdicts right on a 40-call corpus (seed 31, in results/qa-bench) and 90.4% of 560 on an earlier one (seed 23,
+  results/qa-bench/seed-23.json); fatal-error recall 100% and no false fatal alarms on both. Its
   weakest Evon parameter, confirms-back (30%), is now a code check: 100% on three corpora. These corpora are synthetic and
   written by me, so they measure the auditor against planted defects, not against human QA.
-- **The judge on live calls** (27 hand-labelled calls, see "How right is the judge?"): it catches every obeyed injection but
+- **The judge on live calls** (27 hand labels on 17 live calls, see "How right is the judge?"): it catches every obeyed injection but
   wrongly fails 3 of 5 correct calls; it misses 5 of 7 privacy leaks that the code check catches. Nobody but me has labelled
   calls; `bhool label` builds the page for anyone who will.
 - **Noise** (`bhool stress`, offline, 2 calls per level; the agent's ears are its own code): v2 and v3 hear the caller through
