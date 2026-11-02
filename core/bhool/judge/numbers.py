@@ -19,7 +19,7 @@ from __future__ import annotations
 import re
 
 _DIGITS = str.maketrans("०१२३४५६७८९૦૧૨૩૪૫૬૭૮૯", "01234567890123456789")
-_SPLIT = re.compile(r"[\s,.;:!?।()\"'“”‘’/-]+")
+_SPLIT = re.compile(r"[\s,.;:!?।()\"'“”‘’/₹-]+")      # "₹4,500" is 4500
 
 _HI = ["शून्य|जीरो|ज़ीरो|झीरो", "एक", "दो", "तीन", "चार", "पांच|पाँच", "छह|छः|छे", "सात", "आठ", "नौ", "दस", "ग्यारह", "बारह",
        "तेरह", "चौदह", "पंद्रह|पन्द्रह", "सोलह", "सत्रह", "अठारह", "उन्नीस", "बीस", "इक्कीस", "बाईस", "तेईस", "चौबीस", "पच्चीस",
@@ -48,8 +48,8 @@ _EN_TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fourty": 40, "fifty": 50, 
             "ninety": 90}
 # English number words as Prisma writes them in Devanagari or Gujarati script
 _EN_SPELT = {
-    "zero": "जीरो|ઝીરો", "one": "वन|વન", "two": "टू|ટુ|ટૂ", "three": "थ्री|थ्रि|થ્રી", "four": "फोर|फ़ोर|ફોર",
-    "five": "फाइव|फ़ाइव|फाईव|ફાઇવ|ફાઈવ", "six": "सिक्स|સિક્સ", "seven": "सेवन|सेवेन|સેવન", "eight": "एट|ऐट|एइट|એટ|એઇટ|એઈટ",
+    "zero": "जीरो|ઝીરો", "one": "वन|वॅन|વન", "two": "टू|ટુ|ટૂ", "three": "थ्री|थ्रि|થ્રી", "four": "फोर|फ़ोर|ફોર",
+    "five": "फाइव|फ़ाइव|फाईव|ફાઇવ|ફાઈવ", "six": "सिक्स|સિક્સ", "seven": "सेवन|सेवेन|સેવન", "eight": "एट|ऐट|एइट|एयठ|एइठ|એટ|એઇટ|એઈટ",
     "nine": "नाइन|नाईन|નાઇન|નાઈન", "ten": "टेन|ટેન", "eleven": "इलेवन|ઇલેવન", "twelve": "ट्वेल्व|ટ્વેલ્વ",
     "thirteen": "थर्टीन", "fourteen": "फोर्टीन", "fifteen": "फिफ्टीन", "sixteen": "सिक्सटीन", "seventeen": "सेवनटीन",
     "eighteen": "एटीन", "nineteen": "नाइनटीन", "twenty": "ट्वेंटी|ट्वेन्टी|ટ્વેન્ટી", "thirty": "थर्टी|થર્ટી",
@@ -76,6 +76,17 @@ for _en, _ws in _EN_SPELT.items():
     for _w in _ws.split("|"):
         WORDS[_fold(_w)] = _en
 WORDS.update({k: k for k in _MULT} | {k: k for k in _REPEAT})
+# Gujarati says 200-900 as one word ("ત્રણ હજાર બસો" = 3200); found by `bhool atlas` checking its own corpus
+for _n, _ws in enumerate(["", "", "બસો|બેસો", "ત્રણસો", "ચારસો", "પાંચસો", "છસો", "સાતસો", "આઠસો", "નવસો"]):
+    WORDS.update({_fold(w): _n * 100 for w in _ws.split("|") if w})
+
+
+def word_value(tok: str) -> int | None:
+    """A single number word in any script (पंद्रह, ફિફ્ટીન, फिफ्टीन, fifteen) as an int, else None."""
+    v = _value(tok)
+    if isinstance(v, str):
+        v = int(v) if v.isdigit() else None
+    return v
 
 
 def _value(tok: str) -> int | str | None:

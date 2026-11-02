@@ -14,6 +14,7 @@ v2 fixes all seven. Serve with `bhool serve-agent --version v1|v2`.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 from collections import deque
 from collections.abc import Awaitable, Callable
@@ -272,8 +273,41 @@ class AgentSession:
 
 
 async def serve(version: str | AgentVersion, stt, llm, tts, host: str = "127.0.0.1", port: int = 8765,
-                ready: asyncio.Event | None = None, translate=None):
+                ready: asyncio.Event | None = None, translate=None, protocol: str = "bhool"):
+    """protocol="bhool": the harness protocol (call/transport.py). protocol="twilio": Twilio Media Streams, as a voice
+    agent that takes phone calls speaks it; the CRM arrives as the stream's custom parameters."""
     v = version if isinstance(version, AgentVersion) else VERSIONS[version]
+
+    async def twilio_handler(ws):
+        from .call.telephony import SR, media, mulaw_decode
+        sid, ctx = "", {}
+        async for raw in ws:
+            msg = json.loads(raw)
+            if msg.get("event") == "start":
+                sid, ctx = msg["start"]["streamSid"], dict(msg["start"].get("customParameters") or {})
+                break
+
+        async def send_json(d: dict) -> None:
+            if d.get("type") == "clear":
+                await ws.send(json.dumps({"event": "clear", "streamSid": sid}))
+            elif d.get("type") == "hangup":
+                await ws.close()                       # a phone agent hangs up by ending the stream
+
+        session = AgentSession(v, stt, llm, tts, lambda pcm: ws.send(media(sid, pcm)), send_json, SR, ctx,
+                               translate=translate)
+        await session.start()
+        try:
+            async for raw in ws:
+                msg = json.loads(raw)
+                if msg.get("event") == "media":
+                    await session.on_frame(mulaw_decode(base64.b64decode(msg["media"]["payload"])))
+                elif msg.get("event") == "stop":
+                    break
+        except websockets.ConnectionClosed:
+            pass
+        finally:
+            if session.task:
+                session.task.cancel()
 
     async def handler(ws):
         start = json.loads(await ws.recv())
@@ -290,7 +324,7 @@ async def serve(version: str | AgentVersion, stt, llm, tts, host: str = "127.0.0
             if session.task:
                 session.task.cancel()
 
-    async with websockets.serve(handler, host, port, max_size=2**24):
+    async with websockets.serve(twilio_handler if protocol == "twilio" else handler, host, port, max_size=2**24):
         if ready:
             ready.set()
         await asyncio.Future()

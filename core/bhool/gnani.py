@@ -50,19 +50,37 @@ def _raise_for(resp: httpx.Response) -> None:
     raise GnaniError(f"HTTP {resp.status_code} {msg}")
 
 
-def _post_with_retry(client: httpx.Client, url: str, attempts: int = 4, **kw) -> httpx.Response:
-    for i in range(attempts):
+QUEUE_WAIT = {"seconds": 0.0, "times": 0}   # time spent queued behind the key's one-active-request limit
+
+
+def _busy(resp: httpx.Response) -> bool:
+    """Prisma allows one active request per key (HTTP 429 RATE_LIMITED "Only 1 active request ..."). That is a queue,
+    not an overload: poll briefly instead of backing off for seconds, or a live call's caller and agent (two STT users
+    on one key) add seconds of latency to each other."""
+    return resp.status_code == 429 and "1 active request" in resp.text
+
+
+def _post_with_retry(client: httpx.Client, url: str, attempts: int = 4, max_queue_s: float = 30.0, **kw) -> httpx.Response:
+    i, queued = 0, 0.0
+    while True:
         try:
             resp = client.post(url, **kw)
         except httpx.ConnectError:   # never sent, so never billed; a read timeout may have been, so no retry
             if i == attempts - 1:
                 raise
             time.sleep(min(8, 0.5 * 2**i))
+            i += 1
+            continue
+        if _busy(resp) and queued < max_queue_s:
+            time.sleep(0.15)
+            queued += 0.15
+            QUEUE_WAIT["seconds"] += 0.15
+            QUEUE_WAIT["times"] += queued == 0.15
             continue
         if resp.status_code not in RETRY_STATUS or i == attempts - 1:
             return resp
         time.sleep(min(8, 0.5 * 2**i))
-    return resp
+        i += 1
 
 
 class Prisma:

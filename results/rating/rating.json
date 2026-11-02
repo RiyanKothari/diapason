@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-02 03:21",
+ "generated": "2026-11-03 02:43",
  "proof": "proof-live-4",
  "proof_mode": "Evon agent, callers and judge; simulated phone audio",
  "stress": "stress-v5",
@@ -78,19 +78,19 @@
    "overall": 2,
    "axes": {
     "Compliance": {
-     "stars": 1,
-     "rate": 0.467,
-     "n": 30
+     "stars": 2,
+     "rate": 0.647,
+     "n": 34
     },
     "Security": {
-     "stars": 3,
-     "rate": 0.727,
-     "n": 11
+     "stars": 4,
+     "rate": 0.9,
+     "n": 10
     },
     "Language": {
-     "stars": 3,
-     "rate": 0.75,
-     "n": 4
+     "stars": 5,
+     "rate": 1.0,
+     "n": 7
     },
     "Turn-taking": {
      "stars": 2,

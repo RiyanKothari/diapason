@@ -47,3 +47,12 @@ def test_echo_check_pass_fail_na():
     assert _verdict([("agent", "कब pay करेंगे?"), ("caller", "अभी नहीं बता सकता"), ("agent", "ठीक है")])[0] == "na"
     # the last date offered is the agreed one
     assert _verdict([("caller", "दस तारीख"), ("agent", "दस नहीं हो पाएगा"), ("caller", "तो बीस तारीख"), ("agent", "ठीक है, बीस तारीख")])[0] == "pass"
+
+
+def test_atlas_finds_prisma_heard_right_and_the_reader_missed():
+    # Timbre reads "15/11" as "fifteen by eleven" / "पंद्रह बटा ग्यारह"; Prisma writes English ordinals in Devanagari
+    assert date_keys("i will pay on fifteen by eleven") == {"d15", "m11"}
+    assert date_keys("मैं पंद्रह बटा ग्यारह को पे कर दूंगा।") == {"d15", "m11"}
+    assert date_keys("मैं 15/11 को pay कर दूँगा।") == {"d15", "m11"}
+    assert date_keys("मैं फिफ्टींथ नवंबर को पे कर दूंगा।") == {"d15", "m11"}
+    assert date_keys("मैं साथ में दूंगा") == set()           # a word ending in थ is not an ordinal

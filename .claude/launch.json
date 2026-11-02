@@ -32,6 +32,31 @@
         "8080"
       ],
       "port": 8080
+    },
+    {
+      "name": "agent-v1",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/bhool.exe",
+      "runtimeArgs": [
+        "serve-agent",
+        "--version",
+        "v1",
+        "--port",
+        "8761"
+      ],
+      "port": 8761
+    },
+    {
+      "name": "agent-v1-guard",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/bhool.exe",
+      "runtimeArgs": [
+        "serve-agent",
+        "--version",
+        "v1",
+        "--guard",
+        "--port",
+        "8762"
+      ],
+      "port": 8762
     }
   ]
 }
