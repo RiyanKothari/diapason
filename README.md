@@ -11,11 +11,12 @@ against the rules, quoting the agent's own words.
 | Measured on the live proof (Evon plays agent, callers and judge) | Result |
 |---|---|
 | Tests of the bugs planted in reference agent v1 (7 bugs; one is tested twice) that catch them | **8 / 8** |
-| The same buggy v1 behind Bhool Guard, prompt unchanged: text bugs prevented | **6 / 6** by the code checks; the judge confirmed 2 and gave no usable verdict on 4 |
+| The same buggy v1 behind Bhool Guard, prompt unchanged: text bugs prevented | **4 / 6** judged (6 / 6 by the code checks) |
 | Red-team attacks that leaked the account: v2 → v3 (secret taken out of the model) | **4/12 → 0/12** |
 | v4 (the model picks the act, code speaks every fact): proof calls passing every check | **5 / 6** (every other version 0 / 6) |
 | Noise: the fixed agent still hears the caller down to | **0 dB SNR** (v1 stops at 10-20 dB in fan, office and crowd noise) |
 | Auditor on calls it never saw: verdicts right · fatal breaches caught · false fatal alarms | **93.6% · 100% · 0** (560 verdicts) |
+| Loan IDs, amounts and dates that survive Timbre → phone line → Prisma, 30 dB to 0 dB (3,366 real transcripts) | **98%** (the atlas found 6 gaps in Bhool's own readers first) |
 
 The evidence for every number is in [results/](results/) (JSON and pages, no audio); the weak spots are in
 [Results and limitations](#results-and-limitations). Try it with no keys and no credits:
@@ -326,6 +327,49 @@ The same live call exposed two more harness bugs, both fixed with regression tes
 cap (it now defaults to 400 TTS characters and 60 s of STT and refuses a live run without one), and an agent that hung up while
 its last line was still queued lost that line from the record (scored "accepted without confirmation"); the goodbye now plays out.
 
+## Which details survive the line: the phone-line atlas
+
+A collections call turns on three details: the last four digits, an amount, a date. `bhool atlas` writes each one 3-5 ways in
+Hindi/Hinglish, Gujarati and English (numerals, digit words, pairs, "double", one number, English words inside Hindi, "15/11"),
+has 6 Timbre voices speak them, sends them through the channel simulator (narrowband μ-law; fan, office, traffic and crowd noise
+at 30, 20, 15, 10, 5 and 0 dB; a lossy mobile line), has Prisma transcribe them, and reads each detail back with the same
+parsers the judge and the agents use. 3,366 Prisma requests, 0 failed, about 60 credits.
+
+- **It found Bhool's bugs before Prisma's.** On the first reading 84.8% of details survived; most losses were the readers, not
+  Prisma: Timbre reads "15/11" aloud as "fifteen by eleven" / "पंद्रह बटा ग्यारह", Prisma writes "fifteenth" as "फिफ्टींथ", "eight" as
+  "एयठ", Gujarati 200 as "બેસો", and "₹4,500" and "ત્રણ હજાર બસો" were never readable. Fixed with
+  [regression tests](tests/test_dates.py); re-reading the saved transcripts (`bhool atlas --rescore`, no credits) recovered 446
+  and lost none: **98% survive.**
+- **What Prisma itself loses** is mostly at 0 dB and on the lossy line: a dropped "શૂન્ય" in a Gujarati ID, "7730" heard as
+  "seven thousand seven hundred", "November" heard as "सितंबर" once on the lossy line.
+- **What an agent should do:** say IDs and amounts as numerals in all three languages. Said the best way, every detail survives
+  95%+ of the time down to 5 dB except Gujarati IDs (94% at 5 dB, 81% at 0 dB: read them back below 10 dB); English dates fall
+  to 88% at 0 dB. Gujarati IDs said in pairs ("સિત્યોતેર ત્રીસ") are the most fragile form: 81% at 5 dB, 38% at 0 dB.
+
+The page is `runs/atlas/atlas.html` (copied to [results/atlas/](results/atlas/)).
+
+## Test an agent from the outside: Inya, a phone number, or Twilio Media Streams
+
+Bhool's own reference agents speak its harness protocol. Three targets reach agents Bhool does not run
+([telephony.py](core/bhool/call/telephony.py), [inya.py](core/bhool/inya.py)):
+
+| `--target` | How the call happens | Needs |
+|---|---|---|
+| `media_stream` | Bhool plays Twilio and connects straight to the agent's Twilio Media Streams websocket: the bytes a phone agent gets live, with no phone and no telephony bill | the agent's `wss://` URL |
+| `phone` | Bhool dials the agent's number through Twilio and bridges the call's audio into the harness; the phone network is the channel | Twilio account and number, a tunnel (`BHOOL_PUBLIC_URL`) |
+| `inya` | `bhool inya deploy` builds the suite's agent on Gnani's Inya platform from its SOP; Inya's Trigger Test Call phones Bhool's number and a Bhool caller answers | Inya API key, Bhool's Twilio number whitelisted in Inya |
+
+```bash
+bhool inya deploy suites/proof.yaml                                  # prints the botId
+bhool run suites/proof.yaml --target inya --agent-id <botId> --only language
+```
+
+After an Inya run Bhool fetches Inya's own log of each call and writes `inya-crosscheck.json`: Bhool knows exactly what its caller
+said and Inya knows exactly what its agent said, so **each side's speech recognition over a real phone line is scored against the
+other side's words** (the agent's ears: Bhool's script vs Inya's user turns; Bhool's ears: Inya's agent turns vs Prisma).
+Offline, all three run end to end against the reference agent served as a phone agent (`bhool serve-agent --protocol twilio`;
+[tests](tests/test_telephony.py)). Not yet run against a live Inya agent or a real phone line.
+
 ## How right is the judge? Measured on live calls
 
 [scripts/judge_bench.py](scripts/judge_bench.py) runs the judge exactly as in production on 17 recorded live calls (27 labels: 13 for injection, 14 for privacy) that I
@@ -412,13 +456,14 @@ and no speech credits. Those runs don't judge latency, because the agent's think
 |---|---|---|---|
 | v1, 7 bugs planted (8 tests) | (8 of 8 caught) | 0 / 6 | 1 star (0 · 0 · 1 · 3 · 1) |
 | v2, prompt fixed | n/a (3 real slips flagged) | 0 / 6 | 3 stars (4 · 1 · 4 · 3 · 5) |
-| v1 + Guard, prompt unchanged | 2 / 2 judged (6 / 6 by code checks; 4 unjudged) | 0 / 6 | 2 stars (1 · 3 · 3 · 2 · 1) |
+| v1 + Guard, prompt unchanged | 4 / 6 (6 / 6 by code checks) | 0 / 6 | 2 stars (2 · 4 · 5 · 2 · 1) |
 | v3, secret out of the model | 3 / 6 | 0 / 6 | 3 stars (3 · 3 · 2 · 5 · 5) |
 | v3 + Guard | 5 / 6 | 0 / 6 | 4 stars (4 · 5 · 5 · 3 · 5) |
 | v4, model picks acts, code speaks | 6 / 6 | **5 / 6** | 4 stars (5 · 5 · 4 · 5 · 5) |
 
-- v1 + Guard: every deterministic check passes on all six text bugs, but on two calls all three judge samples were unusable,
-  so 4 of the 6 bugs have no judge verdict and are counted as unjudged, not prevented (a re-judge is pending). It passes no
+- v1 + Guard: every deterministic check passes on all six text bugs. Re-judged with Evon on 3 Nov (the first pass left 4 bugs
+  without a usable verdict), the judge counts 4 prevented and 2 still flagged: privacy (the agent named the lender to the
+  brother, which its own SOP asks it to do, so arguable) and injection (it steered back to the loan instead of refusing). It passes no
   call: across the six cases the judge fails it on factual accuracy (3), verification (3), privacy (2), tone (2), task (1)
   and threat (1), leaves 27 more checks in review, and four calls end abnormally on v1's endpointer, an audio bug Guard can't
   touch. Guard stops what must never be said; it can't make v1 do its job.
@@ -445,10 +490,12 @@ and no speech credits. Those runs don't judge latency, because the agent's think
   a 5 dB crowded-market line, 89-100% of critical details (amounts, dates, digits) kept.
 - **Through real Gnani speech end to end:** 7 calls voiced Timbre → phone line → Prisma across industries, and the live
   dashboard calls of 2 Nov (v3 + Guard before the digit fix, v4 after it).
-- **Offline:** 202 tests pass with every model faked, including the real-time call engine and the reference agents over a
+- **Offline:** 215 tests pass with every model faked, including the real-time call engine and the reference agents over a
   real websocket. One autopilot test is timing-sensitive on a loaded machine.
-- **Not done:** an agent built on Gnani's Inya platform, tested black-box; real phone calls through Twilio; judge agreement
-  with anyone's labels but mine.
+- **Phone-line atlas** (`bhool atlas`, 3 Nov, real Timbre and Prisma, 3,366 requests, 164 minutes of audio): see below.
+- **Built, not yet run live:** an agent built on Gnani's Inya platform tested black-box, and real phone calls through Twilio
+  (`--target inya | phone`). Both run end to end offline against the reference agent over the same Twilio Media Streams
+  protocol; a live run needs an Inya key and a Twilio number. Not done either: judge agreement with anyone's labels but mine.
 
 ## Layout
 

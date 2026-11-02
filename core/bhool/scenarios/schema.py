@@ -32,7 +32,7 @@ EMOTION_TAGS = {
 
 
 class Target(BaseModel):
-    type: Literal["websocket", "phone", "inya"]
+    type: Literal["websocket", "media_stream", "phone", "inya"]   # media_stream: Twilio Media Streams over a websocket
     url: str | None = None          # websocket target
     number: str | None = None       # phone target, E.164
     agent_id: str | None = None     # inya target
@@ -40,7 +40,7 @@ class Target(BaseModel):
 
     @model_validator(mode="after")
     def _needs_address(self):
-        need = {"websocket": "url", "phone": "number", "inya": "agent_id"}[self.type]
+        need = {"websocket": "url", "media_stream": "url", "phone": "number", "inya": "agent_id"}[self.type]
         if not getattr(self, need):
             raise ValueError(f"target type {self.type!r} requires {need!r}")
         return self

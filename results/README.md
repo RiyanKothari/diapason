@@ -17,6 +17,8 @@ Audio is left out (size); `bhool site` keeps the showcase call's recording.
 | [judge-bench/judge-bench.json](judge-bench/judge-bench.json) | the judge and the code checks vs 27 hand labels on 17 live calls |
 | [judge-bench/injection-wording.json](judge-bench/injection-wording.json) | old vs new injection wording on 13 labelled calls |
 | [prisma/asr_bench.json](prisma/asr_bench.json) | Prisma character error per language and phone line (18 utterances) |
+| [atlas/atlas.json](atlas/atlas.json) | phone-line atlas: 3,366 Prisma transcripts of IDs, amounts and dates, noise x SNR, re-read with fixed readers |
+| [atlas/atlas.html](atlas/atlas.html) | the same, as a page: survival per phrasing and SNR, and what an agent should do |
 | [live-gnani/digit-bug.json](live-gnani/digit-bug.json) | Prisma's transcript of a caller's '4821', and what each digit parser makes of it |
 | [proof/calls-v1.json](proof/calls-v1.json) | every proof call of v1: transcript, metrics, each verdict with its quote |
 | [proof/calls-v2.json](proof/calls-v2.json) | every proof call of v2: transcript, metrics, each verdict with its quote |

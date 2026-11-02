@@ -29,3 +29,10 @@ def test_guard_and_v4_unlock_on_the_live_transcript():
     st = ActState(crm={"loan_id_last4": "4821"})
     st.hear(live)
     assert g.verified and st.verified
+
+
+def test_atlas_spellings():
+    assert spoken_digits("मेरे लोन के लास्ट फोर डिजिट्स फोर एयठ टू वॅन है।").endswith("4821")
+    assert spoken_digits("તમારા ત્રણ હજાર બેસો રૂપિયા બાકી છે") == "3200"
+    assert spoken_digits("તમારા ત્રણ હજાર બસો રૂપિયા બાકી છે") == "3200"
+    assert spoken_digits("आपके ₹4,500 बाकी हैं।") == "4500"

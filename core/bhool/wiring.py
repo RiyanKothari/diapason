@@ -24,13 +24,15 @@ class Components:
 
 
 def live_components(suite: Suite, url: str | None = None, judge: bool = True) -> Components:
+    from .call.telephony import MediaStreamAgent
     from .call.transport import WebSocketAgent
     from .caller.brain import EvonBrain
     from .gnani import Evon, Prisma, Timbre
     load_dotenv()
-    if suite.target.type != "websocket":
-        raise ValueError(f"target type {suite.target.type!r} is not wired yet; use websocket")
     target_url = url or suite.target.url
+    connect = phone_connector(suite) if suite.target.type in ("phone", "inya") else (
+        (lambda s: MediaStreamAgent(target_url)) if suite.target.type == "media_stream"
+        else (lambda s: WebSocketAgent(target_url, suite.target.sample_rate)))
     tts, stt, evon = Timbre(), Prisma(), Evon()
 
     def speak(utt, p):
@@ -40,10 +42,42 @@ def live_components(suite: Suite, url: str | None = None, judge: bool = True) ->
         return stt.transcribe_long(audio, sr, lang) if audio.size >= 0.2 * sr else ""
 
     return Components(
-        connect=lambda s: WebSocketAgent(target_url, suite.target.sample_rate),
+        connect=connect,
         make_brain=lambda s, r: EvonBrain(evon, s.persona, s.behaviour, seed=s.seed + r),
         speak=speak, hear=hear, evon_judge=evon if judge else None, call_kwargs={}, tts=tts,
     )
+
+
+class PhoneConnector:
+    """One bridge for the whole run; remembers each call it placed so Inya's log of it can be fetched afterwards."""
+
+    def __init__(self, suite: Suite):
+        import os
+
+        from .call.telephony import PhoneBridge, Twilio
+        public = os.environ.get("BHOOL_PUBLIC_URL", "")
+        if not public.startswith("https://"):
+            raise ValueError("set BHOOL_PUBLIC_URL to the https URL of a tunnel to the bridge port "
+                             "(e.g. `cloudflared tunnel --url http://localhost:8790`)")
+        self.suite, self.calls = suite, []
+        self.bridge = PhoneBridge(public, port=int(os.environ.get("BHOOL_BRIDGE_PORT", "8790")))
+        self.twilio = Twilio()
+        self.inya = None
+        if suite.target.type == "inya":
+            from .inya import Inya
+            self.inya = Inya()
+
+    def __call__(self, scenario):
+        from .call.telephony import PhoneAgent
+        t = self.suite.target
+        conn = PhoneAgent(self.bridge, number=t.number or "", mode="inya" if t.type == "inya" else "dial",
+                          twilio=self.twilio, inya=self.inya, bot_id=t.agent_id or "")
+        self.calls.append((scenario.id, conn))
+        return conn
+
+
+def phone_connector(suite: Suite) -> PhoneConnector:
+    return PhoneConnector(suite)
 
 
 def offline_components(suite: Suite, stubborn: bool = False) -> Components:

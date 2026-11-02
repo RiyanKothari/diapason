@@ -9,7 +9,8 @@ brands only. Never show the Kaggle notebook's output on screen (it prints the Ev
 | Say | Source |
 |---|---|
 | The tests caught all 7 bugs planted in an agent (8 of 8 test cases) | results/proof/proof.json |
-| The same buggy agent behind Bhool Guard, prompt unchanged: every code check passes on all 6 text bugs (the judge confirmed 2; 4 await a usable verdict) | results/proof/proof.json (guard) |
+| The same buggy agent behind Bhool Guard, prompt unchanged: 4 of 6 text bugs prevented (judge); every code check passes on all 6 | results/proof/proof.json (guard) |
+| 98% of loan IDs, amounts and dates survive Timbre → noisy phone line (30-0 dB) → Prisma, across 3,366 transcripts | results/atlas/atlas.json |
 | Taking the secret out of the model: account leaks across 12 attacks fell from 4 to 0 | results/autopilot/replay-v3.json |
 | v4, where the model picks the act and code speaks the facts, passed 5 of 6 test calls; every earlier version 0 | results/proof/calls-v4.json |
 | The fixed agent hears callers down to 0 dB SNR; v1 stopped at 10-20 dB | results/stress/stress.json |

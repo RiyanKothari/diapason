@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+import time
 from pathlib import Path
 
 import typer
@@ -91,13 +92,25 @@ def run(
     max_stt_seconds: float = typer.Option(None, help="Hard cap on seconds of audio sent to STT"),
     max_evon_calls: int = typer.Option(None, help="Hard cap on Evon requests (caller + judge)"),
     redact: bool = typer.Option(False, help="Mask phone/Aadhaar/PAN/account numbers in stored reports"),
+    target: str = typer.Option(None, help="Override the target: websocket | media_stream (Twilio Media Streams) | "
+                                          "phone (Bhool dials --number) | inya (an Inya agent calls Bhool's number)"),
+    number: str = typer.Option(None, help="phone: the agent's number, E.164"),
+    agent_id: str = typer.Option(None, help="inya: the Inya botId (see `bhool inya deploy`)"),
     verbose: bool = False,
 ):
     """Run a suite against a live agent with Gnani Prisma, Timbre and Evon. Exit code 1 if the gate fails."""
     from .runner import Budget, run_suite
+    from .scenarios.schema import Target
     from .wiring import live_components
     _utf8_console()
+    load_dotenv()
     suite = load_suite(suite_path)
+    if target:
+        suite.target = Target(type=target, url=url or suite.target.url, number=number, agent_id=agent_id,
+                              sample_rate=8000 if target != "websocket" else suite.target.sample_rate)
+    if suite.target.type in ("phone", "inya") and concurrency != 1:
+        typer.echo("phone calls run one at a time (one bridge, calls matched in order)")
+        concurrency = 1
     try:
         c = live_components(suite, url=url, judge=not no_judge)
     except ValueError as e:
@@ -110,7 +123,32 @@ def run(
     ))
     typer.echo(f"TTS cache: {c.tts.hits} hits, {c.tts.calls} API calls")
     _summary(report)
+    if suite.target.type == "inya":
+        _inya_crosscheck(c.connect, report)
     raise typer.Exit(0 if report.gate_passed else 1)
+
+
+def _inya_crosscheck(connector, report) -> None:
+    """After an Inya run: fetch Inya's own log of each call and score each side's ears against the other's words."""
+    from .inya import crosscheck
+    out = []
+    by_scenario = {c["scenario_id"]: c for c in report.calls_detail}
+    for sid, conn in connector.calls:
+        rec = by_scenario.get(sid)
+        ref = conn.meta.get("clientReferenceId", "")
+        if rec is None:
+            continue
+        log = connector.inya.find_call(connector.suite.target.agent_id, ref, since=time.time() - 3600) if ref else None
+        if not log:
+            typer.echo(f"  {sid}: Inya has not logged the call yet ({ref})")
+            continue
+        x = crosscheck(rec["turns"], log.get("transcript", []))
+        out.append({"scenario": sid, "conversationId": log.get("conversationId"), **x})
+        typer.echo(f"  {sid}: agent's ears CER {x['caller_to_agent']['cer']}, Bhool's ears CER {x['agent_to_caller']['cer']}")
+    if out:
+        path = Path(report.dir or "runs") / "inya-crosscheck.json"
+        path.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+        typer.echo(f"cross-check: {path}")
 
 
 @app.command()
@@ -267,6 +305,43 @@ def asr_bench(presets: str = typer.Option(None, help="Comma-separated presets (d
     typer.echo("\nCER:          " + "  ".join(f"{p}: {c:.1%}" for p, c in res["by_preset"].items()))
     typer.echo("details kept: " + "  ".join(f"{p}: {c:.0%}" for p, c in res["entities_by_preset"].items() if c is not None))
     typer.echo(f"report: {path}   (TTS API calls {tts.calls}, cache hits {tts.hits})")
+
+
+@app.command()
+def atlas(seeds: int = 2, langs: str = typer.Option(None, help="Comma-separated: hi,gu,en (default: all)"),
+          workers: int = typer.Option(1, help="Prisma allows one active request per key"), out: Path = Path("runs/atlas"),
+          rescore: bool = typer.Option(False, help="Re-read the saved transcripts in --out with the current readers (no credits)")):
+    """Which IDs, amounts and dates survive an Indian phone line (Timbre -> noise x SNR -> Prisma), and how to say them."""
+    from .atlas import ITEMS, rescore as rescore_atlas, run_atlas, write_atlas_report
+    from .gnani import Prisma, Timbre
+    _utf8_console()
+    if rescore:
+        res = rescore_atlas(json.loads((out / "atlas.json").read_text(encoding="utf-8")))
+        write_atlas_report(res, out)
+        for k, p in sorted(res["policy"].items()):
+            typer.echo(f"  {k:12} say it as {p['style']:22} read back below {p['read_back_below_snr']} dB")
+        typer.echo(f"rescored {res['requests']} transcripts: reader fixes {res['reader_fixes']}, reader losses {res['reader_losses']}")
+        return
+    load_dotenv()
+    tts, stt = Timbre(), Prisma()
+    items = [i for i in ITEMS if not langs or i.lang in langs.split(",")]
+    done = [0]
+
+    def tick(r):
+        done[0] += 1
+        if done[0] % 100 == 0 or "error" in r:
+            typer.echo(f"  {done[0]} requests" + (f"  error: {r['error']}" if "error" in r else ""))
+
+    res = run_atlas(
+        speak=lambda text, voice, lang: tts.synthesize(text, voice=voice, lang=lang),
+        transcribe=lambda audio, sr, lang: stt.transcribe(audio, sr, lang)["transcript"],
+        items=items, seeds=seeds, workers=workers, on_row=tick,
+    )
+    path = write_atlas_report(res, out)
+    for k, p in sorted(res["policy"].items()):
+        typer.echo(f"  {k:12} say it as {p['style']:22} read back below {p['read_back_below_snr']} dB")
+    typer.echo(f"report: {path}   ({res['requests']} STT requests, {res['stt_seconds'] / 60:.1f} min audio, "
+               f"{res['errors']} errors; TTS API calls {tts.calls}, {tts.chars} chars, cache hits {tts.hits})")
 
 
 @app.command()
@@ -438,7 +513,9 @@ def dashboard(host: str = "127.0.0.1", port: int = 8000, suites: Path = Path("su
 @app.command("serve-agent")
 def serve_agent(version: str = typer.Option("v1", help="v1 (seeded bugs) or v2 (fixed)"),
                 host: str = "127.0.0.1", port: int = 8765, voice: str = "Kalpana",
-                guard: bool = typer.Option(False, help="Bhool Guard checks every line before it is spoken")):
+                guard: bool = typer.Option(False, help="Bhool Guard checks every line before it is spoken"),
+                protocol: str = typer.Option("bhool", help="bhool (harness protocol) or twilio (Twilio Media Streams, "
+                                                           "as a phone agent speaks it)")):
     """Serve the reference EMI-collection agent (Prisma + Evon + Timbre) at ws://host:port."""
     from .gnani import Evon, Prisma, Timbre
     from .guard import evon_translator
@@ -457,7 +534,7 @@ def serve_agent(version: str = typer.Option("v1", help="v1 (seeded bugs) or v2 (
         llm=lambda msgs: evon.chat_json(msgs, temperature=0.4, max_tokens=300),
         tts=lambda text, v, lang: tts.synthesize(text, voice=voice, lang=lang),
         host=host, port=port,
-        translate=evon_translator(evon),
+        translate=evon_translator(evon), protocol=protocol,
     ))
 
 
@@ -649,6 +726,38 @@ def playbooks_build(path: Path = Path("playbooks/industries.yaml"), scorecards: 
     for sc, su in write_all(books, scorecards, suites):
         typer.echo(f"  {sc}  {su}")
     typer.echo(f"{len(books)} industry playbooks built. Audit with: bhool qa simulate {scorecards}/<id>.yaml")
+
+
+inya_app = typer.Typer(add_completion=False, help="Agents built on Gnani's Inya platform, tested from the outside.")
+app.add_typer(inya_app, name="inya")
+
+
+@inya_app.command("deploy")
+def inya_deploy(suite_path: Path, persona: str = typer.Option(None, help="Whose account record the agent gets (default: first)"),
+                bot_id: str = typer.Option(None, help="Update this existing agent instead of creating one")):
+    """Build the suite's agent on Inya from its SOP (Create Agent + Update Agent) and print its botId."""
+    from .inya import Inya, agent_fields
+    _utf8_console()
+    load_dotenv()
+    suite = load_suite(suite_path)
+    p = next((x for x in suite.personas if x.id == persona), suite.personas[0])
+    inya = Inya()
+    bot_id = bot_id or inya.create_agent(f"bhool-{suite.name}-{p.id}", f"Bhool Bhulaiya test agent ({suite.name})")
+    inya.update_agent(bot_id, **agent_fields(suite, p))
+    typer.echo(f"Inya agent {bot_id} ({p.id}). Next: whitelist Bhool's Twilio number in Inya, then")
+    typer.echo(f"  bhool run {suite_path} --target inya --agent-id {bot_id} --only <case>")
+
+
+@inya_app.command("logs")
+def inya_logs(bot_id: str, limit: int = 10):
+    """Inya's own log of recent calls with an agent: who said what, as the platform recorded it."""
+    from .inya import Inya
+    _utf8_console()
+    load_dotenv()
+    for c in Inya().logs(bot_id, page_size=limit):
+        typer.echo(f"{c.get('conversationId')}  {c.get('name')}  {len(c.get('transcript') or [])} turns")
+        for m in (c.get("transcript") or [])[:12]:
+            typer.echo(f"   {m.get('role'):9} {m.get('content', '')}")
 
 
 qa_app = typer.Typer(add_completion=False, help="Quality audits of real calls: evidence-backed scorecards, analytics, coaching.")

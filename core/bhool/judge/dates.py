@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import re
 
+from .numbers import word_value
+
 _DIGITS = str.maketrans("०१२३४५६७८९૦૧૨૩૪૫૬૭૮૯", "01234567890123456789")
 
 _HI = ["एक", "दो", "तीन", "चार", "पांच|पाँच", "छह|छः|छ", "सात", "आठ", "नौ", "दस", "ग्यारह", "बारह", "तेरह", "चौदह",
@@ -47,6 +49,15 @@ WEEKDAYS: dict[str, list[str]] = {
 _SPLIT = re.compile(r"[\s,.;:!?।()\"'“”‘’/-]+")
 
 
+SLASH_WORDS = {"by", "upon", "बटा", "બટા", "બાય"}
+
+
+def _num(tok: str) -> int | None:
+    if tok.isdigit():
+        return int(tok)
+    return DAY_WORDS.get(tok) or word_value(tok)
+
+
 def _tokens(text: str) -> list[str]:
     return [t for t in _SPLIT.split(text.lower().translate(_DIGITS)) if t]
 
@@ -65,8 +76,30 @@ def date_keys(text: str) -> set[str]:
         if any(_is(t, n) for t in toks for n in names if len(n) > 2 or t == n):
             keys.add(f"m{m}")
     marker = any(_is(t, w) for t in toks for w in MARKERS)
-    days = set()
-    for t in toks:
+    days, month_at = set(), set()                        # month_at: tokens used as a month number, not a day
+    # Found by `bhool atlas` (Prisma heard these right; this reader did not):
+    for i, (a, sep, b) in enumerate(zip(toks, toks[1:], toks[2:])):   # "15/11" aloud: "fifteen by eleven", "पंद्रह बटा ग्यारह"
+        if sep in SLASH_WORDS:
+            d, m = _num(a), _num(b)
+            if d and m and 1 <= d <= 31 and 1 <= m <= 12:
+                days.add(d)
+                keys.add(f"m{m}")
+                month_at.add(i + 2)
+    for t in toks:                                       # English ordinals in Devanagari: "फिफ्टींथ" = fifteenth
+        if t.endswith("थ") and len(t) > 3:
+            stem = t[:-1].rstrip("्")
+            n = word_value(stem[:-1] + "न" if stem.endswith("ं") else stem)
+            if n and 1 <= n <= 31:
+                days.add(n)
+                marker = True
+    for d, m in re.findall(r"(?<![\d/])(\d{1,2})/(\d{1,2})(?:/\d{2,4})?(?![\d/])", low):   # 15/11 is day/month in India
+        if 1 <= int(d) <= 31 and 1 <= int(m) <= 12:
+            days.add(int(d))
+            keys.add(f"m{int(m)}")
+            month_at |= {i for i, t in enumerate(toks) if t == m}
+    for i, t in enumerate(toks):
+        if i in month_at:
+            continue
         d = re.fullmatch(r"(\d{1,2})(st|nd|rd|th)?", t)
         if d and 1 <= int(d.group(1)) <= 31:
             days.add(int(d.group(1)))

@@ -27,6 +27,8 @@ FILES = [   # (source under runs/, destination under results/, what it proves)
     ("judge-bench.json", "judge-bench/judge-bench.json", "the judge and the code checks vs 27 hand labels on 17 live calls"),
     ("injection-bench.json", "judge-bench/injection-wording.json", "old vs new injection wording on 13 labelled calls"),
     ("asr-bench/asr_bench.json", "prisma/asr_bench.json", "Prisma character error per language and phone line (18 utterances)"),
+    ("atlas/atlas.json", "atlas/atlas.json", "phone-line atlas: 3,366 Prisma transcripts of IDs, amounts and dates, noise x SNR, re-read with fixed readers"),
+    ("atlas/atlas.html", "atlas/atlas.html", "the same, as a page: survival per phrasing and SNR, and what an agent should do"),
     ("digit-bug.json", "live-gnani/digit-bug.json", "Prisma's transcript of a caller's '4821', and what each digit parser makes of it"),
 ]
 LIVE = {  # dashboard calls through real Gnani speech (Timbre voices, Prisma ears), 2 Nov
