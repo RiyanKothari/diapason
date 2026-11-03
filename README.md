@@ -124,6 +124,7 @@ bhool ingest suites/emi_collection.yaml calls/*.wav    # judge real stereo calls
 | `bhool rating PROOF_DIR --stress STRESS_DIR` | **crash-test rating**: five measured axes (compliance, security, language, turn-taking, noise) and an overall star rating per agent, with SVG badges | none |
 | `bhool serve-agent --version v1` + Guard | **Bhool Guard**: every line the agent is about to speak is checked in code and rewritten before TTS (see below) | none |
 | `bhool site` | a **static showcase** to share as a link: landing page of measured numbers, the accuracy proof with its recordings, and the QA Studio with its data baked in | none |
+| `bhool dashboard` → `/watch` | **the film**: the demo played from run files, with the live call's recording | none |
 | `bhool dashboard` → `/studio` | **QA Studio**: segment tiles, a parameter × call heatmap, every verdict with its quote, click to hear the moment | none |
 | `bhool proof` | **one accuracy page**: planted bugs caught by the tests (v1 vs fixed v2) + QA-Bench; Evon plays agent, callers and judge over simulated phone audio | Evon only, no Gnani credits |
 | `bhool autopilot --agent v2` | **red team + self-repair**: Evon designs attack callers, breeds new ones from what broke the agent, saves every hit as a regression suite, then patches the prompt and keeps only fixes that a re-run proves (fixed ≥ 1, broke 0) | Evon only, no Gnani credits |
@@ -297,12 +298,17 @@ acknowledge, close) and at most one short sentence of empathy. Code then:
 - confirms a date only if the caller said it ("a date the caller never said is not a promise");
 - picks the language from the caller's script, so a Gujarati caller hears Gujarati because there is a Gujarati template;
 - ends a loop: the same question asked a third time becomes a callback offer;
+- remembers a third party: someone who says they are not the borrower is never asked to verify or asked the same thing twice;
 - drops the model's own sentence if it carries a number, a date or another script, and sends every line through Guard.
 
 A hallucinated amount can't be spoken because the model never writes one. On the live proof v4 removes all 6 of v1's text bugs
-and passes 5 of the 6 cases on every check, metrics included; every other version passes 0. The sixth is the brother call: v4
-asked when Suresh could be reached and said nothing about the loan (the code check passes it), and the judge failed it on tone
-and verification. v4's crash-test rating is 4 stars: compliance, security, turn-taking and noise 5, language 4.
+and passes 5 of the 6 cases on every check, metrics included; every other version passes 0. The sixth is the brother call,
+and the judge was right to fail it: v4 never named the debt (the privacy check passes), but it asked the brother the same
+callback question twice, word for word, then introduced itself again and asked *him* for the loan ID. Fixed in code on 4 Nov:
+once someone says they are not the borrower, they are asked when to call back once, never asked to verify, and the call ends
+politely; only the borrower's own digits undo it. The regression test replays the acts Evon chose on that call
+([test_acts.py](tests/test_acts.py)). Not yet re-run live: that needs Evon, so the table above still says 5 / 6.
+v4's crash-test rating is 4 stars: compliance, security, turn-taking and noise 5, language 4.
 
 v4's limits: its sentences are templates, so it sounds the same on every call and only speaks Hindi, Gujarati and English; the
 act set fits payment reminders and would need writing for another use case; and its one noise-sweep failure (a 0 dB fan call
@@ -420,7 +426,14 @@ Seeded bugs prove the harness catches what you already suspect. `bhool autopilot
 
 Output: `autopilot.html` with every attack, the judge's quoted evidence, the rules added and before/after.
 
-## Share it: the static showcase
+## Share it: the static showcase and the film
+
+**The film** (`site/watch.html`, or `/watch` on `bhool dashboard`) is the demo as a two-minute player in the browser, with
+nothing typed in: each scene is drawn from run files when the page is built. It plays a live v1 call's own recording (Timbre
+voices, the phone-line simulator, Prisma) with the transcript, reply latencies and failed checks in sync, then the eight
+planted-bug tests, Guard's rewrites, the v1 → v4 matrix, the phone-line atlas, the noise sweep and QA accuracy. It has
+chapters, keyboard controls (space, ←/→, M) and a record mode (R, or `?record`) that hides the controls for screen recording.
+Each scene says which file it came from; rebuild after a new run and the film changes with the evidence.
 
 `bhool site` writes `site/`: a landing page that replays one real test call twice, side by side (the buggy agent as
 shipped, and the same agent behind Guard, with each rewrite and each verdict appearing as it happens), the measured numbers, the latest accuracy proof (reports and test-call

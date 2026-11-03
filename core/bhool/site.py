@@ -93,11 +93,32 @@ def build_site(out: Path, runs_dir: Path = Path("runs"), scorecards_dir: Path = 
     replay = json.loads((auto / "autopilot.json").read_text(encoding="utf-8")).get("replay") if auto else None
     asr_dir = _latest(runs_dir, "asr_bench.json")
     asr = json.loads((asr_dir / "asr_bench.json").read_text(encoding="utf-8")) if asr_dir else None
-    (out / "index.html").write_text(_landing(proof, p, sims, data, voiced, bool(auto), repo_url, stress_data, rating, replay, asr), encoding="utf-8")
+    atlas_dir = _latest(runs_dir, "atlas.json")
+    atlas = json.loads((atlas_dir / "atlas.json").read_text(encoding="utf-8")) if atlas_dir else _results_json("atlas/atlas.json")
+    atlas_page = (atlas_dir / "atlas.html") if atlas_dir else Path(__file__).resolve().parents[2] / "results" / "atlas" / "atlas.html"
+    if atlas_page.exists():
+        shutil.copy2(atlas_page, out / "atlas.html")
+    (out / "index.html").write_text(_landing(proof, p, sims, data, voiced, bool(auto), repo_url, stress_data, rating, replay, asr,
+                                             has_atlas=atlas_page.exists(), atlas=atlas), encoding="utf-8")
+
+    # the demo as a film: its call scene plays a live recording, so that one file is copied beside it
+    from . import film
+    def film_audio(src: Path) -> str:
+        dst = out / "film" / f"{src.parents[2].name}.wav"
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+        return f"film/{dst.name}"
+    reel = film.film(runs_dir, proof, film_audio, stress=stress_data, atlas=atlas, scorecards=scorecards_dir)
+    (out / "watch.html").write_text(film.page(reel), encoding="utf-8")
     return {"out": str(out), "audits": len(data["audits"]), "voiced_calls": voiced, "proof": proof.name if proof else None,
             "stress": stress.name if stress else None, "rating": bool(rating),
-            "simulations": [n for n, _ in sims], "autopilot": auto.name if auto else None,
+            "simulations": [n for n, _ in sims], "autopilot": auto.name if auto else None, "film_scenes": len(reel["scenes"]),
             "megabytes": round(sum(f.stat().st_size for f in out.rglob("*") if f.is_file()) / 1e6, 1)}
+
+
+def _results_json(rel: str) -> dict | None:
+    f = Path(__file__).resolve().parents[2] / "results" / rel
+    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
 
 
 def _pct(x) -> str:
@@ -180,7 +201,8 @@ def _replay(proof: Path, t: dict) -> dict | None:
 
 
 def _landing(proof: Path | None, p: dict | None, sims: list, data: dict, voiced: int, has_auto: bool, repo_url: str,
-             stress: dict | None = None, rating: dict | None = None, replay: dict | None = None, asr: dict | None = None) -> str:
+             stress: dict | None = None, rating: dict | None = None, replay: dict | None = None, asr: dict | None = None,
+             has_atlas: bool = False, atlas: dict | None = None) -> str:
     kpis = []
     if p:
         t, q = p["tests"], p["qa"]
@@ -220,13 +242,24 @@ def _landing(proof: Path | None, p: dict | None, sims: list, data: dict, voiced:
         by = asr["by_preset"]
         kpis.append({"label": f"Prisma character error on a 5 dB crowded-market phone line (clean line: {100 * by['clean']:.1f}%)",
                      "value": None, "display": f"{100 * by['market']:.1f}%"})
+    if atlas and atlas.get("requests"):
+        names = {"hi": "Hindi", "gu": "Gujarati", "en": "English"}
+        kinds = {"id": "loan IDs", "amount": "amounts", "date": "dates"}
+        reads = [f"{names.get(k.split('/')[0], k)} {kinds.get(k.split('/')[1], k.split('/')[1])} below {v['read_back_below_snr']} dB"
+                 for k, v in (atlas.get("policy") or {}).items() if v.get("read_back_below_snr")]
+        kpis.append({"label": "amounts, dates and IDs spoken by Timbre through a noisy phone line and heard by Prisma, "
+                              f"{atlas.get('errors', 0)} errors; read back " + ("; ".join(reads) if reads else "never needed"),
+                     "value": atlas["requests"], "display": f"{atlas['requests']:,}"})
     n_ind = sum(c.get("group") == "industries" for c in data["scorecards"])
     kpis += [{"label": "industry playbooks with their regulations", "value": n_ind, "display": str(n_ind)},
              {"label": "calls voiced through Timbre → phone line → Prisma", "value": voiced, "display": str(voiced)}]
-    links = [{"title": "QA Studio", "href": "studio.html", "text": "Every segment and industry, every verdict with the agent's own words; click to hear the moment."},
+    links = [{"title": "The demo, as a film", "href": "watch.html", "text": "A live call, planted bugs, Guard, v1 to v4, the atlas and QA, played from the run files."},
+             {"title": "QA Studio", "href": "studio.html", "text": "Every segment and industry, every verdict with the agent's own words; click to hear the moment."},
              {"title": "Accuracy proof", "href": "proof/proof.html", "text": "Seeded bugs (v1), their fix (v2), v1 behind Guard, and QA-Bench with truth built in code."}]
     if rating:
         links.append({"title": "Crash-test rating", "href": "proof/rating/rating.html", "text": "Five measured axes per agent, with SVG badges."})
+    if has_atlas:
+        links.append({"title": "Phone-line atlas", "href": "atlas.html", "text": "Which amounts, dates and IDs survive the line, by language and noise, and when to read them back."})
     if stress:
         links.append({"title": "Noise breaking point", "href": "stress/stress.html", "text": "Fan, traffic, office and crowd noise from 30 dB to 0 dB."})
     links += [{"title": f"{len(rows)} {'industries' if n.startswith('industries') else 'segments'}: simulated calls", "href": f"{n}/segments.html",

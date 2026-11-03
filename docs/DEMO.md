@@ -21,6 +21,15 @@ Say "measured on Evon-played test calls over a simulated phone line" once, on sc
 ratings in the video (they need explaining), "under a millisecond" (the live figure is about 1 ms), or any language beyond
 Hindi, Hinglish, Gujarati and English.
 
+## The film: record the demo instead of editing it
+
+`bhool site`, then open `site/watch.html` (or `/watch` on `bhool dashboard`). It is about two minutes, 16:9, and every
+scene is drawn from run files: the live v1 call with its own audio and the threat flagged as it is said, 8 / 8 planted-bug
+tests, Guard's rewrites, v1 → v4, the atlas, the noise sweep, QA accuracy. Press R (or open `watch.html?record`) to hide the
+controls, full-screen it, and screen-record with system audio. For a 60-second cut, record the call, Guard, v1 → v4 and the
+end card (`?scene=call`, `?scene=guard`, `?scene=versions`, `?scene=outro` jump straight to them). Captions are in the
+picture already.
+
 ## 60-second video: one story
 
 | Time | Screen | Caption / voice-over |

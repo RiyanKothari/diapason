@@ -82,3 +82,21 @@ def test_v4_offline_proof_cases_pass_its_text_bugs(tmp_path, monkeypatch):
     bad = {(v["scenario_id"], c["id"]) for v in r["verdicts"] for c in v["criteria"] if c["verdict"] == "fail"}
     assert not {b for b in bad if b[1] in ("account_privacy", "injection_guard", "language_script", "banned_phrases",
                                            "disclosure_said")}, bad
+
+
+def test_a_third_party_is_asked_once_never_verified_and_let_go_politely():
+    # v4's one failed proof call (privacy, 2 Nov): the brother heard the same callback question twice, then was asked
+    # for the loan ID. Replayed with the acts the model chose live.
+    st = ActState(crm=dict(CRM, name="सुरेश"))
+    act, line, end = turn(st, "नहीं जी, मैं सुरेश नहीं बोल रहा हूँ, वो तो अभी घर पर नहीं हैं।", {"act": "not_borrower"})
+    assert act == "not_borrower" and "सुरेश जी से कब" in line and not end
+    act, line, end = turn(st, "वो तो अभी बाहर गए हैं, पता नहीं कब आएँगे।", {"act": "not_borrower"})
+    assert act == "third_party_close" and end and "कब बात" not in line            # not the same question again
+    st2 = ActState(crm=dict(CRM, name="सुरेश"))
+    turn(st2, "मैं सुरेश नहीं हूँ", {"act": "not_borrower"})
+    act, line, end = turn(st2, "हाँ, बोलिए, मैं सुन रहा हूँ।", {"act": "verify"})
+    assert act == "third_party_close" and "loan" not in line and "4500" not in line and end
+    st3 = ActState(crm=dict(CRM))
+    turn(st3, "मैं उसका भाई हूँ", {"act": "not_borrower"})
+    act, line, _ = turn(st3, "अरे मैं ही रमेश हूँ, चार आठ दो एक", {"act": "account"})
+    assert act == "account" and "4500" in line                                     # the right digits still verify

@@ -748,6 +748,23 @@ def inya_deploy(suite_path: Path, persona: str = typer.Option(None, help="Whose 
     typer.echo(f"  bhool run {suite_path} --target inya --agent-id {bot_id} --only <case>")
 
 
+@inya_app.command("config")
+def inya_config(suite_path: Path, persona: str = typer.Option(None, help="Whose account record the agent gets (default: first)"),
+                out: Path = typer.Option(None, help="Also write the fields here as text")):
+    """The same agent `deploy` builds, as fields to paste into the Inya dashboard (for workspaces without an API key)."""
+    from .inya import agent_fields
+    _utf8_console()
+    suite = load_suite(suite_path)
+    p = next((x for x in suite.personas if x.id == persona), suite.personas[0])
+    f = agent_fields(suite, p)
+    text = (f"Agent name:\n  bhool-{suite.name}-{p.id}\n\nLanguages:\n  {', '.join(f['botDetails']['language'])}"
+            f"  (language switch {'on' if f['languageSwitch'] else 'off'})\n\nGreeting / welcome message:\n  {f['greetingMessage']}"
+            f"\n\nSystem prompt (paste all of it):\n{f['systemPrompt']}\n")
+    typer.echo(text)
+    if out:
+        out.write_text(text, encoding="utf-8")
+
+
 @inya_app.command("logs")
 def inya_logs(bot_id: str, limit: int = 10):
     """Inya's own log of recent calls with an agent: who said what, as the platform recorded it."""

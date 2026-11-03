@@ -8,6 +8,8 @@ model's hands. Each turn Evon returns one dialogue act from a fixed set and, at 
 - refuses any act that needs verification before it, and any date the caller never said,
 - speaks every fact (amount, due date, promised date) from the account record, in the caller's language and script,
 - breaks loops: the same question three times ends in a callback instead of a fourth ask,
+- remembers a third party: once someone says they are not the borrower, they are never asked to verify, never asked
+  the same question twice, and the call ends politely (v4's one failed proof call: it asked the brother for the loan ID),
 - and still sends every line through Bhool Guard.
 
 So a fact can't be hallucinated (the model never writes one), and a wrong language is a missing template, not a model slip.
@@ -62,6 +64,7 @@ LINES = {
         "callback": "मैं हमारी टीम से आपको callback करवा देती हूँ, वो आपकी पूरी मदद करेंगे। धन्यवाद।",
         "decline": "माफ़ कीजिए, इसमें मैं मदद नहीं कर सकती।",
         "close": "धन्यवाद, आपका दिन शुभ हो।",
+        "third_party_close": "ठीक है, मैं बाद में फिर call कर लूँगी। आपके समय के लिए धन्यवाद।",
         "acknowledge": "जी, मैं {lender} से बोल रही हूँ।",
     },
     "gu": {
@@ -74,6 +77,7 @@ LINES = {
         "callback": "હું અમારી ટીમ પાસેથી તમને callback કરાવી દઉં છું, તેઓ તમારી પૂરી મદદ કરશે. આભાર.",
         "decline": "માફ કરશો, તેમાં હું મદદ કરી શકતી નથી.",
         "close": "આભાર, તમારો દિવસ શુભ રહે.",
+        "third_party_close": "ઠીક છે, હું પછી ફરી call કરી લઈશ. તમારા સમય માટે આભાર.",
         "acknowledge": "જી, હું {lender} તરફથી બોલું છું.",
     },
     "en": {
@@ -86,6 +90,7 @@ LINES = {
         "callback": "I'll arrange a callback from our team; they'll help you fully. Thank you.",
         "decline": "Sorry, I can't help with that.",
         "close": "Thank you, have a good day.",
+        "third_party_close": "Okay, I'll call back later. Thank you for your time.",
         "acknowledge": "Yes, I'm calling from {lender}.",
     },
 }
@@ -94,7 +99,7 @@ SCRIPT_LANG = {"gujarati": "gu", "devanagari": "hi", "latin": "en"}
 RELATIVE = {"today": ("आज", "આજે", "today"), "tomorrow": ("कल", "આવતીકાલે", "tomorrow"),
             "day_after": ("परसों", "પરમદિવસે", "the day after tomorrow")}
 _NUMERIC = re.compile(r"[0-9०-९૦-૯]")
-ENDS = ("confirm", "callback", "close")
+ENDS = ("confirm", "callback", "close", "third_party_close")
 
 
 def month_name(m: int, lang: str) -> str:
@@ -127,6 +132,7 @@ class ActState:
     identity: str = "locked"          # locked | mismatch | verified | stated
     lang: str = "hi"
     mismatches: int = 0
+    third_party: bool = False         # someone said they are not the borrower; only correct digits undo it
     asked: dict = field(default_factory=dict)
     caller_text: list = field(default_factory=list)
     slots: dict = field(default_factory=dict)
@@ -145,7 +151,7 @@ class ActState:
             return
         said, want = spoken_digits(text), str(self.crm.get("loan_id_last4") or "")
         if want and want in said:
-            self.identity = "verified"
+            self.identity, self.third_party = "verified", False
             self.slots["loan_id_last4"] = want
         elif len(said) == 4:          # a wrong 4-digit answer, not a date or a phone number
             self.identity, self.mismatches = "mismatch", self.mismatches + 1
@@ -179,6 +185,11 @@ def decide(out: dict, st: ActState) -> tuple[str, str, bool]:
         date_line = say_date(keys, lang) if keys and keys <= heard else None
         if not date_line:
             act = "ask_date"                             # a date the caller never said is not a promise
+    if st.third_party and not st.verified and act != "acknowledge":
+        # a third party is asked when to call back once; anything after that (another ask, a request to verify) ends it
+        act = "decline" if act == "decline" else "third_party_close"
+    elif act == "not_borrower":
+        st.third_party = True
     if act == "verify" and st.identity == "mismatch":
         act = "mismatch"
         if st.mismatches >= 2:
@@ -198,10 +209,10 @@ def decide(out: dict, st: ActState) -> tuple[str, str, bool]:
     if act == "callback":
         st.slots["callback"] = "yes"
     note = _clean_note(out.get("note", ""), lang)
-    if act == "decline" and not st.verified:
+    if act == "decline" and not st.verified and not st.third_party:
         line = f"{line} {t['verify']}"
     if act == "acknowledge" and note:
         line = note                                      # its own words, checked: no facts, right script
-    elif note and act in ("callback", "decline", "not_borrower", "close"):
+    elif note and act in ("callback", "decline", "not_borrower", "close", "third_party_close"):
         line = f"{note} {line}"
     return act, line, act in ENDS
