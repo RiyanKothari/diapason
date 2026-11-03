@@ -3,6 +3,7 @@ name = "diapason"
 version = "0.1.0"
 description = "Diapason: adversarial, telephony-realistic testing for Indian voice agents, built on Gnani AI Prisma, Evon and Timbre."
 requires-python = ">=3.11"
+license = {text = "MIT"}
 dependencies = [
   "numpy>=2.0",
   "scipy>=1.13",
@@ -18,7 +19,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
-video = ["imageio-ffmpeg>=0.5"]      # scripts/make_video.py (also needs Chrome or Edge)
+video = ["imageio-ffmpeg>=0.5", "playwright>=1.47"]      # scripts/render_film.py and make_video.py (need Chrome or Edge)
 
 [project.scripts]
 diapason = "diapason.cli:app"

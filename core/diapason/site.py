@@ -110,6 +110,8 @@ def build_site(out: Path, runs_dir: Path = Path("runs"), scorecards_dir: Path = 
         return f"film/{dst.name}"
     reel = film.film(runs_dir, proof, film_audio, stress=stress_data, atlas=atlas, scorecards=scorecards_dir)
     (out / "watch.html").write_text(film.page(reel), encoding="utf-8")
+    (out / "watch-60.html").write_text(film.page(film.film(runs_dir, proof, film_audio, stress=stress_data, atlas=atlas,
+                                                           scorecards=scorecards_dir, short=True)), encoding="utf-8")
     return {"out": str(out), "audits": len(data["audits"]), "voiced_calls": voiced, "proof": proof.name if proof else None,
             "stress": stress.name if stress else None, "rating": bool(rating),
             "simulations": [n for n, _ in sims], "autopilot": auto.name if auto else None, "film_scenes": len(reel["scenes"]),

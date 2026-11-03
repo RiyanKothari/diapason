@@ -23,15 +23,18 @@ class Components:
     tts: Any = None
 
 
-def live_components(suite: Suite, url: str | None = None, judge: bool = True) -> Components:
+def live_components(suite: Suite, url: str | None = None, judge: bool = True, target: str | None = None) -> Components:
+    """target overrides the suite's target type for a URL given at run time: "websocket" (Diapason's protocol) or
+    "media_stream" (Twilio Media Streams), so one suite can test any agent the dashboard points it at."""
     from .call.telephony import MediaStreamAgent
     from .call.transport import WebSocketAgent
     from .caller.brain import EvonBrain
     from .gnani import Evon, Prisma, Timbre
     load_dotenv()
     target_url = url or suite.target.url
-    connect = phone_connector(suite) if suite.target.type in ("phone", "inya") else (
-        (lambda s: MediaStreamAgent(target_url)) if suite.target.type == "media_stream"
+    kind = target or suite.target.type
+    connect = phone_connector(suite) if kind in ("phone", "inya") else (
+        (lambda s: MediaStreamAgent(target_url)) if kind == "media_stream"
         else (lambda s: WebSocketAgent(target_url, suite.target.sample_rate)))
     tts, stt, evon = Timbre(), Prisma(), Evon()
 

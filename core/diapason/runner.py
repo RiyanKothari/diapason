@@ -257,8 +257,10 @@ async def run_suite(
                 return
             records.append(rec)
             verdicts.append(v)
+            from .checks import explain_verdict
             emit({"type": "verdict", "scenario": s.id, "run": run, "passed": v.passed,
-                  "failures": [c.id for c in v.criteria if c.verdict in ("fail", "review")] + v.metric_failures})
+                  "failures": [c.id for c in v.criteria if c.verdict in ("fail", "review")] + v.metric_failures,
+                  "details": explain_verdict(v)})
 
     await asyncio.gather(*(one(s, r) for s in scenarios for r in range(suite.runs_per_scenario)))
     report = aggregate(suite, run_id, started, records, verdicts, scenarios, usage.to_dict())
@@ -348,9 +350,12 @@ def estimate_usage(suite: Suite, scenarios: list[Scenario] | None = None, avg_ca
     scenarios = scenarios if scenarios is not None else suite.expand()
     calls = len(scenarios) * suite.runs_per_scenario
     turns = sum(min(s.behaviour.max_turns, 10) for s in scenarios) * suite.runs_per_scenario
+    tts_max, stt_max = turns * avg_caller_chars, round(turns * avg_agent_turn_s)
     return {
         "calls": calls,
         "max_caller_turns": turns,
+        # Gnani's published rates: about 555 TTS characters or 3 STT minutes per credit (Evon is self-hosted: no credits)
+        "credits_max": round(tts_max / 555 + stt_max / 60 / 3, 1),
         "tts_chars_max": turns * avg_caller_chars,
         "stt_seconds_max": round(turns * avg_agent_turn_s),
         "evon_calls_max": turns + calls * judge_samples,
