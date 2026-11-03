@@ -514,8 +514,8 @@ def dashboard(host: str = "127.0.0.1", port: int = 8000, suites: Path = Path("su
 def serve_agent(version: str = typer.Option("v1", help="v1 (seeded bugs) or v2 (fixed)"),
                 host: str = "127.0.0.1", port: int = 8765, voice: str = "Kalpana",
                 guard: bool = typer.Option(False, help="Diapason Guard checks every line before it is spoken"),
-                protocol: str = typer.Option("diapason", help="diapason (harness protocol) or twilio (Twilio Media Streams, "
-                                                           "as a phone agent speaks it)")):
+                protocol: str = typer.Option("diapason", help="diapason (harness protocol), or a phone platform's media stream "
+                                                           "as an agent taking calls speaks it: twilio, exotel or plivo")):
     """Serve the reference EMI-collection agent (Prisma + Evon + Timbre) at ws://host:port."""
     from .gnani import Evon, Prisma, Timbre
     from .guard import evon_translator
@@ -536,6 +536,46 @@ def serve_agent(version: str = typer.Option("v1", help="v1 (seeded bugs) or v2 (
         host=host, port=port,
         translate=evon_translator(evon), protocol=protocol,
     ))
+
+
+@app.command()
+def shield(agent: str = typer.Option(..., help="The agent's media-stream websocket URL (where the platform used to stream calls)"),
+           dialect: str = typer.Option("twilio", help="The platform's stream format: twilio, exotel or plivo"),
+           mode: str = typer.Option("monitor", help="monitor: flag, never touch the call. block: hold each agent line until checked"),
+           host: str = "127.0.0.1", port: int = 8791,
+           crm: Path = typer.Option(None, help="JSON account record, if the platform does not pass it as stream parameters"),
+           voice: str = typer.Option(None, help="block mode: speak Guard's corrected line with this Timbre voice instead of silence"),
+           lang: str = typer.Option("hi-IN", help="Language Prisma transcribes in"),
+           listen_caller: bool = typer.Option(True, help="Also transcribe the caller, so Shield knows when they verified"),
+           out: Path = typer.Option(Path("runs/shield"), help="Where every verdict is logged (the dashboard reads it)")):
+    """Diapason Shield: put a compliance monitor in front of any voice agent's phone line, with no change to the agent.
+
+    Point the platform's stream at Shield (ws://host:port) instead of at the agent. Shield relays the call both ways and
+    checks everything the agent says with Guard's rules: threats, secret requests, the recording disclosure, account
+    details before verification. Transcription uses Prisma (credits per minute of agent speech, and of caller speech
+    with --listen-caller)."""
+    import json as _json
+
+    from .audio import float_to_pcm16, resample
+    from .gnani import Prisma, Timbre
+    from .shield import Shield
+    _utf8_console()
+    load_dotenv()
+    stt = Prisma()
+    speak = None
+    if voice:
+        tts = Timbre()
+
+        def speak(text: str) -> bytes:
+            x, sr = tts.synthesize(text, voice=voice, lang=lang)
+            return float_to_pcm16(resample(x, sr, 8000))
+    record = _json.loads(crm.read_text(encoding="utf-8")) if crm else {}
+    s = Shield(agent, hear=lambda x, sr: stt.transcribe_long(x, sr, lang) if x.size >= 0.2 * sr else "",
+               dialect_name=dialect, mode=mode, crm=record, speak=speak, listen_caller=listen_caller, log_dir=out,
+               on_event=lambda e: typer.echo(f"{e['t']:7.1f}s {e['side']:6} {e['verdict']:8} {e['text'][:90]}"
+                                             + (f"  [{', '.join(r['rule'] for r in e['rules'])}]" if e["rules"] else "")))
+    typer.echo(f"Diapason Shield ({mode}, {dialect}) on ws://{host}:{port} -> {agent}; log {out}")
+    asyncio.run(s.serve(host, port))
 
 
 @app.command()

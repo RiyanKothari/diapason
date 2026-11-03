@@ -274,34 +274,36 @@ class AgentSession:
 
 async def serve(version: str | AgentVersion, stt, llm, tts, host: str = "127.0.0.1", port: int = 8765,
                 ready: asyncio.Event | None = None, translate=None, protocol: str = "diapason"):
-    """protocol="diapason": the harness protocol (call/transport.py). protocol="twilio": Twilio Media Streams, as a voice
-    agent that takes phone calls speaks it; the CRM arrives as the stream's custom parameters."""
+    """protocol="diapason": the harness protocol (call/transport.py). protocol="twilio" | "exotel" | "plivo": that
+    platform's media stream, as a voice agent that takes phone calls speaks it; the CRM arrives as the stream's custom
+    parameters."""
     v = version if isinstance(version, AgentVersion) else VERSIONS[version]
 
-    async def twilio_handler(ws):
-        from .call.telephony import SR, media, mulaw_decode
+    async def stream_handler(ws):
+        from .call.dialects import SR, dialect
+        d = dialect(protocol)
         sid, ctx = "", {}
         async for raw in ws:
-            msg = json.loads(raw)
-            if msg.get("event") == "start":
-                sid, ctx = msg["start"]["streamSid"], dict(msg["start"].get("customParameters") or {})
+            kind, value = d.parse(json.loads(raw))
+            if kind == "start":
+                sid, ctx = value
                 break
 
-        async def send_json(d: dict) -> None:
-            if d.get("type") == "clear":
-                await ws.send(json.dumps({"event": "clear", "streamSid": sid}))
-            elif d.get("type") == "hangup":
+        async def send_json(m: dict) -> None:
+            if m.get("type") == "clear":
+                await ws.send(json.dumps(d.agent_clear(sid)))
+            elif m.get("type") == "hangup":
                 await ws.close()                       # a phone agent hangs up by ending the stream
 
-        session = AgentSession(v, stt, llm, tts, lambda pcm: ws.send(media(sid, pcm)), send_json, SR, ctx,
+        session = AgentSession(v, stt, llm, tts, lambda pcm: ws.send(json.dumps(d.agent_media(sid, pcm))), send_json, SR, ctx,
                                translate=translate)
         await session.start()
         try:
             async for raw in ws:
-                msg = json.loads(raw)
-                if msg.get("event") == "media":
-                    await session.on_frame(mulaw_decode(base64.b64decode(msg["media"]["payload"])))
-                elif msg.get("event") == "stop":
+                kind, value = d.parse(json.loads(raw))
+                if kind == "media":
+                    await session.on_frame(value)
+                elif kind == "stop":
                     break
         except websockets.ConnectionClosed:
             pass
@@ -324,7 +326,7 @@ async def serve(version: str | AgentVersion, stt, llm, tts, host: str = "127.0.0
             if session.task:
                 session.task.cancel()
 
-    async with websockets.serve(twilio_handler if protocol == "twilio" else handler, host, port, max_size=2**24):
+    async with websockets.serve(handler if protocol == "diapason" else stream_handler, host, port, max_size=2**24):
         if ready:
             ready.set()
         await asyncio.Future()

@@ -2,6 +2,8 @@
 (media_stream), and a fake Twilio relays a "phone call" between Diapason's bridge and the agent (phone)."""
 
 import asyncio
+
+import pytest
 import json
 
 import numpy as np
@@ -27,19 +29,20 @@ def test_mulaw_round_trip_is_g711_accurate():
     assert mulaw_encode(np.zeros(4, "<i2").tobytes()) == b"\xff" * 4    # silence is 0xFF
 
 
-async def _agent(port):
+async def _agent(port, protocol="twilio"):
     ready = asyncio.Event()
-    task = asyncio.create_task(serve("v2", fake_stt, fake_llm, fake_tts, port=port, ready=ready, protocol="twilio"))
+    task = asyncio.create_task(serve("v2", fake_stt, fake_llm, fake_tts, port=port, ready=ready, protocol=protocol))
     await ready.wait()
     return task
 
 
-def test_media_stream_target_drives_a_twilio_speaking_agent():
+@pytest.mark.parametrize("dialect", ["twilio", "exotel", "plivo"])
+def test_media_stream_target_drives_an_agent_in_each_platforms_dialect(dialect):
     async def go():
         port = free_port()
-        server = await _agent(port)
+        server = await _agent(port, dialect)
         try:
-            return await run_call(SCENARIO, MediaStreamAgent(f"ws://127.0.0.1:{port}"), ScriptedBrain(LINES),
+            return await run_call(SCENARIO, MediaStreamAgent(f"ws://127.0.0.1:{port}", dialect=dialect), ScriptedBrain(LINES),
                                   fake_speak(), fake_hear(), max_duration_s=45, agent_silent_timeout_s=7)
         finally:
             server.cancel()

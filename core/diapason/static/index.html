@@ -81,7 +81,9 @@ a{color:var(--fg);text-underline-offset:3px}.scroll{overflow-x:auto}.empty{color
       <label>Agent under test<select id="mode">
         <option value="offline">Built-in fake agent (offline, free)</option>
         <option value="websocket">Your agent: Diapason websocket</option>
-        <option value="media_stream">Your agent: Twilio Media Streams</option></select></label>
+        <option value="media_stream">Your agent: Twilio Media Streams</option>
+        <option value="exotel">Your agent: Exotel voicebot stream</option>
+        <option value="plivo">Your agent: Plivo audio stream</option></select></label>
       <label>Scenarios<input id="limit" type="number" min="1" value="4"></label>
       <label id="urlWrap" hidden>Agent URL<input id="url" type="text" placeholder="wss://your-agent.example.com/stream"></label>
       <button id="check" class="ghost" type="button" hidden>Check connection</button>
@@ -92,7 +94,7 @@ a{color:var(--fg);text-underline-offset:3px}.scroll{overflow-x:auto}.empty{color
     </div>
     <div class="est" id="est"></div>
     <div class="hint" id="checkOut" hidden></div>
-    <div class="hint" id="howto" hidden>Most voice stacks already speak <b>Twilio Media Streams</b> (it is how they take phone calls): paste that websocket URL.
+    <div class="hint" id="howto" hidden>Most voice stacks already take phone calls over a media stream: pick the platform yours runs on (<b>Twilio, Exotel or Plivo</b>) and paste that websocket URL.
       Otherwise the Diapason protocol is four messages: a JSON <code>start</code>, binary PCM both ways, and optional <code>clear</code> / <code>hangup</code>.
       Live calls use Timbre voices and Prisma ears, capped by the budgets above.</div>
   </section>
@@ -115,6 +117,13 @@ a{color:var(--fg);text-underline-offset:3px}.scroll{overflow-x:auto}.empty{color
     <div class="scroll"><table><thead><tr><th></th><th>Suite</th><th>Started</th><th>Calls</th><th>Pass rate</th><th>p95</th><th>Gate</th><th></th></tr></thead><tbody id="runs"></tbody></table></div>
     <div id="cmpOut" hidden></div>
   </section>
+
+  <h2 class="section-title">Shield: compliance on live calls</h2>
+  <p style="color:var(--muted);margin:-6px 0 12px">Any agent, no code change: point your Twilio, Exotel or Plivo stream at <code>diapason shield --agent &lt;its url&gt;</code>.
+    Monitor flags every line that breaks the rules; block holds each line until it is checked.</p>
+  <section class="kpis" id="shieldKpis"></section>
+  <section class="panel"><div class="scroll"><table><thead><tr><th>Call</th><th>At</th><th>Who</th><th>Said</th><th>Verdict</th><th>Rules</th></tr></thead>
+    <tbody id="shield"></tbody></table></div></section>
 
   <h2 class="section-title">How accurate is it? Proof and autopilot</h2>
   <p style="color:var(--muted);margin:-6px 0 12px">Measured against answers known in advance (<code>diapason proof</code>), and bugs nobody planted, found and fixed by Evon (<code>diapason autopilot</code>)</p>
@@ -203,6 +212,18 @@ async function loadProofs() {
     <td>${esc(p.generated)}</td><td>${esc(p.headline)}</td>
     <td><a href="/runs/${encodeURIComponent(p.dir)}/${p.page}" target="_blank">open</a></td></tr>`).join("")
     : `<tr><td colspan="4" class="empty">Run <code>diapason proof</code> or <code>diapason autopilot</code>.</td></tr>`;
+}
+async function loadShield() {
+  const s = await (await fetch("/api/shield")).json();
+  const k = [["Calls watched", s.calls], ["Agent lines checked", s.utterances], ["Flagged", s.flagged], ["Blocked or replaced", s.blocked],
+             ["Hold per line (block, p50)", s.held_ms_p50 == null ? "—" : `${s.held_ms_p50} ms`]];
+  $("shieldKpis").innerHTML = k.map(([a, b]) => `<div class="kpi"><span>${a}</span><b>${b}</b></div>`).join("");
+  const ev = s.events.filter((e) => e.side === "agent" || e.verdict === "heard").slice(-40).reverse();
+  const cls = { ok: "pass", flagged: "fail", blocked: "fail", replaced: "on", heard: "" };
+  $("shield").innerHTML = ev.length ? ev.map((e) => `<tr><td>${esc(String(e.call).slice(-8))}</td><td>${e.t.toFixed(1)}s</td><td>${esc(e.side)}</td>
+    <td>${esc(e.text)}${e.said_instead ? `<br><span class="ok">→ ${esc(e.said_instead)}</span>` : ""}</td>
+    <td><span class="pill ${cls[e.verdict] || ""}">${esc(e.verdict)}</span></td><td>${(e.rules || []).map((r) => esc(r.rule.replace(/_/g, " "))).join(", ")}</td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">No live calls yet. Start <code>diapason shield</code> and send a call through it.</td></tr>`;
 }
 function kpis() {
   $("kDone").textContent = `${done} / ${total}`;
@@ -313,7 +334,8 @@ $("run").onclick = async () => {
   if (!r.ok) alert((await r.json()).detail || "could not start");
 };
 fetch("/api/status").then((r) => r.json()).then((s) => { if (s.running) { $("status").className = "pill on"; $("status").textContent = "running"; $("run").disabled = true; } });
-loadSuites(); loadRuns(); loadAudits(); loadProofs(); connect();
+loadSuites(); loadRuns(); loadAudits(); loadProofs(); loadShield(); connect();
+setInterval(() => { if (!document.hidden) loadShield(); }, 3000);
 </script>
 </body>
 </html>

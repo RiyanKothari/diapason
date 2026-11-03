@@ -33,8 +33,9 @@ def live_components(suite: Suite, url: str | None = None, judge: bool = True, ta
     load_dotenv()
     target_url = url or suite.target.url
     kind = target or suite.target.type
+    dialect = {"exotel": "exotel", "plivo": "plivo"}.get(kind, getattr(suite.target, "dialect", None) or "twilio")
     connect = phone_connector(suite) if kind in ("phone", "inya") else (
-        (lambda s: MediaStreamAgent(target_url)) if kind == "media_stream"
+        (lambda s: MediaStreamAgent(target_url, dialect=dialect)) if kind in ("media_stream", "exotel", "plivo")
         else (lambda s: WebSocketAgent(target_url, suite.target.sample_rate)))
     tts, stt, evon = Timbre(), Prisma(), Evon()
 

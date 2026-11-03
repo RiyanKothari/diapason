@@ -32,8 +32,9 @@ EMOTION_TAGS = {
 
 
 class Target(BaseModel):
-    type: Literal["websocket", "media_stream", "phone", "inya"]   # media_stream: Twilio Media Streams over a websocket
+    type: Literal["websocket", "media_stream", "phone", "inya"]   # media_stream: a telephony media stream over a websocket
     url: str | None = None          # websocket target
+    dialect: Literal["twilio", "exotel", "plivo"] = "twilio"     # media_stream only: whose stream format the agent speaks
     number: str | None = None       # phone target, E.164
     agent_id: str | None = None     # inya target
     sample_rate: int = 16000

@@ -116,6 +116,7 @@ diapason ingest suites/emi_collection.yaml calls/*.wav    # judge real stereo ca
 | `diapason ingest SUITE WAVS...` | production calls -> verdicts -> regression cases | yes |
 | `diapason serve-agent --version v1\|v2` | the reference agent to test against | yes |
 | `diapason dashboard` | point it at your agent (Twilio Media Streams or Diapason websocket), **check the connection** before spending credits, watch every call live with each failure explained (severity, the agent's words, why it matters, how to fix), see the cost in Gnani credits up front, and **compare two runs**: fixed, regressed, still failing | per run |
+| `diapason shield` | **compliance in front of any live agent**: relay a Twilio, Exotel or Plivo call stream, check every agent line with Guard's rules, flag it (monitor) or hold and drop / correct it (block) | Prisma per minute of speech |
 | `diapason qa audit SCORECARD CALLS...` | QA audit of real calls (see below); `--offline`, `--labels`, `--baseline`, `--to-regressions` | Evon; STT for audio only |
 | `diapason qa template SUITE` | a ready scorecard from a suite's agent spec and rubric pack | none |
 | `diapason qa bench` | the auditor's own accuracy on calls with known verdicts | Evon (`--offline`: none) |
@@ -356,14 +357,14 @@ parsers the judge and the agents use. 3,366 Prisma requests, 0 failed, about 60 
 
 The page is `runs/atlas/atlas.html` (copied to [results/atlas/](results/atlas/)).
 
-## Test an agent from the outside: Inya, a phone number, or Twilio Media Streams
+## Test an agent from the outside: Twilio, Exotel or Plivo streams, a phone number, or Inya
 
 Diapason's own reference agents speak its harness protocol. Three targets reach agents Diapason does not run
 ([telephony.py](core/diapason/call/telephony.py), [inya.py](core/diapason/inya.py)):
 
 | `--target` | How the call happens | Needs |
 |---|---|---|
-| `media_stream` | Diapason plays Twilio and connects straight to the agent's Twilio Media Streams websocket: the bytes a phone agent gets live, with no phone and no telephony bill | the agent's `wss://` URL |
+| `media_stream` | Diapason plays the telephony platform and connects straight to the agent's media-stream websocket, in that platform's dialect: **Twilio** (`streamSid`, mu-law), **Exotel** voicebot stream (`stream_sid`, raw 16-bit PCM) or **Plivo** audio stream (`playAudio` / `clearAudio`, mu-law). The bytes a phone agent gets live, with no phone and no telephony bill | the agent's `wss://` URL; `dialect:` in the suite, or the dashboard's agent picker |
 | `phone` | Diapason dials the agent's number through Twilio and bridges the call's audio into the harness; the phone network is the channel | Twilio account and number, a tunnel (`DIAPASON_PUBLIC_URL`) |
 | `inya` | `diapason inya deploy` builds the suite's agent on Gnani's Inya platform from its SOP; Inya's Trigger Test Call phones Diapason's number and a Diapason caller answers | Inya API key, Diapason's Twilio number whitelisted in Inya |
 
@@ -375,8 +376,32 @@ diapason run suites/proof.yaml --target inya --agent-id <botId> --only language
 After an Inya run Diapason fetches Inya's own log of each call and writes `inya-crosscheck.json`: Diapason knows exactly what its caller
 said and Inya knows exactly what its agent said, so **each side's speech recognition over a real phone line is scored against the
 other side's words** (the agent's ears: Diapason's script vs Inya's user turns; Diapason's ears: Inya's agent turns vs Prisma).
-Offline, all three run end to end against the reference agent served as a phone agent (`diapason serve-agent --protocol twilio`;
-[tests](tests/test_telephony.py)). Not yet run against a live Inya agent or a real phone line.
+Offline, all of them run end to end against the reference agent served as a phone agent (`diapason serve-agent --protocol twilio|exotel|plivo`;
+[tests](tests/test_telephony.py)). The Exotel and Plivo formats follow their published stream docs
+([dialects.py](core/diapason/call/dialects.py)); not yet run against a live Exotel, Plivo or Inya account, or a real phone line.
+
+## Diapason Shield: compliance on live calls, for agents you didn't build
+
+Guard works inside an agent Diapason builds. **Shield** works in front of any agent, with no change to it: point the
+platform's media stream (Twilio, Exotel or Plivo) at Shield instead of at the agent, and Shield relays the call both ways
+while it listens ([shield.py](core/diapason/shield.py)). Each agent utterance is transcribed by Prisma and run through
+Guard's rules: banned threats, requests for OTPs and PINs, the recording disclosure, account details before the caller
+proved who they are (Shield transcribes the caller too, so it knows when they did).
+
+```bash
+diapason shield --agent wss://your-agent/stream --dialect exotel                 # monitor: flag every line, touch nothing
+diapason shield --agent wss://your-agent/stream --mode block --voice Shivani     # hold each line until checked
+```
+
+- **monitor** never changes the call and adds no latency; every line is logged with its verdict, live, in the dashboard's
+  Shield panel and in `runs/shield/` (one file per call, for QA).
+- **block** holds each agent line until it has been checked. A clean line plays; a violating one is dropped, or replaced by
+  Guard's corrected line spoken with Timbre (`--voice`). The price is latency, the length of the line plus transcription;
+  Shield measures it per line (`held_ms`) instead of hiding it. Offline, a threat ("वरना legal action होगा") is dropped on
+  all three dialects and the caller hears the disclosure and the verification question instead ([tests](tests/test_shield.py)).
+
+Not yet run on a live call: on one it costs Prisma minutes for the agent's speech (and the caller's, unless
+`--no-listen-caller`), and block mode's latency on real speech is unmeasured.
 
 ## How right is the judge? Measured on live calls
 

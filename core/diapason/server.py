@@ -39,7 +39,7 @@ class RunRequest(BaseModel):
 
 class AgentCheck(BaseModel):
     url: str
-    target: str = "websocket"      # websocket | media_stream
+    target: str = "websocket"      # websocket | media_stream (Twilio) | exotel | plivo
     timeout_s: float = 8.0
 
 
@@ -51,7 +51,8 @@ async def probe_agent(url: str, target: str = "websocket", timeout_s: float = 8.
     from .call.transport import WebSocketAgent
     if not url.startswith(("ws://", "wss://")):
         return {"ok": False, "stage": "url", "error": "the agent URL must start with ws:// or wss://"}
-    agent = MediaStreamAgent(url) if target == "media_stream" else WebSocketAgent(url, 16000)
+    stream = {"media_stream": "twilio", "exotel": "exotel", "plivo": "plivo"}.get(target)
+    agent = MediaStreamAgent(url, dialect=stream) if stream else WebSocketAgent(url, 16000)
     t0 = _t.perf_counter()
     try:
         await asyncio.wait_for(agent.start("connection-check", {}), timeout_s)
@@ -168,6 +169,12 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
     async def check_agent(req: AgentCheck):
         """Connect to an agent the way a test call would, and wait for it to speak: before any credits are spent."""
         return await probe_agent(req.url, req.target, req.timeout_s)
+
+    @app.get("/api/shield")
+    def shield_log():
+        """Diapason Shield's verdicts on live calls (diapason shield logs to runs/shield)."""
+        from .shield import summarize
+        return summarize(runs_dir / "shield")
 
     @app.get("/api/compare")
     def compare(a: str, b: str):
