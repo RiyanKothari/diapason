@@ -94,37 +94,50 @@ class _Stream:
 
 
 class MediaStreamAgent:
-    """Diapason plays Twilio and connects straight to an agent's Media Streams websocket. The CRM travels as the
-    stream's custom parameters, as it would from a Twilio <Stream><Parameter/> on a real call."""
+    """Diapason plays the telephony platform and connects straight to an agent's media-stream websocket, in the
+    platform's own dialect (twilio, exotel or plivo: call/dialects.py). The CRM travels as the stream's custom
+    parameters, as it would from a real call."""
 
     sample_rate = SR
 
-    def __init__(self, url: str, headers: dict | None = None):
-        self.url, self.headers = url, headers or {}
-        self.ws, self.stream = None, None
+    def __init__(self, url: str, headers: dict | None = None, dialect: str = "twilio"):
+        from .dialects import dialect as get
+        self.url, self.headers, self.d = url, headers or {}, get(dialect)
+        self.ws, self.sid = None, ""
         self.call_sid = "CA" + uuid.uuid4().hex
 
     async def start(self, scenario_id: str, context: dict | None = None) -> None:
         self.ws = await websockets.connect(self.url, additional_headers=self.headers, max_size=2**24)
-        sid = "MZ" + uuid.uuid4().hex
-        await self.ws.send(json.dumps({"event": "connected", "protocol": "Call", "version": "1.0.0"}))
-        await self.ws.send(json.dumps({"event": "start", "sequenceNumber": "1", "streamSid": sid, "start": {
-            "streamSid": sid, "callSid": self.call_sid, "accountSid": "AC" + "0" * 32, "tracks": ["inbound"],
-            "mediaFormat": {"encoding": "audio/x-mulaw", "sampleRate": SR, "channels": 1},
-            "customParameters": {"scenario": scenario_id, **{k: str(v) for k, v in (context or {}).items()}}}}))
-        self.stream = _Stream(self.ws, sid)
+        self.sid = "MZ" + uuid.uuid4().hex
+        for m in self.d.opening(self.sid, self.call_sid, {"scenario": scenario_id, **(context or {})}):
+            await self.ws.send(json.dumps(m, ensure_ascii=False))
 
     async def send_audio(self, pcm: bytes) -> None:
-        await self.stream.send(pcm)
+        try:
+            await self.ws.send(json.dumps(self.d.caller_media(self.sid, pcm)))
+        except websockets.ConnectionClosed:
+            pass
 
     async def events(self) -> AsyncIterator[AgentEvent]:
-        async for e in self.stream.events():
-            yield e
+        try:
+            async for raw in self.ws:
+                kind, value = self.d.parse(json.loads(raw))
+                if kind == "media":
+                    yield AgentEvent("audio", audio=value)
+                elif kind == "clear":
+                    yield AgentEvent("clear")
+                elif kind == "mark":
+                    yield AgentEvent("other", data={"type": "mark", "name": value})
+                elif kind == "stop":
+                    break
+        except websockets.ConnectionClosed:
+            pass
+        yield AgentEvent("hangup", data={"reason": "stream closed"})
 
     async def close(self) -> None:
         if self.ws is not None:
             try:
-                await self.ws.send(json.dumps({"event": "stop", "streamSid": self.stream.sid}))
+                await self.ws.send(json.dumps(self.d.stop(self.sid)))
             except websockets.ConnectionClosed:
                 pass
             await self.ws.close()
