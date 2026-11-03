@@ -54,7 +54,16 @@ button:hover{opacity:.85}button:disabled{opacity:.35;cursor:default}
 .msg .meta{display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
 .lat{font-weight:600}.lat.slow{color:var(--fail)}.lat.ok{color:var(--pass)}
 .note{align-self:center;font-size:12px;color:var(--muted);background:var(--soft);padding:2px 10px;border-radius:999px}.note.warn{color:var(--warn)}
-.foot{padding:10px 14px;border-top:1px solid var(--line);font-size:13px;background:var(--cream)}.foot .fail{color:var(--fail)}
+.foot{padding:10px 14px;border-top:1px solid var(--line);font-size:13px;background:var(--cream);max-height:220px;overflow-y:auto}.foot .fail{color:var(--fail)}
+.why{margin:0 0 8px}.why summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:baseline;color:var(--fg);font-weight:500}
+.why summary::-webkit-details-marker{display:none}.why p{margin:4px 0 0 0;color:var(--muted)}.why q{color:var(--fg)}
+.sev{flex:none;font:600 10.5px var(--sans);letter-spacing:.04em;text-transform:uppercase;border-radius:6px;padding:1px 7px;border:1px solid currentColor}
+.sev.critical{color:var(--fail)}.sev.major{color:var(--warn)}.sev.minor,.sev.review{color:var(--muted)}
+.ok{color:var(--pass)}.bad{color:var(--fail)}.hint{font-size:13px;color:var(--muted);margin-top:10px}
+button.ghost{background:none;color:var(--fg);border:1px solid var(--line)}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+.cmp h4{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:500}.cmp ul{margin:0;padding-left:18px;font-size:14px}
+.delta{font-weight:600}.delta.up{color:var(--pass)}.delta.down{color:var(--fail)}
 table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:14px}
 th{color:var(--muted);font-weight:500;font-size:12px}td{color:var(--text)}tr:last-child td{border-bottom:0}
 a{color:var(--fg);text-underline-offset:3px}.scroll{overflow-x:auto}.empty{color:var(--muted);font-size:14px}
@@ -69,15 +78,23 @@ a{color:var(--fg);text-underline-offset:3px}.scroll{overflow-x:auto}.empty{color
   <section class="panel">
     <div class="controls">
       <label>Suite<select id="suite"></select></label>
-      <label>Mode<select id="mode"><option value="offline">Offline: fake agent, zero credits</option><option value="live">Live: Gnani Prisma + Evon + Timbre</option></select></label>
+      <label>Agent under test<select id="mode">
+        <option value="offline">Built-in fake agent (offline, free)</option>
+        <option value="websocket">Your agent: Diapason websocket</option>
+        <option value="media_stream">Your agent: Twilio Media Streams</option></select></label>
       <label>Scenarios<input id="limit" type="number" min="1" value="4"></label>
-      <label id="urlWrap" hidden>Agent URL<input id="url" type="text" placeholder="ws://127.0.0.1:8765"></label>
+      <label id="urlWrap" hidden>Agent URL<input id="url" type="text" placeholder="wss://your-agent.example.com/stream"></label>
+      <button id="check" class="ghost" type="button" hidden>Check connection</button>
       <label class="budget" hidden>TTS chars budget<input id="ttsCap" type="number" min="1" value="400"></label>
       <label class="budget" hidden>STT seconds budget<input id="sttCap" type="number" min="1" value="60"></label>
       <label class="check" id="stubWrap"><input id="stubborn" type="checkbox"> fake agent ignores barge-ins</label>
       <button id="run">Run suite</button>
     </div>
     <div class="est" id="est"></div>
+    <div class="hint" id="checkOut" hidden></div>
+    <div class="hint" id="howto" hidden>Most voice stacks already speak <b>Twilio Media Streams</b> (it is how they take phone calls): paste that websocket URL.
+      Otherwise the Diapason protocol is four messages: a JSON <code>start</code>, binary PCM both ways, and optional <code>clear</code> / <code>hangup</code>.
+      Live calls use Timbre voices and Prisma ears, capped by the budgets above.</div>
   </section>
 
   <h2 class="section-title">Live run</h2>
@@ -94,7 +111,9 @@ a{color:var(--fg);text-underline-offset:3px}.scroll{overflow-x:auto}.empty{color
 
   <h2 class="section-title">Past runs</h2>
   <section class="panel">
-    <div class="scroll"><table><thead><tr><th>Suite</th><th>Started</th><th>Calls</th><th>Pass rate</th><th>p95</th><th>Gate</th><th></th></tr></thead><tbody id="runs"></tbody></table></div>
+    <div class="controls" style="margin-bottom:10px"><button id="cmpBtn" class="ghost" disabled>Compare 2 selected runs</button><span class="hint" id="cmpHint" style="margin:0">Tick two runs of the same suite.</span></div>
+    <div class="scroll"><table><thead><tr><th></th><th>Suite</th><th>Started</th><th>Calls</th><th>Pass rate</th><th>p95</th><th>Gate</th><th></th></tr></thead><tbody id="runs"></tbody></table></div>
+    <div id="cmpOut" hidden></div>
   </section>
 
   <h2 class="section-title">How accurate is it? Proof and autopilot</h2>
@@ -129,15 +148,46 @@ function showEstimate() {
   const n = Math.min(+$("limit").value || s.scenarios, s.scenarios), f = n / s.scenarios, e = s.estimate;
   $("est").textContent = $("mode").value === "offline"
     ? `${n * s.runs_per_scenario} calls against a scripted fake agent. No API credits used.`
-    : `Up to ${n * s.runs_per_scenario} calls · ≤${Math.round(e.tts_chars_max * f)} TTS chars · ≤${Math.round(e.stt_seconds_max * f)}s STT · ≤${Math.round(e.evon_calls_max * f)} Evon calls (cached TTS is free on re-runs)`;
+    : (() => {
+        // the run stops at whichever comes first: the suite's own maximum or the budgets set here
+        const tts = Math.min(e.tts_chars_max * f, +$("ttsCap").value || Infinity), stt = Math.min(e.stt_seconds_max * f, +$("sttCap").value || Infinity);
+        return `Up to ${n * s.runs_per_scenario} live calls · at most ≈${(tts / 555 + stt / 180).toFixed(1)} Gnani credits (≤${Math.round(tts)} TTS chars, ≤${Math.round(stt)} s STT; `
+          + `the suite could use ≈${(e.credits_max * f).toFixed(1)} uncapped) · repeated caller lines are cached and free`;
+      })();
 }
 async function loadRuns() {
   const runs = await (await fetch("/api/runs")).json();
-  $("runs").innerHTML = runs.length ? runs.map((r) => `<tr><td>${esc(r.suite)}</td><td>${esc(r.started_at)}</td><td>${r.calls}</td>
+  $("runs").innerHTML = runs.length ? runs.map((r) => `<tr><td><input type="checkbox" class="pick" value="${esc(r.dir)}" data-suite="${esc(r.suite)}" data-at="${esc(r.started_at)}" aria-label="select run"></td><td>${esc(r.suite)}</td><td>${esc(r.started_at)}</td><td>${r.calls}</td>
     <td>${Math.round(r.pass_rate * 100)}%</td><td>${r.latency_p95_s ?? "—"}s</td>
     <td><span class="pill ${r.gate_passed ? "pass" : "fail"}">${r.gate_passed ? "passed" : "failed"}</span></td>
     <td><a href="/runs/${encodeURIComponent(r.dir)}/report" target="_blank">report</a></td></tr>`).join("")
-    : `<tr><td colspan="7" class="empty">No runs yet.</td></tr>`;
+    : `<tr><td colspan="8" class="empty">No runs yet.</td></tr>`;
+  document.querySelectorAll(".pick").forEach((b) => { b.onchange = pickChanged; });
+}
+function pickChanged() {
+  const picked = [...document.querySelectorAll(".pick:checked")];
+  const same = picked.length === 2 && picked[0].dataset.suite === picked[1].dataset.suite;
+  $("cmpBtn").disabled = !same;
+  $("cmpHint").textContent = picked.length === 2 && !same ? "Those runs are of different suites." : "Tick two runs of the same suite.";
+}
+async function compare() {
+  const [x, y] = [...document.querySelectorAll(".pick:checked")].sort((p, q) => p.dataset.at.localeCompare(q.dataset.at)).map((b) => b.value);
+  const r = await fetch(`/api/compare?a=${encodeURIComponent(x)}&b=${encodeURIComponent(y)}`);
+  const d = await r.json(), out = $("cmpOut"); out.hidden = false;
+  if (!r.ok) { out.innerHTML = `<p class="bad">${esc(d.detail)}</p>`; return; }
+  const pr = (v) => `${Math.round(v * 100)}%`, dp = d.pass_rate_after - d.pass_rate_before;
+  const group = (st) => d.changes.filter((c) => st.includes(c.status));
+  const li = (c) => `<li>${esc(human(c.scenario_id))}${c.explained.length ? `: ${c.explained.map((e) => esc(e.name)).join(", ")}` : ""}</li>`;
+  const col = (title, cs, cls) => `<div><h4>${title} (${cs.length})</h4>${cs.length ? `<ul class="${cls}">${cs.map(li).join("")}</ul>` : `<p class="empty">none</p>`}</div>`;
+  out.innerHTML = `<h3 class="section-title" style="font-size:22px">${esc(d.before)} → ${esc(d.after)}</h3>
+    <p>Pass rate ${pr(d.pass_rate_before)} → ${pr(d.pass_rate_after)} <span class="delta ${dp >= 0 ? "up" : "down"}">${dp >= 0 ? "+" : ""}${Math.round(dp * 100)} pts</span>
+    · p95 ${d.p95_before ?? "—"}s → ${d.p95_after ?? "—"}s</p>
+    <div class="cmp">${col("Regressed", group(["regressed", "worsened"]), "bad")}${col("Fixed", group(["fixed", "improved"]), "ok")}${col("Still failing", group(["still_failing"]), "")}${col("Still passing", group(["still_passing"]), "ok")}</div>
+    ${d.criteria_delta.length ? `<p class="hint">Failures by check: ${d.criteria_delta.map((c) => `${esc(c.name)} <span class="delta ${c.delta < 0 ? "up" : "down"}">${c.delta > 0 ? "+" : ""}${c.delta}</span>`).join(" · ")}</p>` : ""}`;
+}
+function human(id) {
+  // ramesh_hinglish__interrupter__market -> Ramesh hinglish · interrupter · market
+  return String(id).split("__").map((p) => p.replace(/_/g, " ")).map((p, i) => i ? p : p.charAt(0).toUpperCase() + p.slice(1)).join(" · ");
 }
 async function loadAudits() {
   const qa = await (await fetch("/api/qa")).json();
@@ -169,7 +219,7 @@ function card(e) {
   if (!calls.size) $("calls").innerHTML = "";
   const el = document.createElement("article");
   el.className = "call";
-  el.innerHTML = `<div class="head"><div class="title"><span>${esc(e.scenario)} · run ${e.run}</span><span class="pill on" data-s>in call</span></div>
+  el.innerHTML = `<div class="head"><div class="title"><span title="${esc(e.scenario)}">${esc(human(e.scenario))}${e.run ? ` · run ${e.run + 1}` : ""}</span><span class="pill on" data-s>in call</span></div>
     <div class="chips">${[e.persona, e.behaviour, e.channel].filter(Boolean).map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div></div>
     <div class="feed"></div><div class="foot" hidden></div>`;
   $("calls").prepend(el);
@@ -212,7 +262,11 @@ function onEvent(e) {
       c.el.classList.add(e.passed ? "pass" : "fail");
       const s = c.el.querySelector("[data-s]"); s.className = `pill ${e.passed ? "pass" : "fail"}`; s.textContent = e.passed ? "PASS" : "FAIL";
       const f = c.el.querySelector(".foot"); f.hidden = false;
-      f.innerHTML = e.passed ? "All checks passed." : e.failures.map((x) => `<div class="fail">• ${esc(x)}</div>`).join("");
+      f.innerHTML = e.passed ? `<span class="ok">All checks passed.</span>` : (e.details || []).length
+        ? e.details.map((x) => `<details class="why"><summary><span class="sev ${esc(x.severity)}">${esc(x.severity)}</span>${esc(x.name)}</summary>
+            ${x.quote ? `<p>Agent said: <q>${esc(x.quote)}</q></p>` : x.detail ? `<p>${esc(x.detail)}</p>` : ""}
+            <p><b>Why it matters:</b> ${esc(x.why)}</p><p><b>Fix:</b> ${esc(x.fix)}</p></details>`).join("")
+        : e.failures.map((x) => `<div class="fail">• ${esc(x)}</div>`).join("");
       kpis();
       break;
     }
@@ -232,10 +286,28 @@ function connect() {
   ws.onmessage = (m) => onEvent(JSON.parse(m.data));
   ws.onclose = () => setTimeout(connect, 1500);
 }
-$("mode").onchange = () => { const live = $("mode").value === "live"; $("urlWrap").hidden = !live; $("stubWrap").hidden = live; document.querySelectorAll(".budget").forEach((b) => { b.hidden = !live; }); showEstimate(); };
-$("suite").onchange = showEstimate; $("limit").oninput = showEstimate;
+$("mode").onchange = () => {
+  const live = $("mode").value !== "offline";
+  for (const id of ["urlWrap", "check", "howto"]) $(id).hidden = !live;
+  $("stubWrap").hidden = live; $("checkOut").hidden = true;
+  document.querySelectorAll(".budget").forEach((b) => { b.hidden = !live; });
+  showEstimate();
+};
+$("check").onclick = async () => {
+  const o = $("checkOut"); o.hidden = false; o.className = "hint"; o.textContent = "Calling the agent…";
+  const r = await (await fetch("/api/check-agent", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: $("url").value.trim(), target: $("mode").value }) })).json();
+  o.className = `hint ${r.ok ? "ok" : "bad"}`;
+  o.textContent = r.ok ? `Connected in ${r.connect_ms} ms${r.first_audio_ms ? ` · first audio after ${r.first_audio_ms} ms` : ""}: ${r.note}.`
+                       : `Could not ${r.stage === "url" ? "use that URL" : "connect"}: ${r.error}`;
+};
+$("cmpBtn").onclick = compare;
+$("suite").onchange = showEstimate; $("limit").oninput = showEstimate; $("ttsCap").oninput = showEstimate; $("sttCap").oninput = showEstimate;
 $("run").onclick = async () => {
-  const body = { suite: $("suite").value, mode: $("mode").value, limit: +$("limit").value || null, url: $("url").value || null, stubborn: $("stubborn").checked,
+  const live = $("mode").value !== "offline";
+  if (live && !$("url").value.trim()) { alert("Paste your agent's websocket URL first, and check the connection."); return; }
+  const body = { suite: $("suite").value, mode: live ? "live" : "offline", target: live ? $("mode").value : null,
+    limit: +$("limit").value || null, url: $("url").value.trim() || null, stubborn: $("stubborn").checked,
     max_tts_chars: +$("ttsCap").value || null, max_stt_seconds: +$("sttCap").value || null };
   const r = await fetch("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) alert((await r.json()).detail || "could not start");

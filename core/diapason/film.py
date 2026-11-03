@@ -27,12 +27,14 @@ def _json(p: Path) -> dict | None:
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
 
-def _peaks(path: Path, bins: int = 160) -> list[float]:
+def _peaks(path: Path, bins: int = 160, end_s: float | None = None) -> list[float]:
     import numpy as np
 
     from .audio import read_wav
-    x, _ = read_wav(path)
+    x, sr = read_wav(path)
     x = np.abs(x.mean(axis=1) if x.ndim > 1 else x)
+    if end_s is not None:
+        x = x[: int(end_s * sr)]
     if not x.size:
         return [0.0] * bins
     p = np.array([c.max() if c.size else 0.0 for c in np.array_split(x, bins)])
@@ -53,7 +55,9 @@ def _cast(suite_path: Path) -> list[dict]:
     return out
 
 
-def _call_scene(runs: Path, audio_url: Callable[[Path], str]) -> dict | None:
+def _call_scene(runs: Path, audio_url: Callable[[Path], str], short: bool = False) -> dict | None:
+    """short: the call up to two seconds after its first flagged line, and only the checks that line earns, so a cut
+    never shows a flag before the moment that earns it."""
     d = runs / LIVE_V1
     call, report = _json(d / LIVE_CASE / "run0" / "call.json"), _json(d / "report.json")
     mix = d / LIVE_CASE / "run0" / "mix.wav"
@@ -78,14 +82,23 @@ def _call_scene(runs: Path, audio_url: Callable[[Path], str]) -> dict | None:
                 turns[e["turn"]]["flags"].append({"name": name, "quote": e.get("quote", "")})
         fails.append({"name": name, "why": c.get("reason") or c.get("rationale") or "", "at": quotes[0]["turn"] if quotes else None})
     m = call["metrics"]
-    return {"type": "call", "dur": round(call["duration_s"] / 1.15 + 5, 1), "rate": 1.15, "audio": audio_url(mix), "peaks": _peaks(mix),
-            "length": round(call["duration_s"], 2), "turns": turns, "fails": fails, "gate": report.get("gate_reasons") or [],
-            "metric_failures": v.get("metric_failures") or [], "p50": m.get("latency_p50_s"), "p95": m.get("latency_p95_s"),
+    length, rate, metric_failures = round(call["duration_s"], 2), 1.15, v.get("metric_failures") or []
+    flagged = [i for i, t in enumerate(turns) if t["flags"]]
+    if short and flagged:
+        last = flagged[0]
+        length, rate, metric_failures = round(turns[last]["end"] + 2.0, 2), 1.25, []
+        turns = turns[: last + 1]
+        fails = [f for f in fails if f["at"] is not None and f["at"] <= last]
+    end_cap = ("The call stops here: a threat on a collections call fails the launch gate."
+               if short else "A threat, a loan ID never checked, replies slower than the gate allows: this agent does not ship.")
+    return {"type": "call", "dur": round(length / rate + (3.8 if short else 4), 1), "rate": rate, "audio": audio_url(mix), "peaks": _peaks(mix, end_s=length),
+            "length": length, "turns": turns, "fails": fails, "gate": ["a banned threat"] if short else report.get("gate_reasons") or [],
+            "metric_failures": metric_failures, "p50": m.get("latency_p50_s"), "p95": m.get("latency_p95_s"),
             "title": "Agent v1 takes a call", "kicker": "Live call · Timbre voices · 8 kHz phone line · Prisma ears · Evon agent",
             "source": f"runs/{LIVE_V1}: call.json, mix.wav, report.json",
             "captions": [[0, "A synthetic customer, Ramesh, picks up. Everything you hear went through an 8 kHz phone line."],
-                         [turns[2]["start"] / 1.15 if len(turns) > 2 else 12, "The agent threatens him. Diapason's checks flag it the moment it is said."],
-                         [call["duration_s"] / 1.15, "A threat, a loan ID never checked, replies slower than the gate allows: this agent does not ship."]]}
+                         [turns[flagged[0]]["start"] / rate if flagged else 12, "The agent threatens him. Diapason's checks flag it the moment it is said."],
+                         [length / rate, end_cap]]}
 
 
 def _guard_scene(proof: Path, p: dict) -> dict | None:
@@ -186,33 +199,37 @@ def _qa_scene(p: dict, n_industries: int) -> dict:
 
 
 def film(runs: Path, proof: Path | None, audio_url: Callable[[Path], str], stress: dict | None = None,
-         atlas: dict | None = None, suite: Path = Path("suites/proof.yaml"), scorecards: Path = Path("scorecards")) -> dict:
+         atlas: dict | None = None, suite: Path = Path("suites/proof.yaml"), scorecards: Path = Path("scorecards"),
+         short: bool = False) -> dict:
+    """The full film (about two minutes), or with short=True the 60-second cut: the call up to its first flag, Guard,
+    v1 -> v4, QA and the end card. Same renderers, same files; only the call is clipped and the scenes are tighter."""
     p = _json(proof / "proof.json") if proof else None
     cast = _cast(suite) if suite.exists() else []
-    scenes: list = [{"type": "intro", "dur": 8, "cast": cast, "title": "Before your voice agent talks to a million Indians,",
+    scenes: list = [{"type": "intro", "dur": 5 if short else 8, "cast": cast, "title": "Before your voice agent talks to a million Indians,",
                      "title2": "it has to survive these callers.",
                      "captions": [[0, "Six synthetic Indian callers, each built to break a voice agent in a different way."]]}]
-    if (c := _call_scene(runs, audio_url)):
+    if (c := _call_scene(runs, audio_url, short=short)):
         scenes.append(c)
     if p and p["tests"].get("bugs"):         # a proof without per-bug results has nothing to show in these three
-        scenes.append(_bugs_scene(p))
+        if not short:
+            scenes.append(_bugs_scene(p))
         if (g := _guard_scene(proof, p)):
-            scenes.append(g)
+            scenes.append(g | ({"dur": 10} if short else {}))
         if (v := _versions_scene(proof, p))["cols"]:
-            scenes.append(v)
-    if atlas:
+            scenes.append(v | ({"dur": 9} if short else {}))
+    if atlas and not short:
         scenes.append(_atlas_scene(atlas))
-    if stress:
+    if stress and not short:
         scenes.append(_stress_scene(stress))
     if p and (p.get("qa") or {}).get("overall"):
         n_ind = len(list((scorecards / "industries").glob("*.yaml"))) if (scorecards / "industries").exists() else 0
-        scenes.append(_qa_scene(p, n_ind))
-    scenes.append({"type": "outro", "dur": 7, "title": "Diapason", "models": [
+        scenes.append(_qa_scene(p, n_ind) | ({"dur": 5} if short else {}))
+    scenes.append({"type": "outro", "dur": 5 if short else 7, "title": "Diapason", "models": [
         {"name": "Prisma", "role": "the callers' ears, every call re-transcribed"},
         {"name": "Timbre", "role": "the callers' voices, with emotion"},
         {"name": "Evon", "role": "callers, judge and red team"}],
         "captions": [[0, "Diapason. Crash tests before launch, a guard during the call, QA after it. Built on Gnani."]]})
-    return {"scenes": scenes, "total": round(sum(s["dur"] for s in scenes), 1),
+    return {"scenes": scenes, "total": round(sum(s["dur"] for s in scenes), 1), "cut": "60" if short else "full",
             "note": "Every scene is drawn from run files in the repository at build time; nothing is staged or typed in."}
 
 

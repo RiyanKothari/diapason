@@ -22,7 +22,7 @@ against the rules, quoting the agent's own words.
 
 The evidence for every number is in [results/](results/) (JSON and pages, no audio); the weak spots are in
 [Results and limitations](#results-and-limitations). Try it with no keys and no credits:
-`pip install -e . && diapason demo` (about 40 s).
+`pip install -e . && diapason demo` (under a minute; checked on a fresh clone).
 
 ## Built for Indian phone calls
 
@@ -115,7 +115,7 @@ diapason ingest suites/emi_collection.yaml calls/*.wav    # judge real stereo ca
 | `diapason schema` | suite JSON Schema for editor autocomplete | none |
 | `diapason ingest SUITE WAVS...` | production calls -> verdicts -> regression cases | yes |
 | `diapason serve-agent --version v1\|v2` | the reference agent to test against | yes |
-| `diapason dashboard` | live view, run history and QA audits | per run |
+| `diapason dashboard` | point it at your agent (Twilio Media Streams or Diapason websocket), **check the connection** before spending credits, watch every call live with each failure explained (severity, the agent's words, why it matters, how to fix), see the cost in Gnani credits up front, and **compare two runs**: fixed, regressed, still failing | per run |
 | `diapason qa audit SCORECARD CALLS...` | QA audit of real calls (see below); `--offline`, `--labels`, `--baseline`, `--to-regressions` | Evon; STT for audio only |
 | `diapason qa template SUITE` | a ready scorecard from a suite's agent spec and rubric pack | none |
 | `diapason qa bench` | the auditor's own accuracy on calls with known verdicts | Evon (`--offline`: none) |
