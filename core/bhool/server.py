@@ -144,6 +144,28 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
                             "review": len(s["review_queue"])})
         return out
 
+    @app.get("/watch", response_class=HTMLResponse)
+    def watch():
+        """The demo as a film, drawn from the runs on disk right now."""
+        from . import film
+        from .site import _latest, _results_json
+
+        def latest(marker):
+            d = _latest(runs_dir, marker)
+            return json.loads((d / marker).read_text(encoding="utf-8")) if d else None
+        reel = film.film(runs_dir, _latest(runs_dir, "proof.json"),
+                         lambda src: f"/film-audio/{src.relative_to(runs_dir).as_posix()}",
+                         stress=latest("stress.json"), atlas=latest("atlas.json") or _results_json("atlas/atlas.json"),
+                         scorecards=scorecards_dir)
+        return film.page(reel)
+
+    @app.get("/film-audio/{path:path}")
+    def film_audio(path: str):
+        f = (runs_dir / path).resolve()
+        if runs_dir.resolve() not in f.parents or f.suffix != ".wav" or not f.exists():
+            raise HTTPException(404)
+        return FileResponse(f, media_type="audio/wav")
+
     @app.get("/studio", response_class=HTMLResponse)
     def studio():
         return (STATIC / "studio.html").read_text(encoding="utf-8")
