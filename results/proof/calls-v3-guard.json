@@ -2649,6 +2649,6 @@
     "harness_error": ""
   },
   "dir": "runs\\proof-live-4\\proof-20261102-012656",
-  "label": "reference agent v3 + Bhool Guard (both layers)",
+  "label": "reference agent v3 + Diapason Guard (both layers)",
   "skipped": []
 }

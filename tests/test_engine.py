@@ -2,10 +2,10 @@
 
 import asyncio
 
-from bhool.call.engine import run_call
-from bhool.channel import PRESETS
-from bhool.fakes import ScriptedAgent, ScriptedBrain, fake_hear, fake_speak
-from bhool.scenarios import Behaviour, Persona, Scenario
+from diapason.call.engine import run_call
+from diapason.channel import PRESETS
+from diapason.fakes import ScriptedAgent, ScriptedBrain, fake_hear, fake_speak
+from diapason.scenarios import Behaviour, Persona, Scenario
 
 
 def scenario(behaviour: Behaviour, channel="clean") -> Scenario:
@@ -64,9 +64,9 @@ def test_noisy_channel_still_runs():
 def test_goodbye_queued_before_a_hangup_still_plays_and_is_transcribed():
     """Seen live: v4 streamed its date confirmation and hung up at once; the line was never heard, so the call was scored
     as 'accepted without confirmation' with an unanswered turn."""
-    from bhool.audio import float_to_pcm16
-    from bhool.call.transport import AgentEvent
-    from bhool.fakes import tone
+    from diapason.audio import float_to_pcm16
+    from diapason.call.transport import AgentEvent
+    from diapason.fakes import tone
 
     class GoodbyeThenHangup(ScriptedAgent):
         async def events(self):

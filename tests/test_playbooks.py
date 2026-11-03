@@ -3,9 +3,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from bhool.playbooks import RULES, Playbook, build_scorecard, build_suite, load_playbooks, write_all
-from bhool.qa import Scorecard
-from bhool.scenarios import load_suite
+from diapason.playbooks import RULES, Playbook, build_scorecard, build_suite, load_playbooks, write_all
+from diapason.qa import Scorecard
+from diapason.scenarios import load_suite
 
 ROOT = Path(__file__).resolve().parents[1]
 

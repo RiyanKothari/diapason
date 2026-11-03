@@ -1,6 +1,6 @@
 import pytest
 
-from bhool.qa.compile import build
+from diapason.qa.compile import build
 
 POLICY = """3. Recovery agents shall not threaten the borrower with police action or jail.
 4. Every call must say that the call is being recorded.

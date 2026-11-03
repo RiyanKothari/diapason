@@ -5,8 +5,8 @@ import json
 import httpx
 import pytest
 
-from bhool.inya import Inya, InyaError, agent_fields, crosscheck
-from bhool.scenarios import load_suite
+from diapason.inya import Inya, InyaError, agent_fields, crosscheck
+from diapason.scenarios import load_suite
 
 
 def client(handler):
@@ -26,16 +26,16 @@ def test_deploy_trigger_and_logs_follow_the_documented_contract():
         if req.url.path.endswith("/trigger_call"):
             return httpx.Response(200, json={"status": "success", "message": "Call is being triggered", "requestId": "r1",
                                              "response": {"clientReferenceId": body.get("clientReferenceId")}})
-        return httpx.Response(200, json={"response": {"data": [{"conversationId": "c1", "name": "bhool-x", "transcript": [
+        return httpx.Response(200, json={"response": {"data": [{"conversationId": "c1", "name": "diapason-x", "transcript": [
             {"role": "assistant", "content": "नमस्ते"}, {"role": "user", "content": "हाँ बोलिए"}]}]}})
 
     suite = load_suite("suites/proof.yaml")
     inya = client(handler)
-    bot = inya.create_agent("bhool-proof-ramesh")
+    bot = inya.create_agent("diapason-proof-ramesh")
     fields = agent_fields(suite, suite.personas[0])
     inya.update_agent(bot, **fields)
-    inya.trigger_call(bot, "4155550100", "+1", "bhool-x", "bhool-x")
-    logs = inya.logs(bot, search="bhool-x")
+    inya.trigger_call(bot, "4155550100", "+1", "diapason-x", "diapason-x")
+    logs = inya.logs(bot, search="diapason-x")
 
     assert all(r.headers["x-api-key"] == "k" for r in seen)
     put = json.loads(seen[1].content)
@@ -43,8 +43,8 @@ def test_deploy_trigger_and_logs_follow_the_documented_contract():
     assert put["botDetails"]["language"] == ["hi-IN", "gu-IN"] and put["languageSwitch"] is True
     trig = seen[2]
     assert trig.url.params["environment"] == "development"                               # Developer-role keys need it
-    assert json.loads(trig.content) == {"phone": "4155550100", "countryCode": "+1", "name": "bhool-x",
-                                        "clientReferenceId": "bhool-x"}
+    assert json.loads(trig.content) == {"phone": "4155550100", "countryCode": "+1", "name": "diapason-x",
+                                        "clientReferenceId": "diapason-x"}
     assert logs[0]["conversationId"] == "c1"
 
 
@@ -62,5 +62,5 @@ def test_crosscheck_scores_each_side_against_the_other_sides_words():
     x = crosscheck(turns, inya_log)
     assert x["caller_to_agent"]["pairs"][0]["cer"] == 0.0
     assert x["caller_to_agent"]["pairs"][1]["cer"] > 0           # the agent lost "एक": its ears, measured
-    assert x["agent_to_caller"]["pairs"][1]["cer"] > 0           # Bhool's ears missed "बताइए"
+    assert x["agent_to_caller"]["pairs"][1]["cer"] > 0           # Diapason's ears missed "बताइए"
     assert x["caller_to_agent"]["unpaired"] == 0

@@ -1,6 +1,6 @@
 # Industry playbooks: one per Indian voice-AI vertical (collections, lending, insurance, travel, auto, healthcare,
 # CX, consumer, IT). Brands are fictional; rules come from each industry's public regulations and norms.
-# `bhool playbooks build` turns each into a QA scorecard and an adversarial test suite.
+# `diapason playbooks build` turns each into a QA scorecard and an adversarial test suite.
 # Shared word lists (YAML anchors) for the scripts Prisma writes.
 x-verify-loan: &verify_loan
   first: [last 4, last four, loan number, loan ID, आखिरी चार, अंतिम चार, लोन नंबर, છેલ્લા ચાર, கடைசி நான்கு, ಕೊನೆಯ ನಾಲ್ಕು, शेवटचे चार, చివరి నాలుగు, শেষ চারটি, അവസാന നാല്, ਆਖਰੀ ਚਾਰ, date of birth, जन्म तिथि]

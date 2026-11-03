@@ -1,7 +1,7 @@
 import json
 
-from bhool.advise import calibrate
-from bhool.label import collect, write_page
+from diapason.advise import calibrate
+from diapason.label import collect, write_page
 
 
 def _run(tmp_path, name, verdict):

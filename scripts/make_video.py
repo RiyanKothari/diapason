@@ -19,7 +19,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "core"))
-from bhool.audio import read_wav  # noqa: E402
+from diapason.audio import read_wav  # noqa: E402
 
 RUNS, OUT = ROOT / "runs", ROOT / "runs" / "video"
 CHROME = next((p for p in (Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
@@ -104,7 +104,7 @@ def scenes() -> list[dict]:
 
     return [
         {"dur": 3.5, "html": page(
-            "<div class='tag'>Bhool Bhulaiya · built on Gnani Prisma · Timbre · Evon</div>"
+            "<div class='tag'>Diapason · built on Gnani Prisma · Timbre · Evon</div>"
             "<h1>Before your AI agent talks to a million Indians, crash-test it.</h1>",
             "Synthetic Indian callers. Simulated noisy phone lines. Every failure quoted.")},
         {"dur": 9.0, "audio": (V1, 17.8, 26.8), "html": page(
@@ -116,7 +116,7 @@ def scenes() -> list[dict]:
             "It threatens the customer and states his debt before checking who answered. Every flag quotes the agent's words.",
             fic, (V1, 17.8, 26.8))},
         {"dur": 8.0, "html": page(
-            "<div class='tag'>During the call · Bhool Guard</div><h2>The same buggy agent, prompt untouched, behind Guard</h2>"
+            "<div class='tag'>During the call · Diapason Guard</div><h2>The same buggy agent, prompt untouched, behind Guard</h2>"
             "<div class='bubble agent'><div class='who'>What v1 tried to say</div>"
             "<span class='strike'>आपकी EMI 4500 रुपये की overdue है, आज ही pay कीजिए, वरना legal action होगा।</span></div>"
             "<div class='bubble ok'><div class='who'>What the customer heard</div>"
@@ -151,13 +151,13 @@ def scenes() -> list[dict]:
             "The fixed agent hears callers down to 0 dB; v1 stops at 10-20 dB. Prisma: 5.5% character error on a 5 dB market line.",
             "Noise sweep offline, 2 calls a level · Gujarati call voiced by Timbre, transcribed by Prisma")},
         {"dur": 5.0, "html": page(
-            "<div class='tag'>The product, not a slide · bhool site</div>"
+            "<div class='tag'>The product, not a slide · diapason site</div>"
             "<img src='ui-proof.png' style='position:absolute;left:0;top:70px;width:1920px;height:1080px;z-index:-2'>"
             "<div style='position:absolute;left:0;right:0;bottom:0;height:330px;z-index:-1;background:linear-gradient(transparent,#0b0d10 30%)'></div>",
             "The proof page: every number links to the calls behind it, each verdict with the agent's own words.",
-            "Static showcase built by `bhool site` from the runs on disk")},
+            "Static showcase built by `diapason site` from the runs on disk")},
         {"dur": 4.0, "html": page(
-            "<div class='tag'>Bhool Bhulaiya</div><h1>Prisma hears. Timbre speaks. Evon calls, guards and judges.</h1>",
+            "<div class='tag'>Diapason</div><h1>Prisma hears. Timbre speaks. Evon calls, guards and judges.</h1>",
             "Crash-tests before launch · a guard during the call · QA after it.",
             "Built on Gnani AI · #GreatIndianAIInternshipChallenge #GnaniAI")},
     ]
@@ -173,7 +173,7 @@ def main() -> None:
         raise SystemExit("Chrome or Edge is needed to render the scenes")
     OUT.mkdir(parents=True, exist_ok=True)
     ff, parts = ffmpeg(), []
-    proof_page = ROOT / "site" / "proof" / "proof.html"           # a real screen of the product (build it with `bhool site`)
+    proof_page = ROOT / "site" / "proof" / "proof.html"           # a real screen of the product (build it with `diapason site`)
     subprocess.run([str(CHROME), "--headless=new", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1.5",
                     "--window-size=1280,720", "--virtual-time-budget=3000", f"--screenshot={OUT / 'ui-proof.png'}",
                     proof_page.as_uri()], check=True, capture_output=True)
@@ -202,7 +202,7 @@ def main() -> None:
         parts.append(mp4)
     lst = OUT / "parts.txt"
     lst.write_text("".join(f"file '{p.name}'\n" for p in parts), encoding="utf-8")
-    final = OUT / "bhool-bhulaiya-60s.mp4"
+    final = OUT / "diapason-60s.mp4"
     subprocess.run([ff, "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy",
                     "-movflags", "+faststart", str(final)], check=True, cwd=OUT)
     total = sum(s["dur"] for s in scenes())

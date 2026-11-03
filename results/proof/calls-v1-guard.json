@@ -4361,6 +4361,6 @@
     "harness_error": "JSONDecodeError(\"Expecting ',' delimiter: line 265 column 10 (char 6890)\")"
   },
   "dir": "runs\\proof-live-4\\proof-20261102-011717",
-  "label": "reference agent v1 + Bhool Guard (prompt unchanged)",
+  "label": "reference agent v1 + Diapason Guard (prompt unchanged)",
   "skipped": []
 }

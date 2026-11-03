@@ -6,9 +6,9 @@ import httpx
 import numpy as np
 import pytest
 
-from bhool import gnani
-from bhool.audio import wav_bytes
-from bhool.gnani import Evon, GnaniError, Prisma, Timbre
+from diapason import gnani
+from diapason.audio import wav_bytes
+from diapason.gnani import Evon, GnaniError, Prisma, Timbre
 
 
 @pytest.fixture(autouse=True)
@@ -92,7 +92,7 @@ def test_evon_json_tolerates_fences():
 
 
 def test_one_active_request_limit_is_a_short_queue_not_a_backoff(monkeypatch):
-    from bhool import gnani
+    from diapason import gnani
     sleeps, calls = [], {"n": 0}
     monkeypatch.setattr(gnani.time, "sleep", lambda s: sleeps.append(s))
 

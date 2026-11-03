@@ -5,9 +5,9 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from bhool.audio import read_wav_channels
-from bhool.qa import Scorecard
-from bhool.qa.simulate import evaluate, layout, plan_calls, simulate_segment, voice_call, write_segments_html
+from diapason.audio import read_wav_channels
+from diapason.qa import Scorecard
+from diapason.qa.simulate import evaluate, layout, plan_calls, simulate_segment, voice_call, write_segments_html
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -96,8 +96,8 @@ class FakeTTS:
 
 
 def test_voice_call_is_dual_channel_and_audits_through_stt(tmp_path):
-    from bhool.qa.conversation import _wav
-    from bhool.qa.simulate import SimCall
+    from diapason.qa.conversation import _wav
+    from diapason.qa.simulate import SimCall
     c = SimCall("emi-00", "emi", "hi-IN", "calm", [], [], turns=[{"speaker": "agent", "text": "नमस्ते " * 5},
                                                                    {"speaker": "customer", "text": "हाँ " * 6},
                                                                    {"speaker": "agent", "text": "धन्यवाद " * 4}])
@@ -110,8 +110,8 @@ def test_voice_call_is_dual_channel_and_audits_through_stt(tmp_path):
 
 
 def test_evaluate_counts_misses_and_flags():
-    from bhool.qa.engine import ParamResult, QAResult
-    from bhool.qa.simulate import SimCall
+    from diapason.qa.engine import ParamResult, QAResult
+    from diapason.qa.simulate import SimCall
     calls = [SimCall("c1", "s", "hi-IN", "calm", ["privacy"], [], turns=[{}], declared=["privacy"])]
     pr = lambda pid, v: ParamResult(pid, "x", v, 1, False, None, 1.0, "", [], "judge")  # noqa: E731
     res = [QAResult("c1", {}, 50, False, [], {}, [pr("privacy", "pass"), pr("tone", "fail")], {}, {}, {}, [], [], True)]
@@ -122,7 +122,7 @@ def test_evaluate_counts_misses_and_flags():
 
 def test_studio_api_lists_segments_and_serves_calls_with_plan(tmp_path):
     from fastapi.testclient import TestClient
-    from bhool.server import create_app
+    from diapason.server import create_app
     simulate_segment(card(), "emi_collections", tmp_path / "seg" / "emi_collections", FakeEvon(), n=3, seed=2, samples=1)
     c = TestClient(create_app(runs_dir=tmp_path, scorecards_dir=ROOT / "scorecards"))
     d = c.get("/api/studio").json()
@@ -145,7 +145,7 @@ def test_planted_code_defects_are_verified_and_retried(tmp_path):
 
 
 def test_apply_plant_replace_and_insert_with_setup():
-    from bhool.qa.simulate import apply_plant
+    from diapason.qa.simulate import apply_plant
     turns = [{"speaker": "agent", "text": "a"}, {"speaker": "customer", "text": "b"}, {"speaker": "agent", "text": "c"}]
     new, at = apply_plant(turns, {"action": "replace", "turn": 2, "agent": "X"})
     assert new[2]["text"] == "X" and at == 2 and len(new) == 3

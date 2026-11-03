@@ -1,7 +1,7 @@
 import asyncio
 import json
 
-from bhool.proof import BUGS, run_proof, score_bugs
+from diapason.proof import BUGS, run_proof, score_bugs
 
 
 class FakeEvon:
@@ -50,7 +50,7 @@ def test_score_bugs_statuses():
 
 def test_dashboard_lists_proofs_and_autopilot_runs(tmp_path):
     from fastapi.testclient import TestClient
-    from bhool.server import create_app
+    from diapason.server import create_app
     (tmp_path / "p").mkdir()
     (tmp_path / "p" / "proof.json").write_text(json.dumps({"generated": "2026-10-28 10:00", "tests": {"caught": 7, "measured": 8, "false_alarms": 0},
                                                          "qa": {"overall": {"accuracy": 0.9}, "decision_accuracy": 0.95}}), encoding="utf-8")
@@ -64,7 +64,7 @@ def test_dashboard_lists_proofs_and_autopilot_runs(tmp_path):
 
 
 def test_guard_score_never_counts_a_missing_call_as_prevented():
-    from bhool.proof import score_guard
+    from diapason.proof import score_guard
     tests = {"bugs": [{"id": b.id, "status": "caught"} for b in BUGS]}
     vg = {"pass_rate": 0, "calls_detail": [], "verdicts": [{"scenario_id": "barge_in", "criteria": [], "metric_failures": []}]}
     g = score_guard(tests, vg, judged=True)
@@ -78,9 +78,9 @@ def test_rejudge_keeps_the_judges_verdicts_and_the_runs_own_gate(tmp_path, monke
     import asyncio
     import json
     from pathlib import Path
-    from bhool.demo import run_version
-    from bhool.runner import rejudge_run
-    from bhool.scenarios import load_suite
+    from diapason.demo import run_version
+    from diapason.runner import rejudge_run
+    from diapason.scenarios import load_suite
     monkeypatch.chdir(Path(__file__).resolve().parents[1])
     root = Path(asyncio.run(run_version("v2", "suites/proof.yaml", tmp_path, hear_callers=True, only="privacy")).dir)
     cj = next(root.glob("*/run0/call.json"))

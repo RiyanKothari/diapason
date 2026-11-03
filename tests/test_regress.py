@@ -2,11 +2,11 @@ from pathlib import Path
 
 import numpy as np
 
-from bhool.audio import write_wav_channels
-from bhool.fakes import tone
-from bhool.judge.rubric import judge_call
-from bhool.regress import append_regressions, distill, estimate_channel, ingest_call
-from bhool.scenarios import Persona, load_suite
+from diapason.audio import write_wav_channels
+from diapason.fakes import tone
+from diapason.judge.rubric import judge_call
+from diapason.regress import append_regressions, distill, estimate_channel, ingest_call
+from diapason.scenarios import Persona, load_suite
 
 SUITE = Path(__file__).parent.parent / "suites" / "emi_collection.yaml"
 SR = 8000

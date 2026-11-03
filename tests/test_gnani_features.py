@@ -5,10 +5,10 @@ import asyncio
 import numpy as np
 import pytest
 
-from bhool.bench import cer, run_bench, write_bench_report
-from bhool.fakes import ToneCodec
-from bhool.judge.packs import PACKS, get_pack
-from bhool.scenarios import Suite, load_suite
+from diapason.bench import cer, run_bench, write_bench_report
+from diapason.fakes import ToneCodec
+from diapason.judge.packs import PACKS, get_pack
+from diapason.scenarios import Suite, load_suite
 
 
 def test_every_pack_has_unique_ids_and_critical_rules():
@@ -69,7 +69,7 @@ def test_bench_grid_ranks_presets(tmp_path):
 
 
 def test_offline_demo_v1_fails_on_seeded_bugs_v2_fixes_landline(tmp_path):
-    from bhool.demo import run_demo
+    from diapason.demo import run_demo
     v1, v2, d, md = asyncio.run(run_demo("suites/demo.yaml", tmp_path))
     v1_fail = {c["id"] for v in v1.verdicts if "landline" in v["scenario_id"] for c in v["criteria"] if c["verdict"] == "fail"}
     assert {"banned_phrases", "slot_capture"} <= v1_fail

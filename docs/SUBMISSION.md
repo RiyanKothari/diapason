@@ -5,7 +5,7 @@ Fill the four links once the post is live.
 
 ## Project title
 
-Bhool Bhulaiya: crash-tests, a live guard and QA for Indian voice agents
+Diapason: crash-tests, a live guard and QA for Indian voice agents
 
 ## Problem
 
@@ -38,11 +38,11 @@ Solo: Riyan Kothari. Design, code, test suites, live runs and measurements.
 
 ## Written explanation
 
-Bhool Bhulaiya covers a voice agent's whole life. **Before launch**, synthetic Indian callers phone the agent in real time
+Diapason covers a voice agent's whole life. **Before launch**, synthetic Indian callers phone the agent in real time
 through a simulated phone line (8 kHz μ-law, fan, traffic, office and crowd noise at a set signal-to-noise ratio, packet
 loss) and try to break it: an angry Hinglish caller, a Gujarati-only aunty, the borrower's brother, barge-ins, silence,
 prompt injection. Every call is measured from the audio (latency, unanswered turns, barge-in handling) and judged against
-the agent's rules; every fail must quote the agent's own words. **During the call**, Bhool Guard checks each sentence in
+the agent's rules; every fail must quote the agent's own words. **During the call**, Diapason Guard checks each sentence in
 code before it is spoken (about 1 ms a line): it drops threats, holds account details until the caller has verified, adds
 the recording disclosure and translates a reply in the wrong language. **After the call**, an auditor scores recorded calls
 against industry scorecards.
@@ -68,7 +68,7 @@ Devanagari ("फोर थाउज़ंड एट हंडरेड ट्व
 callers say them (pairs, "double", whole numbers, three languages), and the same call verifies first try.
 
 What is weak is written down too: the judge misses most privacy leaks (a code check catches them), my labels are the only
-human labels so far, and the Inya and phone-number targets (an Inya agent built from the SOP calls Bhool's number; Bhool scores
+human labels so far, and the Inya and phone-number targets (an Inya agent built from the SOP calls Diapason's number; Diapason scores
 each side's speech recognition against the other side's words) run end to end offline but have not yet been run live. Customers and lenders in every test are
 synthetic and fictional.
 

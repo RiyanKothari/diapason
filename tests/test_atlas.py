@@ -1,6 +1,6 @@
 import numpy as np
 
-from bhool.atlas import ITEMS, conditions, run_atlas, summarize, write_atlas_report
+from diapason.atlas import ITEMS, conditions, run_atlas, summarize, write_atlas_report
 
 
 def test_every_item_survives_its_own_text():

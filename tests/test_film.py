@@ -3,8 +3,8 @@
 import json
 import wave
 
-from bhool import film
-from bhool.site import build_site
+from diapason import film
+from diapason.site import build_site
 
 
 def _wav(path, seconds=2.0):

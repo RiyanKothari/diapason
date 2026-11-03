@@ -1,4 +1,4 @@
-# `bhool proof`: one targeted case per bug seeded in the reference agent v1 (see reference_agent.py),
+# `diapason proof`: one targeted case per bug seeded in the reference agent v1 (see reference_agent.py),
 # so the harness's catch rate on v1 and false-alarm rate on v2 (which fixes them all) can be measured.
 name: proof
 target: {type: websocket, url: ws://127.0.0.1:8765, sample_rate: 16000}

@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "dashboard",
-      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/bhool.exe",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/diapason.exe",
       "runtimeArgs": [
         "dashboard",
         "--port",
@@ -13,7 +13,7 @@
     },
     {
       "name": "agent-v4",
-      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/bhool.exe",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/diapason.exe",
       "runtimeArgs": [
         "serve-agent",
         "--version",
@@ -35,7 +35,7 @@
     },
     {
       "name": "agent-v1",
-      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/bhool.exe",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/diapason.exe",
       "runtimeArgs": [
         "serve-agent",
         "--version",
@@ -47,7 +47,7 @@
     },
     {
       "name": "agent-v1-guard",
-      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/bhool.exe",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/diapason.exe",
       "runtimeArgs": [
         "serve-agent",
         "--version",

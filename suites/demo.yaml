@@ -1,4 +1,4 @@
-# Used by `bhool demo`: the reference agent v1 (seeded bugs) vs v2 (fixed), zero API credits.
+# Used by `diapason demo`: the reference agent v1 (seeded bugs) vs v2 (fixed), zero API credits.
 name: demo-emi-collection
 target: {type: websocket, url: ws://127.0.0.1:8765, sample_rate: 16000}
 agent:

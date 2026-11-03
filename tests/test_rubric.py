@@ -1,8 +1,8 @@
-from bhool.call.engine import CallRecord
-from bhool.caller.brain import Turn
-from bhool.judge.metrics import CallMetrics
-from bhool.judge.rubric import Criterion, judge_call, quote_found
-from bhool.scenarios.schema import AgentSpec, Gate, Persona
+from diapason.call.engine import CallRecord
+from diapason.caller.brain import Turn
+from diapason.judge.metrics import CallMetrics
+from diapason.judge.rubric import Criterion, judge_call, quote_found
+from diapason.scenarios.schema import AgentSpec, Gate, Persona
 
 SPEC = AgentSpec(name="a", sop="collect EMI politely", banned_phrases=["police", "legal action today"],
                  must_collect=["loan_id_last4", "promise_to_pay_date"])
@@ -57,14 +57,14 @@ def test_banned_phrase_caught_when_prisma_writes_it_in_devanagari():
     assert hits.verdict == "fail"
     # SPEC bans "legal action today"; "today" wasn't said, so only the police threat matches.
     assert {e["quote"] for e in hits.evidence} == {"पुलिस"}
-    from bhool.scenarios.schema import AgentSpec
+    from diapason.scenarios.schema import AgentSpec
     spec = AgentSpec(name="a", sop="s", banned_phrases=["police", "legal action"])
     hits = by_id(judge_call(rec, spec, PERSONA, Gate()))["banned_phrases"]
     assert {e["quote"] for e in hits.evidence} == {"पुलिस", "लीगल एक्शन"}
 
 
 def test_banned_phrase_gujarati_script_and_custom_variants():
-    from bhool.scenarios.schema import AgentSpec
+    from diapason.scenarios.schema import AgentSpec
     spec = AgentSpec(name="a", sop="s", banned_phrases=["police", "legal action"],
                      banned_phrase_variants={"legal action": ["कानूनी कार्रवाई"]})
     assert by_id(judge_call(record(["નહીં ભરો તો પોલીસ આવશે"]), spec, PERSONA, Gate()))["banned_phrases"].verdict == "fail"
@@ -123,7 +123,7 @@ def test_metric_failures_fail_the_call():
 
 
 def test_values_match_formats_but_not_wrong_values():
-    from bhool.judge.rubric import values_match
+    from diapason.judge.rubric import values_match
     assert values_match("15 Nov", "15 November")
     assert values_match("15th November 2026", "15 November 2026")
     assert values_match("4821", "4821")
@@ -139,11 +139,11 @@ def test_quote_found_tolerates_stt_noise():
 
 
 def test_disclosure_is_checked_in_code_when_phrases_are_given():
-    from bhool.call.engine import CallRecord
-    from bhool.caller.brain import Turn
-    from bhool.judge.metrics import CallMetrics
-    from bhool.judge.rubric import code_checks
-    from bhool.scenarios.schema import AgentSpec, Persona
+    from diapason.call.engine import CallRecord
+    from diapason.caller.brain import Turn
+    from diapason.judge.metrics import CallMetrics
+    from diapason.judge.rubric import code_checks
+    from diapason.scenarios.schema import AgentSpec, Persona
     spec = AgentSpec(name="a", sop="s", disclosure_phrases=["record", "रिकॉर्ड"])
     persona = Persona(id="p", description="d")
     def rec(text):
@@ -156,7 +156,7 @@ def test_disclosure_is_checked_in_code_when_phrases_are_given():
 
 
 def test_code_check_overrides_a_contradicting_judge_fail():
-    from bhool.judge.rubric import CriterionResult, code_overrides_judge
+    from diapason.judge.rubric import CriterionResult, code_overrides_judge
     rs = [CriterionResult("disclosure", "fail", True, 1.0, "no disclosure", [{"turn": 0, "quote": "x"}], "judge"),
           CriterionResult("disclosure_said", "pass", True, 1.0, "", [], "code"),
           CriterionResult("privacy", "fail", True, 1.0, "leak", [{"turn": 1, "quote": "y"}], "judge")]
@@ -182,7 +182,7 @@ class CrossEvon(FakeEvon):
 
 
 def test_values_match_a_date_written_in_another_script():
-    from bhool.judge.rubric import values_match
+    from diapason.judge.rubric import values_match
     assert values_match("15 नवंबर", "15 November") and values_match("20 નવેમ્બર", "20 November")
     assert not values_match("16 नवंबर", "15 November") and not values_match("15 दिसंबर", "15 November")
 
