@@ -116,12 +116,31 @@ a{color:var(--fg);text-underline-offset:3px}.scroll{overflow-x:auto}.empty{color
     <div class="controls" style="margin-bottom:10px"><button id="cmpBtn" class="ghost" disabled>Compare 2 selected runs</button><span class="hint" id="cmpHint" style="margin:0">Tick two runs of the same suite.</span></div>
     <div class="scroll"><table><thead><tr><th></th><th>Suite</th><th>Started</th><th>Calls</th><th>Pass rate</th><th>p95</th><th>Gate</th><th></th></tr></thead><tbody id="runs"></tbody></table></div>
     <div id="cmpOut" hidden></div>
+    <div id="fixBox" class="panel" hidden style="margin:14px 0 0">
+      <b>Fix agent</b> <span class="hint" id="fixRun"></span>
+      <div class="controls" style="margin-top:10px">
+        <label>Prove fixes on<select id="fixAgent"><option value="">Nothing (list the lanes only, no credits)</option>
+          <option>v1</option><option>v2</option><option>v3</option><option>v4</option></select></label>
+        <button id="fixGo">Run the fix agent</button></div>
+      <div class="hint" id="fixOut"></div></div>
+  </section>
+
+  <h2 class="section-title">Write a suite from your SOP</h2>
+  <p style="color:var(--muted);margin:-6px 0 12px">The suite-writer agent gives every rule in your SOP a caller built to break it, sounding like your real callers if you paste a few of their lines. Uses Evon.</p>
+  <section class="panel">
+    <div class="controls"><label>Suite name<input id="wName" type="text" placeholder="insurance-renewal"></label></div>
+    <label style="margin-top:12px">SOP or system prompt<textarea id="wSop" rows="5" style="font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px"></textarea></label>
+    <label style="margin-top:12px">Real callers' lines (optional, one per line: <code>caller: ...</code>)<textarea id="wLines" rows="3" style="font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px"></textarea></label>
+    <div class="controls" style="margin-top:12px"><button id="wGo">Write the suite</button></div>
+    <div class="hint" id="wOut"></div>
   </section>
 
   <h2 class="section-title">Shield: compliance on live calls</h2>
   <p style="color:var(--muted);margin:-6px 0 12px">Any agent, no code change: point your Twilio, Exotel or Plivo stream at <code>diapason shield --agent &lt;its url&gt;</code>.
     Monitor flags every line that breaks the rules; block holds each line until it is checked.</p>
   <section class="kpis" id="shieldKpis"></section>
+  <section class="panel" id="incBox" hidden><b>Incidents</b> <span class="hint">grouped by the incident agent: <code>diapason incidents</code> also writes them up and turns each into a test</span>
+    <div class="scroll"><table><thead><tr><th>Severity</th><th>What</th><th>Calls</th><th>Lines</th><th>Stopped</th><th>Between</th></tr></thead><tbody id="inc"></tbody></table></div></section>
   <section class="panel"><div class="scroll"><table><thead><tr><th>Call</th><th>At</th><th>Who</th><th>Said</th><th>Verdict</th><th>Rules</th></tr></thead>
     <tbody id="shield"></tbody></table></div></section>
 
@@ -169,9 +188,10 @@ async function loadRuns() {
   $("runs").innerHTML = runs.length ? runs.map((r) => `<tr><td><input type="checkbox" class="pick" value="${esc(r.dir)}" data-suite="${esc(r.suite)}" data-at="${esc(r.started_at)}" aria-label="select run"></td><td>${esc(r.suite)}</td><td>${esc(r.started_at)}</td><td>${r.calls}</td>
     <td>${Math.round(r.pass_rate * 100)}%</td><td>${r.latency_p95_s ?? "—"}s</td>
     <td><span class="pill ${r.gate_passed ? "pass" : "fail"}">${r.gate_passed ? "passed" : "failed"}</span></td>
-    <td><a href="/runs/${encodeURIComponent(r.dir)}/report" target="_blank">report</a></td></tr>`).join("")
+    <td><a href="/runs/${encodeURIComponent(r.dir)}/report" target="_blank">report</a>${r.pass_rate < 1 ? ` · <a href="#" class="fixit" data-run="${esc(r.dir)}">fix</a>` : ""}</td></tr>`).join("")
     : `<tr><td colspan="8" class="empty">No runs yet.</td></tr>`;
   document.querySelectorAll(".pick").forEach((b) => { b.onchange = pickChanged; });
+  document.querySelectorAll(".fixit").forEach((a) => { a.onclick = (ev) => { ev.preventDefault(); openFix(a.dataset.run); }; });
 }
 function pickChanged() {
   const picked = [...document.querySelectorAll(".pick:checked")];
@@ -225,6 +245,38 @@ async function loadShield() {
     <td><span class="pill ${cls[e.verdict] || ""}">${esc(e.verdict)}</span></td><td>${(e.rules || []).map((r) => esc(r.rule.replace(/_/g, " "))).join(", ")}</td></tr>`).join("")
     : `<tr><td colspan="6" class="empty">No live calls yet. Start <code>diapason shield</code> and send a call through it.</td></tr>`;
 }
+async function loadIncidents() {
+  const inc = await (await fetch("/api/incidents")).json();
+  $("incBox").hidden = !inc.length;
+  $("inc").innerHTML = inc.map((x) => `<tr><td><span class="sev ${esc(x.severity)}">${esc(x.severity)}</span></td><td>${esc(x.title)}<br><span class="hint">“${esc(x.quotes[0])}”</span></td>
+    <td>${x.calls.length}</td><td>${x.lines}</td><td>${x.prevented}</td><td>${esc(x.first)} → ${esc(x.last)}</td></tr>`).join("");
+}
+async function poll(job, out, done) {
+  for (;;) {
+    const j = await (await fetch(`/api/jobs/${job.id}`)).json();
+    if (j.status === "done") { done(j.result); return; }
+    if (j.status === "error") { out.className = "hint bad"; out.textContent = j.error; return; }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+}
+function openFix(run) { $("fixBox").hidden = false; $("fixBox").dataset.run = run; $("fixRun").textContent = `run ${run}`; $("fixOut").textContent = ""; $("fixBox").scrollIntoView({ block: "nearest" }); }
+$("fixGo").onclick = async () => {
+  const out = $("fixOut"); out.className = "hint"; out.textContent = $("fixAgent").value ? "Re-running the failed calls with each fix… (Evon)" : "Sorting the failures…";
+  const r = await fetch("/api/fix", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ run: $("fixBox").dataset.run, agent: $("fixAgent").value || null }) });
+  const j = await r.json(); if (!r.ok) { out.className = "hint bad"; out.textContent = j.detail; return; }
+  poll(j, out, (res) => { out.className = "hint ok";
+    out.innerHTML = `Lanes: ${Object.entries(res.lanes).map(([k, v]) => `${k} ${v}`).join(" · ")}<br>${(res.ship.length ? res.ship : [res.note]).map(esc).join("<br>")}<br><a href="${res.page}" target="_blank">open the fix plan</a>`; });
+};
+$("wGo").onclick = async () => {
+  const out = $("wOut"); out.className = "hint"; out.textContent = "Reading the SOP and designing a caller per rule… (Evon)";
+  const r = await fetch("/api/write-suite", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: $("wName").value, sop: $("wSop").value, transcripts: $("wLines").value }) });
+  const j = await r.json(); if (!r.ok) { out.className = "hint bad"; out.textContent = j.detail; return; }
+  poll(j, out, (res) => { out.className = "hint ok";
+    out.textContent = `${res.cases} attack cases for ${res.rules} rules${res.uncovered.length ? `; uncovered: ${res.uncovered.join(", ")}` : "; every rule covered"}. Saved as suites/${res.suite}.`;
+    loadSuites(); });
+};
 function kpis() {
   $("kDone").textContent = `${done} / ${total}`;
   $("kPass").textContent = done ? `${Math.round(passed / done * 100)}%` : "—";
@@ -335,7 +387,8 @@ $("run").onclick = async () => {
 };
 fetch("/api/status").then((r) => r.json()).then((s) => { if (s.running) { $("status").className = "pill on"; $("status").textContent = "running"; $("run").disabled = true; } });
 loadSuites(); loadRuns(); loadAudits(); loadProofs(); loadShield(); connect();
-setInterval(() => { if (!document.hidden) loadShield(); }, 3000);
+loadIncidents();
+setInterval(() => { if (!document.hidden) { loadShield(); loadIncidents(); } }, 3000);
 </script>
 </body>
 </html>

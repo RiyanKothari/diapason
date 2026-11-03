@@ -13,6 +13,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
 from pydantic import BaseModel
 
 from .runner import Budget, estimate_usage, run_suite
@@ -35,6 +36,18 @@ class RunRequest(BaseModel):
     max_tts_chars: int | None = 400
     max_stt_seconds: float | None = 60
     redact: bool = True            # dashboards get shared; mask PII by default
+
+
+class FixRequest(BaseModel):
+    run: str
+    agent: str | None = None       # a reference version (v1-v4) to prove fixes on; None lists the lanes without proof
+    rounds: int = 2
+
+
+class WriteRequest(BaseModel):
+    name: str
+    sop: str
+    transcripts: str = ""          # pasted lines, "caller: ..." per line
 
 
 class AgentCheck(BaseModel):
@@ -82,6 +95,38 @@ async def probe_agent(url: str, target: str = "websocket", timeout_s: float = 8.
     return {"ok": True, "connect_ms": round(connected * 1000), "first_audio_ms": round(first * 1000) if first else None,
             "note": ("the agent greeted first" if first else
                      f"connected, but the agent did not speak within {timeout_s:.0f} s (fine if it waits for the caller)")}
+
+
+def _try_load(f: Path):
+    try:
+        return load_suite(f)
+    except Exception:
+        return None
+
+
+def _markdown_page(md: str, title: str) -> str:
+    """A fix plan or incident report as a readable page: headings, bullets, quotes and code, nothing else."""
+    import html
+    import re as _re
+    out = []
+    for line in md.splitlines():
+        t = html.escape(line)
+        t = _re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
+        t = _re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", t)
+        if t.startswith("# "):
+            out.append(f"<h1>{t[2:]}</h1>")
+        elif t.startswith("## "):
+            out.append(f"<h2>{t[3:]}</h2>")
+        elif t.startswith("- "):
+            out.append(f"<li>{t[2:]}</li>")
+        elif t.startswith("&gt; "):
+            out.append(f"<blockquote>{t[5:]}</blockquote>")
+        elif t.strip():
+            out.append(f"<p>{t}</p>")
+    return (f"<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>{title}</title>"
+            "<style>:root{color-scheme:light dark}body{max-width:860px;margin:40px auto;padding:0 16px;font:15px/1.6 Inter,system-ui,sans-serif}"
+            "h1{font-weight:500}h2{margin-top:28px;font-weight:500}code{background:rgba(127,127,127,.15);padding:1px 5px;border-radius:5px}"
+            "blockquote{border-left:3px solid #c2410c;margin:6px 0;padding:2px 12px}</style>" + "\n".join(out))
 
 
 def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
@@ -169,6 +214,90 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
     async def check_agent(req: AgentCheck):
         """Connect to an agent the way a test call would, and wait for it to speak: before any credits are spent."""
         return await probe_agent(req.url, req.target, req.timeout_s)
+
+    jobs: dict[str, dict] = {}
+
+    def job(kind: str, work) -> dict:
+        """Run an agent in the background; the page polls /api/jobs/<id>. One of each kind at a time."""
+        if any(j["kind"] == kind and j["status"] == "running" for j in jobs.values()):
+            raise HTTPException(409, f"a {kind} job is already running")
+        jid = f"{kind}-{len(jobs) + 1}"
+        jobs[jid] = {"id": jid, "kind": kind, "status": "running", "result": None, "error": None}
+
+        async def go():
+            try:
+                jobs[jid]["result"] = await work()
+                jobs[jid]["status"] = "done"
+            except Exception as e:
+                jobs[jid].update(status="error", error=f"{type(e).__name__}: {e}"[:400])
+        asyncio.create_task(go())
+        return jobs[jid]
+
+    @app.get("/api/jobs/{jid}")
+    def job_status(jid: str):
+        if jid not in jobs:
+            raise HTTPException(404)
+        return jobs[jid]
+
+    @app.post("/api/fix")
+    async def fix_run(req: FixRequest):
+        """The fix agent on a past run: lanes, and with a reference agent, fixes proven by re-running the failed calls."""
+        from .fixer import agent_for, fix
+        run_dir = run_path(req.run)
+        name = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))["suite"]
+        suite = next((s for f in sorted(suites_dir.glob("*.y*ml")) if (s := _try_load(f)) and s.name == name), None)
+        if suite is None:
+            raise HTTPException(400, f"no suite named {name!r} in {suites_dir}")
+        try:
+            agent = agent_for(req.agent)
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+        evon = None
+        if agent:
+            from .gnani import Evon
+            load_dotenv()
+            evon = Evon()
+
+        async def work():
+            plan = await fix(run_dir, suite, evon, run_dir / "fix", agent=agent, rounds=req.rounds)
+            return {"ship": plan.get("ship") or [], "note": plan.get("note"), "lanes": plan["lanes"],
+                    "page": f"/runs/{req.run}/fix"}
+        return job("fix", work)
+
+    @app.get("/runs/{run_dir}/fix", response_class=HTMLResponse)
+    def fix_page(run_dir: str):
+        f = run_path(run_dir) / "fix" / "fix-plan.md"
+        if not f.exists():
+            raise HTTPException(404, "no fix plan for this run yet")
+        return _markdown_page(f.read_text(encoding="utf-8"), "Fix plan")
+
+    @app.post("/api/write-suite")
+    async def write_suite_job(req: WriteRequest):
+        """The suite-writer agent: a caller for every rule in the SOP, saved to suites/ once it loads."""
+        import re as _re
+        from .gnani import Evon
+        from .suitewriter import save, write_suite_for
+        name = _re.sub(r"[^a-z0-9-]+", "-", req.name.lower()).strip("-")[:40]
+        if not name or not req.sop.strip():
+            raise HTTPException(400, "a name and the SOP are needed")
+        load_dotenv()
+        evon = Evon()
+        tmp = runs_dir / "_writer" / f"{name}.txt"
+        tmp.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_text(req.transcripts, encoding="utf-8")
+
+        async def work():
+            suite, cov = await asyncio.to_thread(write_suite_for, evon, req.sop, name, [tmp] if req.transcripts.strip() else [])
+            save(suite, cov, suites_dir / f"{name}.yaml")
+            return {"suite": f"{name}.yaml", "cases": len(suite.cases), "rules": len(cov["rules"]), "uncovered": cov["uncovered"]}
+        return job("write", work)
+
+    @app.get("/api/incidents")
+    def incidents_now():
+        """The incident agent's grouping of Shield's log, without Evon (instant): counts, quotes, first and last seen."""
+        from .incidents import run as run_incidents
+        r = run_incidents(runs_dir / "shield", runs_dir / "incidents")
+        return r["incidents"]
 
     @app.get("/api/shield")
     def shield_log():

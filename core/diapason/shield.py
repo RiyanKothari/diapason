@@ -43,6 +43,7 @@ class ShieldEvent:
     rules: list = field(default_factory=list)
     said_instead: str = ""
     held_ms: float | None = None
+    at: str = field(default_factory=lambda: time.strftime("%Y-%m-%d %H:%M:%S"))      # wall clock, for incidents
 
 
 class _Utterances:

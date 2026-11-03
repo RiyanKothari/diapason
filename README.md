@@ -380,6 +380,20 @@ Offline, all of them run end to end against the reference agent served as a phon
 [tests](tests/test_telephony.py)). The Exotel and Plivo formats follow their published stream docs
 ([dialects.py](core/diapason/call/dialects.py)); not yet run against a live Exotel, Plivo or Inya account, or a real phone line.
 
+## Three agents that do a QA team's work
+
+Testing finds problems; these three close the loop. Each is a CLI command and a dashboard action, and each uses Evon.
+
+| Agent | What it does | Proof it gives |
+|---|---|---|
+| **Fix** (`diapason fix <run> --agent v1`, or **fix** on a past run) | Sorts every failure into the lane that can fix it: **prompt** (Evon writes rules), **guard** (code checks before speech: threats, disclosure, account before verification, language), **engineering** (latency, barge-in, endpointing, as tickets with the measurement) | Re-runs **only the failed calls** with each fix: a prompt patch is kept only if it fixes something and breaks nothing; the guard lane re-runs the same calls with Guard on, prompt untouched. Writes `fix-plan.md` with what to ship ([fixer.py](core/diapason/fixer.py)) |
+| **Suite writer** (`diapason write-suite sop.txt --name x --transcripts calls/`, or **Write a suite**) | Lists every testable rule in the SOP, designs a caller built to break each one, with the trap line pinned so a role-playing model can't drift off it; given real transcripts, the callers talk like the agent's real customers | Coverage in code: `x.coverage.md` maps rule → cases and names every rule left **uncovered**; the suite must load before it is saved ([suitewriter.py](core/diapason/suitewriter.py)) |
+| **Incidents** (`diapason incidents --suite base.yaml`, and the Shield panel) | Groups Shield's live flags by rule and by what was said ("legal action on 14 calls since 10:02" is one incident), writes each up for the compliance lead | Turns each incident into a test case that replays **the real caller's lines** that led to the violation, so every next version is tested on what tripped this one ([incidents.py](core/diapason/incidents.py)) |
+
+Offline, against a fake Evon: the fix agent proves a prompt fix and a guard fix for v1's missing disclosure on the failed
+call alone; the writer covers 2 of 3 rules and reports the third as uncovered; the incident agent folds two similar threats
+on two calls into one incident ([tests](tests/test_agents.py)). Not yet run with the live Evon.
+
 ## Diapason Shield: compliance on live calls, for agents you didn't build
 
 Guard works inside an agent Diapason builds. **Shield** works in front of any agent, with no change to it: point the
