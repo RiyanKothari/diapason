@@ -538,6 +538,79 @@ def serve_agent(version: str = typer.Option("v1", help="v1 (seeded bugs) or v2 (
     ))
 
 
+def _suite_of(run_dir: Path, suites_dir: Path = Path("suites")):
+    """The suite file a run came from (the report records the suite's name, not its path)."""
+    name = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))["suite"]
+    for f in sorted(suites_dir.glob("*.y*ml")):
+        try:
+            s = load_suite(f)
+        except Exception:
+            continue
+        if s.name == name:
+            return s
+    raise typer.BadParameter(f"no suite named {name!r} in {suites_dir}; pass --suite")
+
+
+@app.command()
+def fix(run_dir: Path, agent: str = typer.Option(None, help="Reference agent the run tested (v1-v4): needed to prove fixes"),
+        suite: Path = typer.Option(None, help="The run's suite file (default: found by name in suites/)"),
+        rounds: int = typer.Option(2, help="Prompt patches to try"), judge_samples: int = 3,
+        out: Path = typer.Option(None, help="Default: <run_dir>/fix")):
+    """The fix agent: sort a run's failures into prompt, guard and engineering lanes, and prove each fix by re-running
+    only the failed calls (Evon plays agent, callers and judge: no speech credits)."""
+    from .fixer import agent_for, fix as run_fix
+    from .gnani import Evon
+    _utf8_console()
+    load_dotenv()
+    s = load_suite(suite) if suite else _suite_of(run_dir)
+    evon = Evon() if agent else None
+    plan = asyncio.run(run_fix(run_dir, s, evon, out or run_dir / "fix", agent=agent_for(agent), rounds=rounds,
+                               judge_samples=judge_samples))
+    typer.echo(f"failures by lane: {plan['lanes']}")
+    for line in plan.get("ship") or [plan.get("note", "")]:
+        typer.echo(f"  - {line}")
+    typer.echo(f"plan: {(out or run_dir / 'fix') / 'fix-plan.md'}")
+
+
+@app.command("write-suite")
+def write_suite_cmd(sop: Path, name: str = typer.Option(..., help="Suite name"),
+                    transcripts: list[Path] = typer.Option(None, help="Real call transcripts (caller: / customer: lines) to sound like"),
+                    url: str = "ws://127.0.0.1:8765", out: Path = typer.Option(None, help="Default: suites/<name>.yaml")):
+    """The suite-writer agent: every rule in the SOP gets a caller built to break it; prints what stays uncovered."""
+    from .gnani import Evon
+    from .suitewriter import save, write_suite_for
+    _utf8_console()
+    load_dotenv()
+    files = [f for t in transcripts or [] for f in ([t] if t.is_file() else sorted(t.glob("*.txt")))]
+    suite_, cov = write_suite_for(Evon(), sop.read_text(encoding="utf-8"), name, transcripts=files, url=url)
+    path = out or Path("suites") / f"{name}.yaml"
+    save(suite_, cov, path)
+    typer.echo(f"{len(suite_.cases)} attack cases for {len(cov['rules'])} rules"
+               + (f", uncovered: {', '.join(cov['uncovered'])}" if cov["uncovered"] else ", every rule covered")
+               + f"\nsuite: {path}\ncoverage: {path.with_suffix('.coverage.md')}")
+
+
+@app.command()
+def incidents(log: Path = typer.Option(Path("runs/shield"), help="Shield's log folder"),
+              suite: Path = typer.Option(None, help="Base suite to add the regression cases to"),
+              out: Path = typer.Option(Path("runs/incidents")), use_evon: bool = typer.Option(True, help="Let Evon write the summaries")):
+    """The incident agent: group Shield's live flags into incidents, write them up, and turn each into a test case."""
+    from .incidents import run as run_incidents
+    _utf8_console()
+    load_dotenv()
+    evon = None
+    if use_evon:
+        from .gnani import Evon
+        evon = Evon()
+    r = run_incidents(log, out, base=load_suite(suite) if suite else None, evon=evon)
+    typer.echo(f"{len(r['incidents'])} incident(s) from {r['calls']} call(s), {r['flagged_lines']} flagged line(s)")
+    for x in r["incidents"]:
+        typer.echo(f"  [{x['severity']}] {x['title']}: {len(x['calls'])} call(s), {x['lines']} line(s), {x['prevented']} stopped")
+    if r.get("regression_suite"):
+        typer.echo(f"regression suite: {r['regression_suite']}")
+    typer.echo(f"report: {out / 'incidents.md'}")
+
+
 @app.command()
 def shield(agent: str = typer.Option(..., help="The agent's media-stream websocket URL (where the platform used to stream calls)"),
            dialect: str = typer.Option("twilio", help="The platform's stream format: twilio, exotel or plivo"),
