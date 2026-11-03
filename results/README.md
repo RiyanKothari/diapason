@@ -1,7 +1,7 @@
 # Results
 
 The measured evidence behind the README, copied from `runs/` by `scripts/export_results.py`.
-Audio is left out (size); `bhool site` keeps the showcase call's recording.
+Audio is left out (size); `diapason site` keeps the showcase call's recording.
 
 | File | What it shows |
 |---|---|

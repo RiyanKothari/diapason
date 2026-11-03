@@ -19,7 +19,7 @@ details{background:var(--card);border:1px solid var(--line);border-radius:14px;m
 .turn{margin:3px 0}.turn .who{display:inline-block;min-width:70px;font-size:12px;color:var(--muted)}audio{width:100%;margin:10px 0}
 .ev{font-size:13px;border-left:2px solid var(--line);padding-left:10px;margin:4px 0}code{font-size:13px}
 .scroll>table{min-width:720px}</style></head><body><main>
-<p class="muted">Bhool Bhulaiya · accuracy proof · 2026-10-30 23:59 · Evon agent, callers and judge; simulated phone audio</p>
+<p class="muted">Diapason · accuracy proof · 2026-10-30 23:59 · Evon agent, callers and judge; simulated phone audio</p>
 <h1>How accurate are the tests and the QA?</h1>
 <p class="muted">Both are measured against answers known in advance: bugs deliberately planted in agent v1 (and fixed in v2),
 and QA calls built with a known verdict on every parameter.</p>
@@ -29,7 +29,7 @@ and QA calls built with a known verdict on every parameter.</p>
 <p class="muted">Each bug has a targeted call. Caught = flagged on v1 with evidence. "v2 also flagged" = the same flag on v2: Evon plays v2 and can genuinely slip, so read the quote to tell a real v2 failure from a false alarm.
 v1 pass rate 0% → v2 0%.
 Reports: <a href="proof-20261030-232510/report.html">v1</a> · <a href="proof-20261030-233156/report.html">v2</a> · <a href="proof-20261102-011717/report.html">v1 + Guard</a> · <a href="proof-20261031-181507/report.html">v3 (secrets isolated)</a> · <a href="proof-20261102-012656/report.html">v3 + Guard</a> · <a href="proof-20261102-021929/report.html">v4 (acts + Guard)</a></p>
-<p class="muted">Bhool Guard checks every line v1 is about to speak (banned threats, secret requests, account details before the caller
+<p class="muted">Diapason Guard checks every line v1 is about to speak (banned threats, secret requests, account details before the caller
 proves the account's last 4 digits, the recording disclosure) and rewrites it in code before text-to-speech (about 1 ms per line measured live).
 VAD and barge-in bugs are audio engineering and stay v1's.
 v3 is v2 with the secret taken out of the model: code checks the caller's digits, and the amount and due date reach the

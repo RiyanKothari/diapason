@@ -5,8 +5,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from test_simulate import FakeEvon, card  # noqa: E402
 
-from bhool.qa.simulate import simulate_segment, write_segments_html  # noqa: E402
-from bhool.site import build_site  # noqa: E402
+from diapason.qa.simulate import simulate_segment, write_segments_html  # noqa: E402
+from diapason.site import build_site  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,7 +30,7 @@ def test_static_site_has_everything_without_a_server(tmp_path):
     assert info["proof"] == "proof-x" and info["simulations"] == ["segments-x"]
     landing = (out / "index.html").read_text(encoding="utf-8")
     assert "90.4%" in landing and "7/8" in landing and "studio.html" in landing
-    assert 'window.BHOOL_DATA = "data/"' in (out / "studio.html").read_text(encoding="utf-8")
+    assert 'window.DIAPASON_DATA = "data/"' in (out / "studio.html").read_text(encoding="utf-8")
     studio = json.loads((out / "data" / "studio.json").read_text(encoding="utf-8"))
     assert [a["path"] for a in studio["audits"]] == ["segments-x/emi_collections"]
     assert (out / "data" / "audit" / "segments-x__emi_collections.json").exists()
@@ -40,7 +40,7 @@ def test_static_site_has_everything_without_a_server(tmp_path):
 
 
 def test_site_keeps_only_the_showcase_calls_audio(tmp_path):
-    from bhool.site import SHOWCASE_CASE, build_site
+    from diapason.site import SHOWCASE_CASE, build_site
     runs = tmp_path / "runs"
     proof = runs / "proof-x"
     for d in ("v1", "g"):

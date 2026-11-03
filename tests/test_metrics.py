@@ -1,6 +1,6 @@
 import numpy as np
 
-from bhool.judge import measure_call, speech_segments
+from diapason.judge import measure_call, speech_segments
 
 SR = 8000
 

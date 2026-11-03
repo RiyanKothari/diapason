@@ -1,9 +1,9 @@
 import pytest
 
-from bhool.judge.dates import date_keys, echoes
-from bhool.qa import Check, Parameter, Scorecard, Section, from_turns
-from bhool.qa.engine import code_check
-from bhool.scenarios.schema import AgentSpec
+from diapason.judge.dates import date_keys, echoes
+from diapason.qa import Check, Parameter, Scorecard, Section, from_turns
+from diapason.qa.engine import code_check
+from diapason.scenarios.schema import AgentSpec
 
 
 @pytest.mark.parametrize("text, want", [

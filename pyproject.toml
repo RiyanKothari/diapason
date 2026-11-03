@@ -1,7 +1,7 @@
 [project]
-name = "bhool"
+name = "diapason"
 version = "0.1.0"
-description = "Bhool Bhulaiya: adversarial, telephony-realistic testing for Indian voice agents, built on Gnani AI Prisma, Evon and Timbre."
+description = "Diapason: adversarial, telephony-realistic testing for Indian voice agents, built on Gnani AI Prisma, Evon and Timbre."
 requires-python = ">=3.11"
 dependencies = [
   "numpy>=2.0",
@@ -21,7 +21,8 @@ dev = ["pytest>=8"]
 video = ["imageio-ffmpeg>=0.5"]      # scripts/make_video.py (also needs Chrome or Edge)
 
 [project.scripts]
-bhool = "bhool.cli:app"
+diapason = "diapason.cli:app"
+bhool = "diapason.cli:app"          # the project's first name, kept so old commands still work
 
 [build-system]
 requires = ["setuptools>=69"]
@@ -31,7 +32,7 @@ build-backend = "setuptools.build_meta"
 where = ["core"]
 
 [tool.setuptools.package-data]
-bhool = ["static/*"]
+diapason = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

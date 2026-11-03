@@ -1,4 +1,4 @@
-# Compiled by `bhool qa compile` from docs\policies\collections_call_policy.md. Each parameter's `source` is the clause it enforces;
+# Compiled by `diapason qa compile` from docs\policies\collections_call_policy.md. Each parameter's `source` is the clause it enforces;
 # review before use: [unverified] marks a clause that could not be found word for word in the text.
 name: rashtriya_bank_collections_policy
 agent:

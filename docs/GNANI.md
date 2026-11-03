@@ -1,4 +1,4 @@
-# How Bhool Bhulaiya uses Gnani AI
+# How Diapason uses Gnani AI
 
 Every Gnani model has a load-bearing role. Nothing here is decorative.
 
@@ -32,11 +32,11 @@ Every Gnani model has a load-bearing role. Nothing here is decorative.
 
 ## Credit discipline (5,000 programme credits)
 
-- `bhool plan` estimates usage before anything is spent; `--max-tts-chars`, `--max-stt-seconds`,
+- `diapason plan` estimates usage before anything is spent; `--max-tts-chars`, `--max-stt-seconds`,
   `--max-evon-calls` are hard caps enforced before each request.
 - Timbre output is cached on disk by every input that changes the audio, so re-runs of a suite are
   TTS-free.
-- `bhool demo`, `selftest`, `load --offline` and the whole test suite use zero credits.
+- `diapason demo`, `selftest`, `load --offline` and the whole test suite use zero credits.
 
 ## Contracts followed (from docs.gnani.ai)
 

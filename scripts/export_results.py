@@ -85,7 +85,7 @@ def main() -> None:
                 shutil.copy2(f, OUT / dst)
                 rows.append((dst, what))
     index = ["# Results", "", "The measured evidence behind the README, copied from `runs/` by `scripts/export_results.py`.",
-             "Audio is left out (size); `bhool site` keeps the showcase call's recording.", "", "| File | What it shows |", "|---|---|"]
+             "Audio is left out (size); `diapason site` keeps the showcase call's recording.", "", "| File | What it shows |", "|---|---|"]
     index += [f"| [{dst}]({dst}) | {what} |" for dst, what in rows]
     (OUT / "README.md").write_text("\n".join(index) + "\n", encoding="utf-8")
     size = sum(p.stat().st_size for p in OUT.rglob("*") if p.is_file())

@@ -1,5 +1,5 @@
-"""Phone targets end to end, without a phone: the reference agent speaks Twilio Media Streams, Bhool plays Twilio
-(media_stream), and a fake Twilio relays a "phone call" between Bhool's bridge and the agent (phone)."""
+"""Phone targets end to end, without a phone: the reference agent speaks Twilio Media Streams, Diapason plays Twilio
+(media_stream), and a fake Twilio relays a "phone call" between Diapason's bridge and the agent (phone)."""
 
 import asyncio
 import json
@@ -7,12 +7,12 @@ import json
 import numpy as np
 import websockets
 
-from bhool.call.engine import run_call
-from bhool.call.telephony import MediaStreamAgent, PhoneAgent, PhoneBridge, mulaw_decode, mulaw_encode, twiml_stream
-from bhool.channel import PRESETS
-from bhool.fakes import ScriptedBrain, fake_hear, fake_speak
-from bhool.reference_agent import serve
-from bhool.scenarios import Behaviour, Persona, Scenario
+from diapason.call.engine import run_call
+from diapason.call.telephony import MediaStreamAgent, PhoneAgent, PhoneBridge, mulaw_decode, mulaw_encode, twiml_stream
+from diapason.channel import PRESETS
+from diapason.fakes import ScriptedBrain, fake_hear, fake_speak
+from diapason.reference_agent import serve
+from diapason.scenarios import Behaviour, Persona, Scenario
 from tests.test_reference_agent import LINES, fake_llm, fake_stt, fake_tts, free_port
 
 SCENARIO = Scenario(id="phone", persona=Persona(id="p", description="d", crm={"name": "रमेश", "loan_id_last4": "4821"}),
@@ -52,7 +52,7 @@ def test_media_stream_target_drives_a_twilio_speaking_agent():
 
 
 class FakeTwilio:
-    """Places a 'call' by joining Bhool's bridge stream to the agent's stream, as Twilio joins two call legs."""
+    """Places a 'call' by joining Diapason's bridge stream to the agent's stream, as Twilio joins two call legs."""
 
     def __init__(self, bridge_ws, agent_ws):
         self.bridge_ws, self.agent_ws, self.number, self.tasks, self.hung = bridge_ws, agent_ws, "+15550100", [], []
@@ -97,7 +97,7 @@ def test_phone_target_through_the_bridge():
     rec, twilio = asyncio.run(go())
     assert rec.end_reason == "agent_hangup", rec.end_reason
     assert sum(t.speaker == "agent" for t in rec.turns) >= 3
-    assert twilio.hung == ["CAfake"]                                 # Bhool ends the call it placed
+    assert twilio.hung == ["CAfake"]                                 # Diapason ends the call it placed
 
 
 def test_inbound_twiml_streams_to_the_bridge():

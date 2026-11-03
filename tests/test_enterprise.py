@@ -6,15 +6,15 @@ import json
 
 import pytest
 
-from bhool.advise import calibrate, cohen_kappa, failure_digest
-from bhool.diff import classify, diff_reports
-from bhool.fakes import ScriptedBrain, fake_hear, fake_speak
-from bhool.generate import generate_suite, write_suite
-from bhool.judge.rubric import judge_prompt
-from bhool.redact import redact
-from bhool.runner import Budget, BudgetExceeded, Usage, run_suite
-from bhool.scenarios import load_suite
-from bhool.scenarios.library import LIBRARY
+from diapason.advise import calibrate, cohen_kappa, failure_digest
+from diapason.diff import classify, diff_reports
+from diapason.fakes import ScriptedBrain, fake_hear, fake_speak
+from diapason.generate import generate_suite, write_suite
+from diapason.judge.rubric import judge_prompt
+from diapason.redact import redact
+from diapason.runner import Budget, BudgetExceeded, Usage, run_suite
+from diapason.scenarios import load_suite
+from diapason.scenarios.library import LIBRARY
 from tests.test_rubric import PERSONA, SPEC, record
 
 SUITE = "suites/emi_collection.yaml"
@@ -25,7 +25,7 @@ SUITE = "suites/emi_collection.yaml"
 def test_usage_refuses_before_crossing_cap():
     u = Usage(Budget(max_tts_chars=10))
     speak = u.wrap_speak(lambda utt, p: ("audio", 16000))
-    from bhool.caller.brain import Utterance
+    from diapason.caller.brain import Utterance
     speak(Utterance("12345"), None)
     with pytest.raises(BudgetExceeded):
         speak(Utterance("1234567"), None)
@@ -33,7 +33,7 @@ def test_usage_refuses_before_crossing_cap():
 
 
 def test_run_stops_and_fails_gate_when_budget_runs_out(tmp_path):
-    from bhool.fakes import ScriptedAgent
+    from diapason.fakes import ScriptedAgent
     suite = load_suite(SUITE)
     scenarios = suite.expand()[:3]
     report = asyncio.run(run_suite(
@@ -93,14 +93,14 @@ def test_library_merges_without_duplicates():
     suite = load_suite(SUITE)
     data = suite.model_dump()
     data["use_library"] = True
-    from bhool.scenarios import Suite
+    from diapason.scenarios import Suite
     s2 = Suite.model_validate(data)
     ids = [b.id for b in s2.behaviours]
     assert len(ids) == len(set(ids)) and set(LIBRARY) <= set(ids)
 
 
 def test_unknown_library_id_rejected():
-    from bhool.scenarios import Suite
+    from diapason.scenarios import Suite
     data = load_suite(SUITE).model_dump()
     data["use_library"] = ["telepathy"]
     with pytest.raises(ValueError, match="unknown library"):

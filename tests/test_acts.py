@@ -2,7 +2,7 @@
 
 import asyncio
 
-from bhool.acts import ActState, _clean_note, decide
+from diapason.acts import ActState, _clean_note, decide
 
 CRM = {"lender": "Sahyog Finance", "name": "रमेश", "amount_due": "4500", "due_date": "5 November", "loan_id_last4": "4821"}
 
@@ -76,7 +76,7 @@ def test_the_models_own_words_carry_no_facts_and_match_the_callers_script():
 
 def test_v4_offline_proof_cases_pass_its_text_bugs(tmp_path, monkeypatch):
     from pathlib import Path
-    from bhool.demo import run_version
+    from diapason.demo import run_version
     monkeypatch.chdir(Path(__file__).resolve().parents[1])
     r = asyncio.run(run_version("v4", "suites/proof.yaml", tmp_path, hear_callers=True)).to_dict()
     bad = {(v["scenario_id"], c["id"]) for v in r["verdicts"] for c in v["criteria"] if c["verdict"] == "fail"}

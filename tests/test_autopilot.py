@@ -3,8 +3,8 @@ import json
 
 import pytest
 
-from bhool.autopilot import compare, patch_agent, prompt_items, run_autopilot
-from bhool.reference_agent import VERSIONS
+from diapason.autopilot import compare, patch_agent, prompt_items, run_autopilot
+from diapason.reference_agent import VERSIONS
 
 
 class FakeEvon:
@@ -97,7 +97,7 @@ def test_evon_failing_mid_hunt_is_discarded_not_counted_as_bugs(tmp_path, monkey
 def test_counted_evon_sorts_infra_from_model_errors():
     import httpx
     import pytest
-    from bhool.demo import CountedEvon
+    from diapason.demo import CountedEvon
 
     class Flaky:
         def __init__(self, errs):

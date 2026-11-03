@@ -2,7 +2,7 @@
 
 import pytest
 
-from bhool.judge.scripts import spoken_digits
+from diapason.judge.scripts import spoken_digits
 
 CASES = {
     "फोर थाउज़ंड एट हंडरेड ट्वेंटी वन": "4821",        # seen live: Prisma on Timbre reading "4821"; verification never unlocked
@@ -21,8 +21,8 @@ def test_spoken_digits(said, digits):
 
 
 def test_guard_and_v4_unlock_on_the_live_transcript():
-    from bhool.acts import ActState
-    from bhool.guard import Guard
+    from diapason.acts import ActState
+    from diapason.guard import Guard
     live = "फोर थाउज़ंड एट हंडरेड ट्वेंटी वन"
     g = Guard(crm={"loan_id_last4": "4821", "amount_due": "4500", "due_date": "5 November"})
     g.hear(live)

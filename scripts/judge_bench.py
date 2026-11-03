@@ -26,10 +26,10 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "core"))
 
-from bhool.gnani import Evon  # noqa: E402
-from bhool.judge.rubric import DEFAULT_CRITERIA, cross_examine, judge_prompt, vote  # noqa: E402
-from bhool.runner import load_call  # noqa: E402
-from bhool.scenarios import load_suite  # noqa: E402
+from diapason.gnani import Evon  # noqa: E402
+from diapason.judge.rubric import DEFAULT_CRITERIA, cross_examine, judge_prompt, vote  # noqa: E402
+from diapason.runner import load_call  # noqa: E402
+from diapason.scenarios import load_suite  # noqa: E402
 
 from injection_bench import LABELS as INJECTION  # noqa: E402
 
@@ -100,7 +100,7 @@ def main(samples: int = 3) -> None:
 def add_code_checks() -> None:
     """The deterministic check next to each judge verdict, on the same calls (no Evon): account_privacy for privacy rows,
     injection_guard (leaks after an attack) for injection rows."""
-    from bhool.judge.rubric import account_privacy, injection_guard
+    from diapason.judge.rubric import account_privacy, injection_guard
     suite = load_suite(ROOT / "suites/proof.yaml")
     personas = {s.id: s.persona for s in suite.expand()}
     path = ROOT / "runs/judge-bench.json"

@@ -9,7 +9,7 @@ brands only. Never show the Kaggle notebook's output on screen (it prints the Ev
 | Say | Source |
 |---|---|
 | The tests caught all 7 bugs planted in an agent (8 of 8 test cases) | results/proof/proof.json |
-| The same buggy agent behind Bhool Guard, prompt unchanged: 4 of 6 text bugs prevented (judge); every code check passes on all 6 | results/proof/proof.json (guard) |
+| The same buggy agent behind Diapason Guard, prompt unchanged: 4 of 6 text bugs prevented (judge); every code check passes on all 6 | results/proof/proof.json (guard) |
 | 98% of loan IDs, amounts and dates survive Timbre → noisy phone line (30-0 dB) → Prisma, across 3,366 transcripts | results/atlas/atlas.json |
 | Taking the secret out of the model: account leaks across 12 attacks fell from 4 to 0 | results/autopilot/replay-v3.json |
 | v4, where the model picks the act and code speaks the facts, passed 5 of 6 test calls; every earlier version 0 | results/proof/calls-v4.json |
@@ -23,7 +23,7 @@ Hindi, Hinglish, Gujarati and English.
 
 ## The film: record the demo instead of editing it
 
-`bhool site`, then open `site/watch.html` (or `/watch` on `bhool dashboard`). It is about two minutes, 16:9, and every
+`diapason site`, then open `site/watch.html` (or `/watch` on `diapason dashboard`). It is about two minutes, 16:9, and every
 scene is drawn from run files: the live v1 call with its own audio and the threat flagged as it is said, 8 / 8 planted-bug
 tests, Guard's rewrites, v1 → v4, the atlas, the noise sweep, QA accuracy. Press R (or open `watch.html?record`) to hide the
 controls, full-screen it, and screen-record with system audio. For a 60-second cut, record the call, Guard, v1 → v4 and the
@@ -36,19 +36,19 @@ picture already.
 |---|---|---|
 | 0-5 s | A phone waveform, then the showcase title | "Before your AI agent talks to a million Indians, crash-test it." |
 | 5-17 s | Showcase replay, left side: v1 says "वरना legal action होगा" to Ramesh; red flags appear with the quote | "A synthetic customer calls. The agent threatens him and states his debt before checking who he is. Every flag quotes its words." |
-| 17-27 s | Right side: the same agent behind Guard; the threat is crossed out, the verification question appears instead | "Same agent, prompt untouched, behind Bhool Guard: every sentence checked in code before it's spoken. Every code check passes on all 6 text bugs." |
+| 17-27 s | Right side: the same agent behind Guard; the threat is crossed out, the verification question appears instead | "Same agent, prompt untouched, behind Diapason Guard: every sentence checked in code before it's spoken. Every code check passes on all 6 text bugs." |
 | 27-35 s | Autopilot replay: 12 attacks, leaks 4 → 0 | "An AI red team attacked it 12 ways. Taking the secret out of the model: leaks 4 → 0." |
 | 35-46 s | Live dashboard call: the caller says 4821, Prisma's transcript "फोर थाउज़ंड एट हंडरेड ट्वेंटी वन", then v4 verifying | "Then a live call found what no offline test could: Prisma writes '4821' as English words in Devanagari. Fixed, and v4 verifies first try." |
 | 46-54 s | Noise sweep grid: v1 red from 10-20 dB, fixed agent green to 0 dB | "Fan, office, crowd: the fixed agent hears the caller down to 0 dB. v1 stopped at 10-20." |
 | 54-60 s | Logo line and link | "Built on Gnani: Prisma hears, Timbre speaks, Evon calls, guards and judges." |
 
-Shots (all exist): the showcase (`bhool site`, then open `site/index.html`), `results/live-gnani/` call for the transcript,
-the dashboard (`bhool dashboard`) for a live take, `site/autopilot/autopilot.html`, `site/stress/stress.html`.
+Shots (all exist): the showcase (`diapason site`, then open `site/index.html`), `results/live-gnani/` call for the transcript,
+the dashboard (`diapason dashboard`) for a live take, `site/autopilot/autopilot.html`, `site/stress/stress.html`.
 Burn the captions in: most people watch muted.
 
 ## The link to share
 
-`bhool site` builds the showcase; deploy `site/` (Vercel or a `gh-pages` branch) and put the link in the post, the
+`diapason site` builds the showcase; deploy `site/` (Vercel or a `gh-pages` branch) and put the link in the post, the
 written explanation and the README. The submission form has no repo field, so the link in the post is how a reviewer finds
 the evidence.
 
@@ -66,7 +66,7 @@ the evidence.
 > Voice AI in India gets tested by people making test calls. Real customers call from a noisy shop, switch to Gujarati
 > mid-sentence, interrupt, or hand the phone to their brother.
 >
-> So I built Bhool Bhulaiya on Gnani's Prisma, Timbre and Evon: synthetic Indian callers that crash-test a voice agent before
+> So I built Diapason on Gnani's Prisma, Timbre and Evon: synthetic Indian callers that crash-test a voice agent before
 > launch, a guard that checks every sentence before the agent speaks it, and an auditor that quotes the agent's own words.
 >
 > Measured, on Evon-played test calls over a simulated phone line:

@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diapason</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f9fafb;--fg:#111111;--text:#333333;--muted:#636363;--card:#ffffff;--soft:#f5f5f5;--line:rgba(0,0,0,.1);--ink:#000000;--ink-fg:#ffffff;
+  --accent:#4169e1;--pass:#1f7a4d;--fail:#c2410c;--warn:#a16207;--caller:#eef2fd;--agent:#f5f5f5;--cream:#fcf7f2;
+  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;--sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#0b0b0c;--fg:#f4f4f5;--text:#d4d4d8;--muted:#9a9aa2;--card:#141416;--soft:#1c1c1f;--line:rgba(255,255,255,.1);
+  --ink:#ffffff;--ink-fg:#000000;--accent:#7b96ff;--pass:#4ade80;--fail:#fb923c;--warn:#facc15;--caller:#1a2140;--agent:#1c1c1f;--cream:#1a1714}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+.topbar{border-bottom:1px solid var(--line);background:var(--card)}
+.topbar .in{max-width:1280px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{font:500 15px var(--sans);color:var(--fg);letter-spacing:-.01em}.brand b{font-weight:600}
+.built{font-size:13px;color:var(--muted)}.spacer{flex:1}
+.hero{max-width:1280px;margin:0 auto;padding:36px 16px 8px}
+.hero h1{font:400 clamp(32px,5vw,52px)/1.05 var(--serif);color:var(--fg);margin:0;letter-spacing:-.01em}
+.hero p{margin:10px 0 0;color:var(--muted);max-width:640px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:500;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7}
+.pill.on{color:var(--accent)}.pill.pass{color:var(--pass)}.pill.fail{color:var(--fail)}
+main{max-width:1280px;margin:0 auto;padding:0 16px 72px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:20px 0}
+.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:end}
+label{display:flex;flex-direction:column;font-size:12px;font-weight:500;color:var(--muted);gap:6px}
+select,input{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0}
+select:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px}
+input[type=number]{width:90px}input[type=text]{width:230px}
+button{font:500 14px var(--sans);border:0;border-radius:999px;padding:10px 22px;background:var(--ink);color:var(--ink-fg);cursor:pointer;transition:opacity .15s}
+button:hover{opacity:.85}button:disabled{opacity:.35;cursor:default}
+.check{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:var(--text);font-weight:400}
+.est{font-size:13px;color:var(--muted);margin-top:12px}
+.section-title{font:400 26px var(--serif);color:var(--fg);margin:36px 0 4px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi span{font-size:12px;color:var(--muted);font-weight:500}.kpi b{display:block;font:400 30px/1.2 var(--serif);color:var(--fg);margin-top:4px}
+.bar{height:3px;background:var(--soft);border-radius:999px;overflow:hidden;margin-top:14px}.bar i{display:block;height:100%;width:0;background:var(--ink);transition:width .3s}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px;margin-top:14px}
+.call{background:var(--card);border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;max-height:480px;overflow:hidden}
+.call.pass{box-shadow:inset 0 3px 0 var(--pass)}.call.fail{box-shadow:inset 0 3px 0 var(--fail)}
+.call .head{padding:12px 14px;border-bottom:1px solid var(--line)}
+.call .title{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600;font-size:13px;color:var(--fg);word-break:break-word}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.chip{font-size:11px;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.feed{padding:10px 14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:7px}
+.msg{max-width:88%;padding:8px 11px;border-radius:14px;font-size:14px;color:var(--fg)}
+.msg.caller{align-self:flex-end;background:var(--caller);border-bottom-right-radius:4px}.msg.agent{align-self:flex-start;background:var(--agent);border-bottom-left-radius:4px}
+.msg .meta{display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
+.lat{font-weight:600}.lat.slow{color:var(--fail)}.lat.ok{color:var(--pass)}
+.note{align-self:center;font-size:12px;color:var(--muted);background:var(--soft);padding:2px 10px;border-radius:999px}.note.warn{color:var(--warn)}
+.foot{padding:10px 14px;border-top:1px solid var(--line);font-size:13px;background:var(--cream)}.foot .fail{color:var(--fail)}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:14px}
+th{color:var(--muted);font-weight:500;font-size:12px}td{color:var(--text)}tr:last-child td{border-bottom:0}
+a{color:var(--fg);text-underline-offset:3px}.scroll{overflow-x:auto}.empty{color:var(--muted);font-size:14px}
+@media (max-width:560px){input[type=text]{width:100%}.controls>*{flex:1 1 140px}.controls button{flex-basis:100%}}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="in"><span class="brand"><b>Diapason</b></span><span class="built">built on Gnani Prisma · Evon · Timbre</span><span class="spacer"></span><a href="/watch">Watch the demo</a><a href="/studio">QA Studio</a><span id="status" class="pill">idle</span></div></div>
+<section class="hero"><h1>Every caller your agent<br>will meet, before it meets them.</h1>
+<p>Synthetic Indian callers, noisy 8 kHz lines, code-mixed speech and barge-ins. Each call is measured, judged with quoted evidence, and gated.</p></section>
+<main>
+  <section class="panel">
+    <div class="controls">
+      <label>Suite<select id="suite"></select></label>
+      <label>Mode<select id="mode"><option value="offline">Offline: fake agent, zero credits</option><option value="live">Live: Gnani Prisma + Evon + Timbre</option></select></label>
+      <label>Scenarios<input id="limit" type="number" min="1" value="4"></label>
+      <label id="urlWrap" hidden>Agent URL<input id="url" type="text" placeholder="ws://127.0.0.1:8765"></label>
+      <label class="budget" hidden>TTS chars budget<input id="ttsCap" type="number" min="1" value="400"></label>
+      <label class="budget" hidden>STT seconds budget<input id="sttCap" type="number" min="1" value="60"></label>
+      <label class="check" id="stubWrap"><input id="stubborn" type="checkbox"> fake agent ignores barge-ins</label>
+      <button id="run">Run suite</button>
+    </div>
+    <div class="est" id="est"></div>
+  </section>
+
+  <h2 class="section-title">Live run</h2>
+  <section class="kpis">
+    <div class="kpi"><span>Calls done</span><b id="kDone">0 / 0</b></div>
+    <div class="kpi"><span>Passed</span><b id="kPass">—</b></div>
+    <div class="kpi"><span>Response latency p95</span><b id="kP95">—</b></div>
+    <div class="kpi"><span>Barge-ins ignored</span><b id="kBarge">0</b></div>
+    <div class="kpi"><span>Gate</span><b id="kGate">—</b></div>
+  </section>
+  <div class="bar"><i id="prog"></i></div>
+
+  <div class="grid" id="calls"><p class="empty">Start a run to watch every test call live.</p></div>
+
+  <h2 class="section-title">Past runs</h2>
+  <section class="panel">
+    <div class="scroll"><table><thead><tr><th>Suite</th><th>Started</th><th>Calls</th><th>Pass rate</th><th>p95</th><th>Gate</th><th></th></tr></thead><tbody id="runs"></tbody></table></div>
+  </section>
+
+  <h2 class="section-title">How accurate is it? Proof and autopilot</h2>
+  <p style="color:var(--muted);margin:-6px 0 12px">Measured against answers known in advance (<code>diapason proof</code>), and bugs nobody planted, found and fixed by Evon (<code>diapason autopilot</code>)</p>
+  <section class="panel">
+    <div class="scroll"><table><thead><tr><th>Kind</th><th>When</th><th>Result</th><th></th></tr></thead><tbody id="proofs"></tbody></table></div>
+  </section>
+
+  <h2 class="section-title">Quality audits of real calls</h2>
+  <p style="color:var(--muted);margin:-6px 0 12px">Every production call scored against a QA scorecard with quoted evidence: <code>diapason qa audit scorecards/emi_collections.yaml calls/</code></p>
+  <section class="panel">
+    <div class="scroll"><table><thead><tr><th>Scorecard</th><th>Audited</th><th>Calls</th><th>Avg score</th><th>Pass</th><th>Fatal</th><th>Review</th><th></th></tr></thead><tbody id="audits"></tbody></table></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const SLOW = 2.5;
+let total = 0, done = 0, passed = 0, latencies = [], ignored = 0;
+const calls = new Map();
+let suites = [];
+
+async function loadSuites() {
+  suites = await (await fetch("/api/suites")).json();
+  $("suite").innerHTML = suites.map((s) => `<option value="${esc(s.file)}">${esc(s.name || s.file)}${s.error ? " (invalid)" : ` · ${s.scenarios} scenarios`}</option>`).join("");
+  showEstimate();
+}
+function showEstimate() {
+  const s = suites.find((x) => x.file === $("suite").value);
+  if (!s) return;
+  if (s.error) { $("est").textContent = "Invalid suite: " + s.error; return; }
+  const n = Math.min(+$("limit").value || s.scenarios, s.scenarios), f = n / s.scenarios, e = s.estimate;
+  $("est").textContent = $("mode").value === "offline"
+    ? `${n * s.runs_per_scenario} calls against a scripted fake agent. No API credits used.`
+    : `Up to ${n * s.runs_per_scenario} calls · ≤${Math.round(e.tts_chars_max * f)} TTS chars · ≤${Math.round(e.stt_seconds_max * f)}s STT · ≤${Math.round(e.evon_calls_max * f)} Evon calls (cached TTS is free on re-runs)`;
+}
+async function loadRuns() {
+  const runs = await (await fetch("/api/runs")).json();
+  $("runs").innerHTML = runs.length ? runs.map((r) => `<tr><td>${esc(r.suite)}</td><td>${esc(r.started_at)}</td><td>${r.calls}</td>
+    <td>${Math.round(r.pass_rate * 100)}%</td><td>${r.latency_p95_s ?? "—"}s</td>
+    <td><span class="pill ${r.gate_passed ? "pass" : "fail"}">${r.gate_passed ? "passed" : "failed"}</span></td>
+    <td><a href="/runs/${encodeURIComponent(r.dir)}/report" target="_blank">report</a></td></tr>`).join("")
+    : `<tr><td colspan="7" class="empty">No runs yet.</td></tr>`;
+}
+async function loadAudits() {
+  const qa = await (await fetch("/api/qa")).json();
+  const pct = (x) => x == null ? "—" : `${Math.round(x * 100)}%`;
+  $("audits").innerHTML = qa.length ? qa.map((q) => `<tr><td>${esc(q.scorecard)}</td><td>${esc(q.generated)}</td><td>${q.calls}</td>
+    <td>${q.avg_score ?? "—"}</td><td>${pct(q.pass_rate)}</td><td>${pct(q.fatal_rate)}</td><td>${q.review}</td>
+    <td><a href="/runs/${encodeURIComponent(q.dir)}/qa" target="_blank">audit</a></td></tr>`).join("")
+    : `<tr><td colspan="8" class="empty">No audits yet.</td></tr>`;
+}
+async function loadProofs() {
+  const ps = await (await fetch("/api/proof")).json();
+  $("proofs").innerHTML = ps.length ? ps.map((p) => `<tr><td><span class="pill ${p.kind === "proof" ? "pass" : "fail"}">${esc(p.kind)}</span></td>
+    <td>${esc(p.generated)}</td><td>${esc(p.headline)}</td>
+    <td><a href="/runs/${encodeURIComponent(p.dir)}/${p.page}" target="_blank">open</a></td></tr>`).join("")
+    : `<tr><td colspan="4" class="empty">Run <code>diapason proof</code> or <code>diapason autopilot</code>.</td></tr>`;
+}
+function kpis() {
+  $("kDone").textContent = `${done} / ${total}`;
+  $("kPass").textContent = done ? `${Math.round(passed / done * 100)}%` : "—";
+  const s = [...latencies].sort((a, b) => a - b);
+  $("kP95").textContent = s.length ? `${s[Math.min(s.length - 1, Math.floor(0.95 * s.length))].toFixed(2)}s` : "—";
+  $("kBarge").textContent = ignored;
+  $("prog").style.width = total ? `${done / total * 100}%` : "0";
+}
+function card(e) {
+  const key = `${e.scenario}#${e.run}`;
+  let c = calls.get(key);
+  if (c) return c;
+  if (!calls.size) $("calls").innerHTML = "";
+  const el = document.createElement("article");
+  el.className = "call";
+  el.innerHTML = `<div class="head"><div class="title"><span>${esc(e.scenario)} · run ${e.run}</span><span class="pill on" data-s>in call</span></div>
+    <div class="chips">${[e.persona, e.behaviour, e.channel].filter(Boolean).map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div></div>
+    <div class="feed"></div><div class="foot" hidden></div>`;
+  $("calls").prepend(el);
+  c = { el, feed: el.querySelector(".feed"), lastCallerEnd: null };
+  calls.set(key, c);
+  return c;
+}
+function add(c, html) { c.feed.insertAdjacentHTML("beforeend", html); c.feed.scrollTop = c.feed.scrollHeight; }
+
+function onEvent(e) {
+  switch (e.type) {
+    case "suite_start":
+      total = e.calls; done = passed = ignored = 0; latencies = []; calls.clear();
+      $("calls").innerHTML = ""; $("kGate").textContent = "—"; $("status").className = "pill on"; $("status").textContent = "running"; $("run").disabled = true;
+      break;
+    case "call_start": card(e); break;
+    case "turn": {
+      const c = card(e);
+      let meta = `${e.start.toFixed(1)}s`;
+      if (e.speaker === "caller") c.lastCallerEnd = e.end;
+      else if (c.lastCallerEnd !== null && e.start >= c.lastCallerEnd) {
+        const l = e.start - c.lastCallerEnd;
+        latencies.push(l);
+        meta += ` · <span class="lat ${l > SLOW ? "slow" : "ok"}">replied in ${l.toFixed(2)}s</span>`;
+        c.lastCallerEnd = null;
+      }
+      const tags = (e.tags || []).length ? ` · ${e.tags.map((t) => `&lt;${esc(t)}&gt;`).join(" ")}` : "";
+      add(c, `<div class="msg ${e.speaker}"><span class="meta">${e.speaker}${e.kind === "interjection" ? " (barge-in)" : ""} · ${meta}${tags}</span>${esc(e.text)}</div>`);
+      kpis();
+      break;
+    }
+    case "barge_in_attempt": add(card(e), `<div class="note warn">⚡ caller cuts in at ${e.t.toFixed(1)}s</div>`); break;
+    case "agent_clear": add(card(e), `<div class="note">agent stopped talking (yielded)</div>`); break;
+    case "silence": add(card(e), `<div class="note">caller goes silent for ${e.seconds}s</div>`); break;
+    case "disposition": add(card(e), `<div class="note">agent recorded: ${esc(JSON.stringify(e.data.slots || {}))}</div>`); break;
+    case "call_end": { const c = card(e); c.el.querySelector("[data-s]").textContent = "judging"; add(c, `<div class="note">call ended: ${esc(e.reason)} · ${e.duration_s.toFixed(0)}s</div>`); break; }
+    case "verdict": {
+      const c = card(e); done++; if (e.passed) passed++;
+      ignored += e.failures.filter((f) => /ignored \d+ of/.test(f)).length;
+      c.el.classList.add(e.passed ? "pass" : "fail");
+      const s = c.el.querySelector("[data-s]"); s.className = `pill ${e.passed ? "pass" : "fail"}`; s.textContent = e.passed ? "PASS" : "FAIL";
+      const f = c.el.querySelector(".foot"); f.hidden = false;
+      f.innerHTML = e.passed ? "All checks passed." : e.failures.map((x) => `<div class="fail">• ${esc(x)}</div>`).join("");
+      kpis();
+      break;
+    }
+    case "call_error": { const c = card(e); done++; c.el.classList.add("fail"); add(c, `<div class="note warn">error: ${esc(e.error)}</div>`); kpis(); break; }
+    case "suite_end": {
+      const g = $("kGate"); g.innerHTML = `<span class="pill ${e.gate_passed ? "pass" : "fail"}">${e.gate_passed ? "PASSED" : "FAILED"}</span>`;
+      const dir = String(e.report).split(/[\\/]/).slice(-2, -1)[0];
+      g.insertAdjacentHTML("beforeend", ` <a href="/runs/${encodeURIComponent(dir)}/report" target="_blank" style="font-size:14px">report</a>`);
+      $("status").className = "pill"; $("status").textContent = "idle"; $("run").disabled = false; loadRuns();
+      break;
+    }
+    case "suite_error": $("status").className = "pill fail"; $("status").textContent = "error"; $("run").disabled = false; alert(e.error); break;
+  }
+}
+function connect() {
+  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/live`);
+  ws.onmessage = (m) => onEvent(JSON.parse(m.data));
+  ws.onclose = () => setTimeout(connect, 1500);
+}
+$("mode").onchange = () => { const live = $("mode").value === "live"; $("urlWrap").hidden = !live; $("stubWrap").hidden = live; document.querySelectorAll(".budget").forEach((b) => { b.hidden = !live; }); showEstimate(); };
+$("suite").onchange = showEstimate; $("limit").oninput = showEstimate;
+$("run").onclick = async () => {
+  const body = { suite: $("suite").value, mode: $("mode").value, limit: +$("limit").value || null, url: $("url").value || null, stubborn: $("stubborn").checked,
+    max_tts_chars: +$("ttsCap").value || null, max_stt_seconds: +$("sttCap").value || null };
+  const r = await fetch("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) alert((await r.json()).detail || "could not start");
+};
+fetch("/api/status").then((r) => r.json()).then((s) => { if (s.running) { $("status").className = "pill on"; $("status").textContent = "running"; $("run").disabled = true; } });
+loadSuites(); loadRuns(); loadAudits(); loadProofs(); connect();
+</script>
+</body>
+</html>

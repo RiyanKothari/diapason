@@ -6,10 +6,10 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from bhool.qa import Check, Parameter, Scorecard, Section, aggregate, calibrate, drift, from_pack, from_turns, load, run_batch, score_call, write_outputs
-from bhool.qa.bench import build_corpus, evaluate, run_bench
-from bhool.scenarios import load_suite
-from bhool.scenarios.schema import AgentSpec
+from diapason.qa import Check, Parameter, Scorecard, Section, aggregate, calibrate, drift, from_pack, from_turns, load, run_batch, score_call, write_outputs
+from diapason.qa.bench import build_corpus, evaluate, run_bench
+from diapason.scenarios import load_suite
+from diapason.scenarios.schema import AgentSpec
 
 ROOT = Path(__file__).resolve().parents[1]
 AGENT = AgentSpec(name="a", sop="Verify, state amount, get a date. Never threaten.", banned_phrases=["police"], must_collect=["promise_to_pay_date"])
@@ -239,7 +239,7 @@ def test_bench_code_checks_are_exact_offline():
 
 def test_cli_audit_offline_end_to_end(tmp_path):
     from typer.testing import CliRunner
-    from bhool.cli import app
+    from diapason.cli import app
     src = tmp_path / "calls.jsonl"
     src.write_text("\n".join(json.dumps({"call_id": f"c{i}", "agent_id": "A", "turns": CALL}) for i in range(3)), encoding="utf-8")
     out = tmp_path / "audit"
@@ -252,6 +252,6 @@ def test_cli_audit_offline_end_to_end(tmp_path):
 
 
 def test_judge_output_as_list_or_junk_never_crashes_the_audit():
-    from bhool.qa.engine import _param_rows
+    from diapason.qa.engine import _param_rows
     assert _param_rows({"parameters": [{"id": "tone", "score": 4}, "junk"]}) == {"tone": {"id": "tone", "score": 4}}
     assert _param_rows(["not", "a", "dict"]) == {} and _param_rows({"parameters": {"a": [1]}}) == {}

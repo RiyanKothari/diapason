@@ -1,30 +1,32 @@
-# Bhool Bhulaiya
+# Diapason
+
+*A diapason is the tuning fork every voice is checked against.*
 
 **Crash-testing, a live guard and QA for Indian voice agents, built on Gnani Prisma, Timbre and Evon.** For teams
 shipping AI voice agents to Indian callers (collections, insurance, support). **Before launch**, synthetic callers
 phone the agent and try to break it: an angry uncle in Hinglish on a street line, a Gujarati aunty, the borrower's brother
 fishing for details, barge-ins, silence, prompt injection, all over a simulated 8 kHz phone line with fan, traffic,
 office or crowd noise.
-**During the call**, Bhool Guard checks every sentence in code before it is spoken. **After**, an auditor scores every call
+**During the call**, Diapason Guard checks every sentence in code before it is spoken. **After**, an auditor scores every call
 against the rules, quoting the agent's own words.
 
 | Measured on the live proof (Evon plays agent, callers and judge) | Result |
 |---|---|
 | Tests of the bugs planted in reference agent v1 (7 bugs; one is tested twice) that catch them | **8 / 8** |
-| The same buggy v1 behind Bhool Guard, prompt unchanged: text bugs prevented | **4 / 6** judged (6 / 6 by the code checks) |
+| The same buggy v1 behind Diapason Guard, prompt unchanged: text bugs prevented | **4 / 6** judged (6 / 6 by the code checks) |
 | Red-team attacks that leaked the account: v2 → v3 (secret taken out of the model) | **4/12 → 0/12** |
 | v4 (the model picks the act, code speaks every fact): proof calls passing every check | **5 / 6** (every other version 0 / 6) |
 | Noise: the fixed agent still hears the caller down to | **0 dB SNR** (v1 stops at 10-20 dB in fan, office and crowd noise) |
 | Auditor on calls it never saw: verdicts right · fatal breaches caught · false fatal alarms | **93.6% · 100% · 0** (560 verdicts) |
-| Loan IDs, amounts and dates that survive Timbre → phone line → Prisma, 30 dB to 0 dB (3,366 real transcripts) | **98%** (the atlas found 6 gaps in Bhool's own readers first) |
+| Loan IDs, amounts and dates that survive Timbre → phone line → Prisma, 30 dB to 0 dB (3,366 real transcripts) | **98%** (the atlas found 6 gaps in Diapason's own readers first) |
 
 The evidence for every number is in [results/](results/) (JSON and pages, no audio); the weak spots are in
 [Results and limitations](#results-and-limitations). Try it with no keys and no credits:
-`pip install -e . && bhool demo` (about 40 s).
+`pip install -e . && diapason demo` (about 40 s).
 
 ## Built for Indian phone calls
 
-| What Indian callers do | What Bhool does about it | Measured |
+| What Indian callers do | What Diapason does about it | Measured |
 |---|---|---|
 | Call from a fan-cooled shop, an office, a crowded market | Every call goes through an 8 kHz μ-law line with fan, traffic, office or crowd noise at a set SNR, plus packet loss | The fixed agent hears callers down to **0 dB SNR** in all four noises; v1 stops at 10-20 dB. An office-noise endpointing bug found and fixed on the way |
 | Speak through a phone line Prisma has to hear | Prisma transcribes every turn on both sides | Character error **1.4%** clean, **2.9%** on a lossy 12 dB traffic line, **5.5%** on a 5 dB crowded market; amounts, dates and digits kept in 89-100% (18 utterances, small sample) |
@@ -72,11 +74,11 @@ persona x phone-line heatmap, failure ranking, HTML report with playable audio, 
 
 ```bash
 python -m venv .venv && .venv/Scripts/pip install -e ".[dev]"   # Windows; use .venv/bin on Linux/macOS
-bhool demo                         # reference agent v1 (seeded bugs) vs v2, full harness, diff. Zero credits
-bhool dashboard                    # http://127.0.0.1:8000: start runs, watch calls live, open reports
+diapason demo                         # reference agent v1 (seeded bugs) vs v2, full harness, diff. Zero credits
+diapason dashboard                    # http://127.0.0.1:8000: start runs, watch calls live, open reports
 ```
 
-What `bhool demo` shows (offline, 3 Nov): v1 fails all 4 calls on its seeded bugs (police threat, no
+What `diapason demo` shows (offline, 3 Nov): v1 fails all 4 calls on its seeded bugs (police threat, no
 disclosure, the account told before verification, an ignored barge-in); v2 fixes both landline calls (0% → 100%) and the
 tool **still flags v2 on the 5 dB crowded-market line**: babble was taken for a caller turn, so the agent moved on a step
 and stated the amount before the caller had said the loan digits (`account_privacy`), and it ignored a barge-in. That's
@@ -87,47 +89,47 @@ Docs: [how each Gnani model is used](docs/GNANI.md) · [architecture](docs/ARCHI
 With a Gnani key (copy `.env.example` to `.env`):
 
 ```bash
-bhool plan suites/emi_collection.yaml --limit 6        # usage estimate before spending anything
-bhool serve-agent --version v1                         # reference agent with 7 planted bugs, ws://127.0.0.1:8765
-bhool run suites/emi_collection.yaml --limit 6         # exit code 1 if the gate fails
-bhool ingest suites/emi_collection.yaml calls/*.wav    # judge real stereo calls; failures -> suites/regressions.yaml
+diapason plan suites/emi_collection.yaml --limit 6        # usage estimate before spending anything
+diapason serve-agent --version v1                         # reference agent with 7 planted bugs, ws://127.0.0.1:8765
+diapason run suites/emi_collection.yaml --limit 6         # exit code 1 if the gate fails
+diapason ingest suites/emi_collection.yaml calls/*.wav    # judge real stereo calls; failures -> suites/regressions.yaml
 ```
 
 ## Commands
 
 | Command | What it does | Credits |
 |---|---|---|
-| `bhool validate SUITE` | check a suite, list its scenarios | none |
-| `bhool plan SUITE` | upper-bound TTS chars, STT seconds, Evon calls | none |
-| `bhool selftest` | full pipeline against a fake agent | none |
-| `bhool run SUITE` | live run; `--limit`, `--only`, `--label v2`, `--redact`, hard caps `--max-tts-chars` / `--max-stt-seconds` / `--max-evon-calls` | yes |
-| `bhool diff RUN_A RUN_B` | fixed / regressed / still failing per scenario; exit 1 on any regression | none |
-| `bhool generate SOP.txt NAME` | draft a full suite from an SOP (validated, library behaviours) | 1 Evon call |
-| `bhool suggest RUN SUITE` | fixes grouped by root cause, from the run's evidence | 1 Evon call |
-| `bhool label RUN...` | a page to label calls by hand (judge verdicts hidden); downloads `labels.csv` | none |
-| `bhool calibrate RUN labels.csv` | judge vs human: agreement, Cohen's kappa, missed and false fails (RUN = `runs` for a `bhool label` CSV) | none |
-| `bhool library` | the 15 built-in adversarial caller behaviours | none |
-| `bhool demo` | v1 vs v2 reference agent through the full harness, with diff | none |
-| `bhool asr-bench` | Prisma CER per language × phone line on Timbre speech with known text | STT + cached TTS |
-| `bhool load SUITE --levels 1,4,8,16` | latency and pass rate vs simultaneous calls (`--offline` for none) | per call |
-| `bhool schema` | suite JSON Schema for editor autocomplete | none |
-| `bhool ingest SUITE WAVS...` | production calls -> verdicts -> regression cases | yes |
-| `bhool serve-agent --version v1\|v2` | the reference agent to test against | yes |
-| `bhool dashboard` | live view, run history and QA audits | per run |
-| `bhool qa audit SCORECARD CALLS...` | QA audit of real calls (see below); `--offline`, `--labels`, `--baseline`, `--to-regressions` | Evon; STT for audio only |
-| `bhool qa template SUITE` | a ready scorecard from a suite's agent spec and rubric pack | none |
-| `bhool qa bench` | the auditor's own accuracy on calls with known verdicts | Evon (`--offline`: none) |
-| `bhool qa compile POLICY.md` | **policy → executable scorecard**: Evon writes the checks (code checks where the rule is mechanical), each one quoting the clause it enforces, verified against the text | Evon |
-| `bhool qa simulate [SCORECARD...]` | QA-Bench for **every segment**: Evon writes calls with planted defects from each scorecard; `--voice-calls N` speaks them with Timbre over a phone line and transcribes with Prisma first | Evon; Timbre + Prisma for voiced calls (capped) |
-| `bhool playbooks list\|build` | one tailored QA scorecard + adversarial test suite **per industry** (22 voice-AI verticals) from `playbooks/industries.yaml` | none |
-| `bhool stress --agent v1 --agent v2` | **noise breaking point**: the same caller through fan, traffic, office and crowd noise from 30 dB to 0 dB SNR; where does the agent stop hearing? | none (the ears are the agent's own code) |
-| `bhool rating PROOF_DIR --stress STRESS_DIR` | **crash-test rating**: five measured axes (compliance, security, language, turn-taking, noise) and an overall star rating per agent, with SVG badges | none |
-| `bhool serve-agent --version v1` + Guard | **Bhool Guard**: every line the agent is about to speak is checked in code and rewritten before TTS (see below) | none |
-| `bhool site` | a **static showcase** to share as a link: landing page of measured numbers, the accuracy proof with its recordings, and the QA Studio with its data baked in | none |
-| `bhool dashboard` → `/watch` | **the film**: the demo played from run files, with the live call's recording | none |
-| `bhool dashboard` → `/studio` | **QA Studio**: segment tiles, a parameter × call heatmap, every verdict with its quote, click to hear the moment | none |
-| `bhool proof` | **one accuracy page**: planted bugs caught by the tests (v1 vs fixed v2) + QA-Bench; Evon plays agent, callers and judge over simulated phone audio | Evon only, no Gnani credits |
-| `bhool autopilot --agent v2` | **red team + self-repair**: Evon designs attack callers, breeds new ones from what broke the agent, saves every hit as a regression suite, then patches the prompt and keeps only fixes that a re-run proves (fixed ≥ 1, broke 0) | Evon only, no Gnani credits |
+| `diapason validate SUITE` | check a suite, list its scenarios | none |
+| `diapason plan SUITE` | upper-bound TTS chars, STT seconds, Evon calls | none |
+| `diapason selftest` | full pipeline against a fake agent | none |
+| `diapason run SUITE` | live run; `--limit`, `--only`, `--label v2`, `--redact`, hard caps `--max-tts-chars` / `--max-stt-seconds` / `--max-evon-calls` | yes |
+| `diapason diff RUN_A RUN_B` | fixed / regressed / still failing per scenario; exit 1 on any regression | none |
+| `diapason generate SOP.txt NAME` | draft a full suite from an SOP (validated, library behaviours) | 1 Evon call |
+| `diapason suggest RUN SUITE` | fixes grouped by root cause, from the run's evidence | 1 Evon call |
+| `diapason label RUN...` | a page to label calls by hand (judge verdicts hidden); downloads `labels.csv` | none |
+| `diapason calibrate RUN labels.csv` | judge vs human: agreement, Cohen's kappa, missed and false fails (RUN = `runs` for a `diapason label` CSV) | none |
+| `diapason library` | the 15 built-in adversarial caller behaviours | none |
+| `diapason demo` | v1 vs v2 reference agent through the full harness, with diff | none |
+| `diapason asr-bench` | Prisma CER per language × phone line on Timbre speech with known text | STT + cached TTS |
+| `diapason load SUITE --levels 1,4,8,16` | latency and pass rate vs simultaneous calls (`--offline` for none) | per call |
+| `diapason schema` | suite JSON Schema for editor autocomplete | none |
+| `diapason ingest SUITE WAVS...` | production calls -> verdicts -> regression cases | yes |
+| `diapason serve-agent --version v1\|v2` | the reference agent to test against | yes |
+| `diapason dashboard` | live view, run history and QA audits | per run |
+| `diapason qa audit SCORECARD CALLS...` | QA audit of real calls (see below); `--offline`, `--labels`, `--baseline`, `--to-regressions` | Evon; STT for audio only |
+| `diapason qa template SUITE` | a ready scorecard from a suite's agent spec and rubric pack | none |
+| `diapason qa bench` | the auditor's own accuracy on calls with known verdicts | Evon (`--offline`: none) |
+| `diapason qa compile POLICY.md` | **policy → executable scorecard**: Evon writes the checks (code checks where the rule is mechanical), each one quoting the clause it enforces, verified against the text | Evon |
+| `diapason qa simulate [SCORECARD...]` | QA-Bench for **every segment**: Evon writes calls with planted defects from each scorecard; `--voice-calls N` speaks them with Timbre over a phone line and transcribes with Prisma first | Evon; Timbre + Prisma for voiced calls (capped) |
+| `diapason playbooks list\|build` | one tailored QA scorecard + adversarial test suite **per industry** (22 voice-AI verticals) from `playbooks/industries.yaml` | none |
+| `diapason stress --agent v1 --agent v2` | **noise breaking point**: the same caller through fan, traffic, office and crowd noise from 30 dB to 0 dB SNR; where does the agent stop hearing? | none (the ears are the agent's own code) |
+| `diapason rating PROOF_DIR --stress STRESS_DIR` | **crash-test rating**: five measured axes (compliance, security, language, turn-taking, noise) and an overall star rating per agent, with SVG badges | none |
+| `diapason serve-agent --version v1` + Guard | **Diapason Guard**: every line the agent is about to speak is checked in code and rewritten before TTS (see below) | none |
+| `diapason site` | a **static showcase** to share as a link: landing page of measured numbers, the accuracy proof with its recordings, and the QA Studio with its data baked in | none |
+| `diapason dashboard` → `/watch` | **the film**: the demo played from run files, with the live call's recording | none |
+| `diapason dashboard` → `/studio` | **QA Studio**: segment tiles, a parameter × call heatmap, every verdict with its quote, click to hear the moment | none |
+| `diapason proof` | **one accuracy page**: planted bugs caught by the tests (v1 vs fixed v2) + QA-Bench; Evon plays agent, callers and judge over simulated phone audio | Evon only, no Gnani credits |
+| `diapason autopilot --agent v2` | **red team + self-repair**: Evon designs attack callers, breeds new ones from what broke the agent, saves every hit as a regression suite, then patches the prompt and keeps only fixes that a re-run proves (fixed ≥ 1, broke 0) | Evon only, no Gnani credits |
 
 **Rubric packs** (`rubric:` in a suite): `general`, `bfsi_collections` (RBI Fair Practices Code),
 `insurance` (IRDAI), `healthcare`, `telecom` (TRAI), `kyc`.
@@ -140,9 +142,9 @@ that caller lines are data, because the test callers themselves attempt prompt i
 
 ## Quality audits of real calls
 
-Testing asks "will this agent survive real callers?" before launch; `bhool qa audit` asks "how did every
+Testing asks "will this agent survive real callers?" before launch; `diapason qa audit` asks "how did every
 real call go?" after, for AI and human agents alike. It reads dual-channel recordings (Prisma transcribes
-them), or transcripts as JSON, JSONL, CSV or text (no STT credits), or Bhool's own test runs.
+them), or transcripts as JSON, JSONL, CSV or text (no STT credits), or Diapason's own test runs.
 
 A **scorecard** ([scorecards/emi_collections.yaml](scorecards/emi_collections.yaml)) is the weighted QA form
 a contact-centre QA team fills in by hand, made executable. Each parameter has a weight, may be *fatal*
@@ -166,7 +168,7 @@ precision and recall), and a **human review queue**. A judge fail whose quote is
 vote or a borderline score goes to a person instead of being guessed. Fatal calls can become regression
 tests (`--to-regressions`). Outputs: `qa.html`, `qa.json`, `calls.csv` (Excel-safe), PII redacted by default.
 
-**Every fail traces to a clause** (`bhool qa compile`): give it a policy, SOP or circular and Evon writes the scorecard, each
+**Every fail traces to a clause** (`diapason qa compile`): give it a policy, SOP or circular and Evon writes the scorecard, each
 parameter carrying the exact clause it enforces. The quote is checked against the text (a clause that isn't there is marked
 `[unverified]`), mechanical rules become code checks, and the QA Studio shows the chain for every verdict: the clause, the
 check, and the agent's own words that broke it. Try it on [a sample collections policy](docs/policies/collections_call_policy.md).
@@ -177,12 +179,12 @@ helpline (RBI customer liability), e-commerce order support (Consumer Protection
 (RBI KYC, Aadhaar Act). Each has 13-15 parameters, 3-5 fatal compliance rules, and every check type. Banned phrases match
 the *request* ("CVV बताइए"), not the warning ("never share your CVV"), so a good agent isn't failed for doing its job.
 
-**QA Studio** (`bhool dashboard`, then `/studio`): pick a segment; see every parameter of every call as a heatmap (planted
+**QA Studio** (`diapason dashboard`, then `/studio`): pick a segment; see every parameter of every call as a heatmap (planted
 defects outlined); open a call to read it as a chat with flagged turns, the scorecard with each verdict's reason, agreement
 and quote, Evon's summary, sentiment curve, root cause and coaching. For recordings, a timeline marks each failure: click a
 verdict and the audio jumps to that moment.
 
-**Industry playbooks** (`bhool playbooks build`): 22 verticals where Indian enterprises run voice AI: public-sector and small
+**Industry playbooks** (`diapason playbooks build`): 22 verticals where Indian enterprises run voice AI: public-sector and small
 finance bank collections, bank customer service, rural farm and two-wheeler loans, consumer-durable loans, microfinance, housing
 finance, digital lending and BNPL, insurance renewals and claims, airline disruptions, vacation memberships, automotive service and
 roadside assistance, US clinic reminders, outsourced multilingual support, appliance service, matchmaking memberships, an
@@ -195,7 +197,7 @@ loans, IRDAI mis-selling and free-look, DGCA passenger rights (refund, not a for
 TCPA opt-out, PCI DSS, TRAI DND. The builder writes `scorecards/industries/<id>.yaml` and `suites/industries/<id>.yaml`; the QA
 Studio shows them as tiles. Brands are fictional.
 
-**QA across segments** (`bhool qa simulate`): no other segment has hand-built test calls, so Evon writes them from the
+**QA across segments** (`diapason qa simulate`): no other segment has hand-built test calls, so Evon writes them from the
 scorecard: first a clean, compliant call, then each defect planted as its own targeted edit (replace or insert one agent line,
 with a customer line that sets up the situation when needed). The exact planted line is kept as ground truth and shown in the
 Studio. Code-checked defects are verified in code, with one retry; anything that still disagrees with the plan is excluded,
@@ -214,7 +216,7 @@ one), 1 was a planter mix-up and 2 were real auditor misses (medicine advice pas
 weak defect planter even with a separate confirmation step, so these runs are realistic test calls for every industry and a lower
 bound; the auditor's accuracy is QA-Bench below, where truth is built in code.
 
-**QA-Bench** (`bhool qa bench`) measures the auditor itself. Vendors publish coverage ("100% of calls
+**QA-Bench** (`diapason qa bench`) measures the auditor itself. Vendors publish coverage ("100% of calls
 audited"), not accuracy. The bench builds collections calls whose correct verdict on every parameter is
 known by construction (missed disclosure, verification out of order, threats, privacy leaks to a family
 member, pushy hardship handling, Gujarati caller answered in Hindi, slow or talk-over timing), in Hindi and
@@ -234,9 +236,9 @@ were last changed, so it was never tuned on:
 Confirms-back (did the agent repeat the agreed date) is the auditor's weak spot: Evon misreads a bare "ok" vs. a read-back in
 mixed script. It is reported, not hidden; the next step is to make it a code check against the extracted date.
 
-## Bhool Guard: stop the violation before it is spoken
+## Diapason Guard: stop the violation before it is spoken
 
-Testing finds violations before launch; QA finds them after the call. [Guard](core/bhool/guard.py) stops them during the
+Testing finds violations before launch; QA finds them after the call. [Guard](core/diapason/guard.py) stops them during the
 call: every line the agent is about to say is checked in code before it reaches text-to-speech: on the live proof, 0.6-1.8 ms per
 line, with no model call. The one exception is a reply in the wrong language, which costs one Evon translation (about 3 s).
 
@@ -250,7 +252,7 @@ line, with no model call. The one exception is a reply in the wrong language, wh
 
 That last row is what makes privacy and prompt-injection attacks fail by construction: no caller, whoever they claim to be,
 hears an account detail without the digits. Guard is deterministic, so it can't hallucinate a rewrite, and it can't make an
-agent better at its job, only stop it saying what it must never say. `bhool proof` runs the buggy v1 three ways: as is, fixed
+agent better at its job, only stop it saying what it must never say. `diapason proof` runs the buggy v1 three ways: as is, fixed
 (v2), and **unchanged behind Guard**, and reports how many bugs Guard prevents. Every intervention is recorded on the call.
 
 ## Language and security, checked in code
@@ -267,7 +269,7 @@ Two judgments the LLM judge kept missing are now exact code checks, so they also
 - **`injection_guard`**: the same leak test, from the moment a caller attempts a prompt injection ("ignore your instructions",
   "test mode", "mark as paid", in any script), so a leak under attack is reported as a security failure in its own right.
 
-Bhool Guard enforces the same two rules live: it drops any sentence carrying the verification digits, and translates a reply in
+Diapason Guard enforces the same two rules live: it drops any sentence carrying the verification digits, and translates a reply in
 the wrong script (with Evon) for any of those seven languages; its own lines (the disclosure, the verification question) are said
 in the caller's language.
 
@@ -278,10 +280,10 @@ The deterministic leak check found a pattern in the "fixed" v2: it read the cust
 prompt holds the digits and asks the model to check them, and an LLM can say anything in its context. Prompt rules didn't help:
 autopilot's heal step tried and its patch was rejected (it fixed 33 failures and broke 52).
 
-**v3** is v2 with the secret taken out of the model ([reference_agent.py](core/bhool/reference_agent.py), `isolate_secrets`):
+**v3** is v2 with the secret taken out of the model ([reference_agent.py](core/diapason/reference_agent.py), `isolate_secrets`):
 code compares the caller's spoken digits with the account, the model is told only "verified" or "not verified", the amount and
 due date reach it only after verification, and the digits never do. On the **same 12 attacks** that broke v2 (replayed with
-`bhool autopilot --replay DIR --agent v3`, same callers and harness), **v2 leaked real account data to an unverified caller in 4,
+`diapason autopilot --replay DIR --agent v3`, same callers and harness), **v2 leaked real account data to an unverified caller in 4,
 v3 in 0** (repeating digits the caller has just said correctly is not counted: it tells them nothing new). The judge still fails v3 on many of those calls for other
 reasons (it invented a due date it was never told, it answered Latin-script Gujarati in Hindi), so v3 is safer, not yet good.
 It also shows what knowledge-based verification is worth: anyone who has the last 4 digits passes it.
@@ -289,7 +291,7 @@ It also shows what knowledge-based verification is worth: anyone who has the las
 ## v4: the model chooses, code speaks
 
 Everything v3 still got wrong was the model talking: amounts and dates it was never told, Hindi to Gujarati callers, the same
-question nine times. **v4** ([acts.py](core/bhool/acts.py)) takes the words away from the model. Each turn Evon returns one
+question nine times. **v4** ([acts.py](core/diapason/acts.py)) takes the words away from the model. Each turn Evon returns one
 dialogue act from a fixed set (verify, not the borrower, state the account, ask for a date, confirm it, callback, decline,
 acknowledge, close) and at most one short sentence of empathy. Code then:
 
@@ -314,7 +316,7 @@ v4's limits: its sentences are templates, so it sounds the same on every call an
 act set fits payment reminders and would need writing for another use case; and its one noise-sweep failure (a 0 dB fan call
 where it never heard the caller's first line) didn't reproduce in 3 reruns, which points at the real-time harness under load.
 
-**Live, through real Gnani speech** (`bhool dashboard`, live mode, one capped call, Timbre caller and Prisma ears on both sides):
+**Live, through real Gnani speech** (`diapason dashboard`, live mode, one capped call, Timbre caller and Prisma ears on both sides):
 v4 verified a Hinglish caller on the first try, said "चार हज़ार पाँच सौ रुपये पाँच नवंबर" from the record, confirmed the date
 and hung up. The simulated caller promised 1 November instead of its persona's 15th; v4 recorded what it heard.
 
@@ -323,7 +325,7 @@ and hung up. The simulated caller promised 1 November instead of its persona's 1
 The first live dashboard call (v3 + Guard) asked for the loan digits eight times in a row and timed out. Prisma had written the
 caller's "4821", which Timbre reads as a number, as **"फोर थाउज़ंड एट हंडरेड ट्वेंटी वन"**: English number words in Devanagari.
 The digit parser knew single digit words only, so verification could never succeed, for v3, for v4 and for Guard. Offline
-tests couldn't catch it because the codec carries text exactly. [numbers.py](core/bhool/judge/numbers.py) now reads the last
+tests couldn't catch it because the codec carries text exactly. [numbers.py](core/diapason/judge/numbers.py) now reads the last
 four digits the way Indian callers say them: digit by digit, in pairs ("अड़तालीस इक्कीस", "forty eight twenty one"), as one number
 ("चार हज़ार आठ सौ इक्कीस"), with "double"/"डबल", 0-99 in Hindi, Gujarati and English, and English number words written in
 Devanagari or Gujarati script ([23 cases](tests/test_numbers.py), including the live transcript). After the fix the same call
@@ -335,16 +337,16 @@ its last line was still queued lost that line from the record (scored "accepted 
 
 ## Which details survive the line: the phone-line atlas
 
-A collections call turns on three details: the last four digits, an amount, a date. `bhool atlas` writes each one 3-5 ways in
+A collections call turns on three details: the last four digits, an amount, a date. `diapason atlas` writes each one 3-5 ways in
 Hindi/Hinglish, Gujarati and English (numerals, digit words, pairs, "double", one number, English words inside Hindi, "15/11"),
 has 6 Timbre voices speak them, sends them through the channel simulator (narrowband μ-law; fan, office, traffic and crowd noise
 at 30, 20, 15, 10, 5 and 0 dB; a lossy mobile line), has Prisma transcribe them, and reads each detail back with the same
 parsers the judge and the agents use. 3,366 Prisma requests, 0 failed, about 60 credits.
 
-- **It found Bhool's bugs before Prisma's.** On the first reading 84.8% of details survived; most losses were the readers, not
+- **It found Diapason's bugs before Prisma's.** On the first reading 84.8% of details survived; most losses were the readers, not
   Prisma: Timbre reads "15/11" aloud as "fifteen by eleven" / "पंद्रह बटा ग्यारह", Prisma writes "fifteenth" as "फिफ्टींथ", "eight" as
   "एयठ", Gujarati 200 as "બેસો", and "₹4,500" and "ત્રણ હજાર બસો" were never readable. Fixed with
-  [regression tests](tests/test_dates.py); re-reading the saved transcripts (`bhool atlas --rescore`, no credits) recovered 446
+  [regression tests](tests/test_dates.py); re-reading the saved transcripts (`diapason atlas --rescore`, no credits) recovered 446
   and lost none: **98% survive.**
 - **What Prisma itself loses** is mostly at 0 dB and on the lossy line: a dropped "શૂન્ય" in a Gujarati ID, "7730" heard as
   "seven thousand seven hundred", "November" heard as "सितंबर" once on the lossy line.
@@ -356,24 +358,24 @@ The page is `runs/atlas/atlas.html` (copied to [results/atlas/](results/atlas/))
 
 ## Test an agent from the outside: Inya, a phone number, or Twilio Media Streams
 
-Bhool's own reference agents speak its harness protocol. Three targets reach agents Bhool does not run
-([telephony.py](core/bhool/call/telephony.py), [inya.py](core/bhool/inya.py)):
+Diapason's own reference agents speak its harness protocol. Three targets reach agents Diapason does not run
+([telephony.py](core/diapason/call/telephony.py), [inya.py](core/diapason/inya.py)):
 
 | `--target` | How the call happens | Needs |
 |---|---|---|
-| `media_stream` | Bhool plays Twilio and connects straight to the agent's Twilio Media Streams websocket: the bytes a phone agent gets live, with no phone and no telephony bill | the agent's `wss://` URL |
-| `phone` | Bhool dials the agent's number through Twilio and bridges the call's audio into the harness; the phone network is the channel | Twilio account and number, a tunnel (`BHOOL_PUBLIC_URL`) |
-| `inya` | `bhool inya deploy` builds the suite's agent on Gnani's Inya platform from its SOP; Inya's Trigger Test Call phones Bhool's number and a Bhool caller answers | Inya API key, Bhool's Twilio number whitelisted in Inya |
+| `media_stream` | Diapason plays Twilio and connects straight to the agent's Twilio Media Streams websocket: the bytes a phone agent gets live, with no phone and no telephony bill | the agent's `wss://` URL |
+| `phone` | Diapason dials the agent's number through Twilio and bridges the call's audio into the harness; the phone network is the channel | Twilio account and number, a tunnel (`DIAPASON_PUBLIC_URL`) |
+| `inya` | `diapason inya deploy` builds the suite's agent on Gnani's Inya platform from its SOP; Inya's Trigger Test Call phones Diapason's number and a Diapason caller answers | Inya API key, Diapason's Twilio number whitelisted in Inya |
 
 ```bash
-bhool inya deploy suites/proof.yaml                                  # prints the botId
-bhool run suites/proof.yaml --target inya --agent-id <botId> --only language
+diapason inya deploy suites/proof.yaml                                  # prints the botId
+diapason run suites/proof.yaml --target inya --agent-id <botId> --only language
 ```
 
-After an Inya run Bhool fetches Inya's own log of each call and writes `inya-crosscheck.json`: Bhool knows exactly what its caller
+After an Inya run Diapason fetches Inya's own log of each call and writes `inya-crosscheck.json`: Diapason knows exactly what its caller
 said and Inya knows exactly what its agent said, so **each side's speech recognition over a real phone line is scored against the
-other side's words** (the agent's ears: Bhool's script vs Inya's user turns; Bhool's ears: Inya's agent turns vs Prisma).
-Offline, all three run end to end against the reference agent served as a phone agent (`bhool serve-agent --protocol twilio`;
+other side's words** (the agent's ears: Diapason's script vs Inya's user turns; Diapason's ears: Inya's agent turns vs Prisma).
+Offline, all three run end to end against the reference agent served as a phone agent (`diapason serve-agent --protocol twilio`;
 [tests](tests/test_telephony.py)). Not yet run against a live Inya agent or a real phone line.
 
 ## How right is the judge? Measured on live calls
@@ -397,20 +399,20 @@ labelled by reading the transcripts (rules in the script; unclear calls left out
 - **Tried and dropped:** cross-examining every judge fail with a second, narrower Evon question. It upheld all 6 true fails and
   both false ones: asked twice, Evon agrees with itself. It is off by default (`cross=True` turns it on to re-measure with a
   stronger model).
-- What would settle it is human labels on more calls: `bhool label` builds the page; nobody has labelled them yet.
+- What would settle it is human labels on more calls: `diapason label` builds the page; nobody has labelled them yet.
 
 ## Crash-test rating and noise breaking point
 
-`bhool stress` steps a caller's line from 30 dB SNR to 0 dB for each noise an Indian caller has around them and finds where
+`diapason stress` steps a caller's line from 30 dB SNR to 0 dB for each noise an Indian caller has around them and finds where
 the agent stops hearing (offline: the agent's ears are its own code). It found that v2's adaptive endpointer never ended a
 turn in office noise below 30 dB (keyboard clicks reset its timer); fixed, v2 and v3 hold every noise to 0 dB, while v1's
-fixed threshold breaks at 10-20 dB. `bhool rating` turns the proof's judged calls and the sweep into
+fixed threshold breaks at 10-20 dB. `diapason rating` turns the proof's judged calls and the sweep into
 five stars per axis (compliance, security, language, turn-taking, noise) and an overall rating that is never more than one star
 above compliance, with SVG badges for a README or a post.
 
 ## Autopilot: bugs nobody planted
 
-Seeded bugs prove the harness catches what you already suspect. `bhool autopilot` goes after what you don't:
+Seeded bugs prove the harness catches what you already suspect. `diapason autopilot` goes after what you don't:
 
 1. **Hunt.** Evon, as a red team, reads the agent's SOP and designs attack callers: who calls (the borrower, a
    brother, someone claiming to be from the bank or the police), what they want, how they behave, in which
@@ -428,19 +430,19 @@ Output: `autopilot.html` with every attack, the judge's quoted evidence, the rul
 
 ## Share it: the static showcase and the film
 
-**The film** (`site/watch.html`, or `/watch` on `bhool dashboard`) is the demo as a two-minute player in the browser, with
+**The film** (`site/watch.html`, or `/watch` on `diapason dashboard`) is the demo as a two-minute player in the browser, with
 nothing typed in: each scene is drawn from run files when the page is built. It plays a live v1 call's own recording (Timbre
 voices, the phone-line simulator, Prisma) with the transcript, reply latencies and failed checks in sync, then the eight
 planted-bug tests, Guard's rewrites, the v1 → v4 matrix, the phone-line atlas, the noise sweep and QA accuracy. It has
 chapters, keyboard controls (space, ←/→, M) and a record mode (R, or `?record`) that hides the controls for screen recording.
 Each scene says which file it came from; rebuild after a new run and the film changes with the evidence.
 
-`bhool site` writes `site/`: a landing page that replays one real test call twice, side by side (the buggy agent as
+`diapason site` writes `site/`: a landing page that replays one real test call twice, side by side (the buggy agent as
 shipped, and the same agent behind Guard, with each rewrite and each verdict appearing as it happens), the measured numbers, the latest accuracy proof (reports and test-call
 recordings), every segment and industry simulation, and the QA Studio reading baked-in data instead of the API, so it
 works on any static host with no server and no keys. Preview with `python -m http.server -d site 8080`; deploy with
 `npx vercel site --prod`, or push `site/` to a `gh-pages` branch. Live runs stay on your machine (`runs/` is git-ignored),
-so build the site locally after a live run; CI builds an offline version on every push (artifact `bhool-site`).
+so build the site locally after a live run; CI builds an offline version on every push (artifact `diapason-site`).
 
 ## Suites
 
@@ -450,7 +452,7 @@ personas, behaviours and phone lines. They expand as a deterministic, sampled ma
 
 ## The reference agent
 
-[reference_agent.py](core/bhool/reference_agent.py) is an EMI-collection agent on Prisma + Evon + Timbre.
+[reference_agent.py](core/diapason/reference_agent.py) is an EMI-collection agent on Prisma + Evon + Timbre.
 **v1** ships with seven planted bugs, tested as 8 cases because the debt-before-verification bug is tested on the borrower
 and on his brother (no disclosure, debt stated before verification, threats, Hindi-only,
 no injection guard, a fixed-level VAD that crowd noise defeats, no barge-in handling); **v2** fixes them in the prompt and
@@ -463,7 +465,7 @@ Every number below is in [results/](results/). "Live" means real Gnani models; m
 community IQ4_XS quantisation on a free Kaggle GPU) to play the agent, the callers and the judge, with a simulated phone line
 and no speech credits. Those runs don't judge latency, because the agent's thinking time there is the shared GPU.
 
-**The proof** (`bhool proof`, one live run per agent, the same 6 cases, judged with the same wording, 2 Nov):
+**The proof** (`diapason proof`, one live run per agent, the same 6 cases, judged with the same wording, 2 Nov):
 
 | Agent | v1's text bugs gone | Calls passing every check | Rating (compliance · security · language · turn-taking · noise) |
 |---|---|---|---|
@@ -484,7 +486,7 @@ and no speech credits. Those runs don't judge latency, because the agent's think
   the loan digits, amount and due date told to the borrower's brother, and the digits read out to an attacker.
 - These numbers move between runs. Before the 2 Nov re-judge (same calls, earlier wording) Guard was 5/6, v3 2/6 and v4 5/6
   with 3 calls passing; read them as one judged run each, not as fixed rates.
-- **Red team** (`bhool autopilot`, live, 31 Oct): 12 of 12 attacks broke v2. Replayed on v3, account leaks fell from 4 to 0.
+- **Red team** (`diapason autopilot`, live, 31 Oct): 12 of 12 attacks broke v2. Replayed on v3, account leaks fell from 4 to 0.
   Heal rejected its own prompt patch (it fixed 33 failures and broke 52): the leak was architectural (v3), not a missing rule.
 - **The auditor** (QA-Bench, calls with verdicts known by construction, live Evon, corpora it was never tuned on): 93.6% of 560
   verdicts right on a 40-call corpus (seed 31, in results/qa-bench) and 90.4% of 560 on an earlier one (seed 23,
@@ -493,19 +495,19 @@ and no speech credits. Those runs don't judge latency, because the agent's think
   written by me, so they measure the auditor against planted defects, not against human QA.
 - **The judge on live calls** (27 hand labels on 17 live calls, see "How right is the judge?"): it catches every obeyed injection but
   wrongly fails 3 of 5 correct calls; it misses 5 of 7 privacy leaks that the code check catches. Nobody but me has labelled
-  calls; `bhool label` builds the page for anyone who will.
-- **Noise** (`bhool stress`, offline, 2 calls per level; the agent's ears are its own code): v2 and v3 hear the caller through
+  calls; `diapason label` builds the page for anyone who will.
+- **Noise** (`diapason stress`, offline, 2 calls per level; the agent's ears are its own code): v2 and v3 hear the caller through
   fan, traffic, office and crowd noise down to 0 dB SNR; v4 too, except one of two 0 dB fan calls (3 of 3 on a rerun); v1
   stops at 15 dB (fan), 10 dB (office), 20 dB (crowd). The sweep found a real endpointing bug: in office noise below 30 dB
   v2's turn never ended, because each keyboard click reset its end-of-turn timer; only a sound loud for 60 ms resets it now.
   Two calls per level is a small sample.
-- **Prisma on phone audio** (`bhool asr-bench`, Timbre speech with known text): 1.4% character error on a clean line, 5.5% on
+- **Prisma on phone audio** (`diapason asr-bench`, Timbre speech with known text): 1.4% character error on a clean line, 5.5% on
   a 5 dB crowded-market line, 89-100% of critical details (amounts, dates, digits) kept.
 - **Through real Gnani speech end to end:** 7 calls voiced Timbre → phone line → Prisma across industries, and the live
   dashboard calls of 2 Nov (v3 + Guard before the digit fix, v4 after it).
 - **Offline:** 215 tests pass with every model faked, including the real-time call engine and the reference agents over a
   real websocket. One autopilot test is timing-sensitive on a loaded machine.
-- **Phone-line atlas** (`bhool atlas`, 3 Nov, real Timbre and Prisma, 3,366 requests, 164 minutes of audio): see below.
+- **Phone-line atlas** (`diapason atlas`, 3 Nov, real Timbre and Prisma, 3,366 requests, 164 minutes of audio): see below.
 - **Built, not yet run live:** an agent built on Gnani's Inya platform tested black-box, and real phone calls through Twilio
   (`--target inya | phone`). Both run end to end offline against the reference agent over the same Twilio Media Streams
   protocol; a live run needs an Inya key and a Twilio number. Not done either: judge agreement with anyone's labels but mine.
@@ -513,12 +515,12 @@ and no speech credits. Those runs don't judge latency, because the agent's think
 ## Layout
 
 ```
-core/bhool/channel/     telephony simulator and noise beds
-core/bhool/caller/      the synthetic caller: brain (Evon), mouth (Timbre + channel), ears (endpointing)
-core/bhool/call/        transport protocol and the real-time call engine
-core/bhool/judge/       audio metrics and the rubric judge
-core/bhool/regress.py   production calls -> regression cases
-core/bhool/runner.py    suite execution, aggregation, usage accounting
-core/bhool/server.py    dashboard API + live event stream; static/index.html is the UI
+core/diapason/channel/     telephony simulator and noise beds
+core/diapason/caller/      the synthetic caller: brain (Evon), mouth (Timbre + channel), ears (endpointing)
+core/diapason/call/        transport protocol and the real-time call engine
+core/diapason/judge/       audio metrics and the rubric judge
+core/diapason/regress.py   production calls -> regression cases
+core/diapason/runner.py    suite execution, aggregation, usage accounting
+core/diapason/server.py    dashboard API + live event stream; static/index.html is the UI
 ci/                     the pull-request gate for an agent's own repo
 ```

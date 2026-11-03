@@ -1,4 +1,4 @@
-# Running Evon for Bhool Bhulaiya (free, ~15 minutes)
+# Running Evon for Diapason (free, ~15 minutes)
 
 Evon v3.3 has no hosted API (Hugging Face lists no inference provider), and the smallest 4-bit copy
 (18.1 GB) is larger than a 16 GB laptop's RAM. The free path is a Kaggle notebook with two T4 GPUs
@@ -24,12 +24,12 @@ serving it behind a password-protected public URL.
    EVON_API_KEY=<random key>
    EVON_MODEL=evon
    ```
-5. On your laptop: `.venv/Scripts/bhool doctor --live` → the Evon line should say OK.
+5. On your laptop: `.venv/Scripts/diapason doctor --live` → the Evon line should say OK.
 6. Leave the Kaggle tab open while testing. The URL and key change every session; repeat step 4.
 
 ## Notes
 
 - Free quota: ~30 GPU hours/week; a session lasts up to 12 hours.
 - The API key stops strangers from using your tunnel. Never commit `.env`.
-- Bhool Bhulaiya disables Evon's reasoning traces (`enable_thinking: false`) for speed and clean JSON.
+- Diapason disables Evon's reasoning traces (`enable_thinking: false`) for speed and clean JSON.
 - Evon calls cost no Gnani credits; only Prisma (STT) and Timbre (TTS) draw on the 5,000.

@@ -1,5 +1,5 @@
 # %% [markdown]
-# # Serve Gnani Evon v3.3 for Bhool Bhulaiya (free, on Kaggle)
+# # Serve Gnani Evon v3.3 for Diapason (free, on Kaggle)
 #
 # Load this into Kaggle with **File → Import Notebook** → upload `deploy/evon_kaggle.ipynb` (generated from
 # `deploy/evon_kaggle.py` by `python deploy/build_notebook.py`). Re-importing replaces every cell at once.
@@ -129,7 +129,7 @@ print(f"EVON_BASE_URL={URL}/v1")
 print(f"EVON_API_KEY={API_KEY}")
 print("EVON_MODEL=evon")
 
-# %% Smoke test: first the model itself (local), then the public URL exactly as Bhool Bhulaiya calls it.
+# %% Smoke test: first the model itself (local), then the public URL exactly as Diapason calls it.
 # A new trycloudflare hostname can take up to a minute to resolve in DNS, so the public check retries.
 def ask(base):
     req = urllib.request.Request(f"{base}/v1/chat/completions", method="POST",
@@ -157,7 +157,7 @@ for attempt in range(12):
         time.sleep(10)
 else:
     print("Public URL still not reachable from inside Kaggle. It usually works from your laptop anyway: "
-          "paste the lines into .env and run `bhool doctor --live`.")
+          "paste the lines into .env and run `diapason doctor --live`.")
 
 # %% Keep the session alive and show throughput. Stop this cell (or the session) to shut Evon down.
 while True:

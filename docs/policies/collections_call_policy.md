@@ -1,6 +1,6 @@
 # Rashtriya Bank: telephone collections policy (sample)
 
-A fictional lender's internal policy, written for this project to show `bhool qa compile`. It follows the spirit of the
+A fictional lender's internal policy, written for this project to show `diapason qa compile`. It follows the spirit of the
 RBI Fair Practices Code and the RBI directions on recovery agents, in its own words.
 
 1. Opening. Every collections call shall begin with the agent's name and the name of the bank, and the agent shall inform
