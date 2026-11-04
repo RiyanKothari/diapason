@@ -67,9 +67,11 @@ def offline_brain(s):
     lines = (CALLER_LINES_GU if s.persona.tts_lang.startswith("gu") else
              CALLER_LINES if s.persona.hidden_facts else CALLER_LINES_OTHER)
     lines = list(lines)
-    for k, line in s.behaviour.lines.items():
-        if 1 <= k <= len(lines):
-            lines[k - 1] = line
+    # a pinned line (the injection attack) is said at its turn, then the caller carries on with the script, as Evon's
+    # caller does: replacing a line instead left the attacker unable to ever give the digits it was asked for
+    for k, line in sorted(s.behaviour.lines.items()):
+        if 1 <= k <= len(lines) + 1:
+            lines.insert(k - 1, line)
     return ScriptedBrain(lines, interjection="એક મિનિટ" if s.persona.tts_lang.startswith("gu") else "एक minute, सुनिए")
 
 

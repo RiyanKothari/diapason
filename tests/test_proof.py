@@ -96,3 +96,30 @@ def test_rejudge_keeps_the_judges_verdicts_and_the_runs_own_gate(tmp_path, monke
     v = v if isinstance(v, dict) else v.to_dict()
     assert not any("latency" in f for f in v["metric_failures"])
     assert any(c["id"] == "tone" and c["reason"] == "judged earlier" for c in v["criteria"])
+
+
+def test_evolution_matrix_reads_every_version_honestly(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from diapason.proof import evolution
+    from diapason.server import create_app
+    data = {"generated": "2026-11-04 21:00", "mode": "evon", "tests": {
+        "v1_pass_rate": 0.0, "v2_pass_rate": 0.5,
+        "bugs": [{"id": "disclosure", "what": "never says the call is recorded", "status": "caught"},
+                 {"id": "privacy", "what": "tells the brother", "status": "caught + v2 also flagged"},
+                 {"id": "barge_in", "what": "keeps talking", "status": "caught"}],
+        "v4": {"measured": 2, "prevented": 1, "pass_rate": 0.5, "bugs": [
+            {"id": "disclosure", "status": "prevented"}, {"id": "privacy", "status": "still flagged"},
+            {"id": "barge_in", "status": "not text (engineering): not reproduced"}]}}}
+    e = evolution(data)
+    assert [v["key"] for v in e["versions"]] == ["v1", "v2", "v4"]                    # unmeasured versions left out
+    cells = {b["id"]: b["cells"] for b in e["bugs"]}
+    assert cells["privacy"] == {"v1": "caught", "v2": "flagged", "v4": "flagged"}
+    assert cells["barge_in"]["v4"] == "nr"                                           # didn't show up: not claimed fixed
+    v4 = next(v for v in e["versions"] if v["key"] == "v4")
+    assert (v4["good"], v4["of"]) == (1, 2)
+    d = tmp_path / "proof-x"
+    d.mkdir()
+    (d / "proof.json").write_text(json.dumps(data), encoding="utf-8")
+    r = TestClient(create_app(runs_dir=tmp_path)).get("/api/evolution").json()
+    assert r["dir"] == "proof-x" and len(r["bugs"]) == 3

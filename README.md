@@ -115,7 +115,7 @@ diapason ingest suites/emi_collection.yaml calls/*.wav    # judge real stereo ca
 | `diapason schema` | suite JSON Schema for editor autocomplete | none |
 | `diapason ingest SUITE WAVS...` | production calls -> verdicts -> regression cases | yes |
 | `diapason serve-agent --version v1\|v2` | the reference agent to test against | yes |
-| `diapason dashboard` | point it at your agent (Twilio Media Streams or Diapason websocket), **check the connection** before spending credits, watch every call live with each failure explained (severity, the agent's words, why it matters, how to fix), see the cost in Gnani credits up front, and **compare two runs**: fixed, regressed, still failing | per run |
+| `diapason dashboard` | **mission control**. Point it at your agent (Twilio, Exotel, Plivo or Diapason websocket) and **check the connection** before spending credits. Watch every call live, with each failure explained (severity, the agent's words, why it matters, how to fix), and see the cost in Gnani credits up front. **Compare two runs** (fixed, regressed, still failing). **▶ Prove it** runs the six proof calls against v1, v2, v1 + Guard, v3 and v4 in turn (scripted, free, about 3 minutes), and the **v1 → v4 matrix** shows every planted bug per version from the latest Evon proof | per run (reference agents: none) |
 | `diapason shield` | **compliance in front of any live agent**: relay a Twilio, Exotel or Plivo call stream, check every agent line with Guard's rules, flag it (monitor) or hold and drop / correct it (block) | Prisma per minute of speech |
 | `diapason qa audit SCORECARD CALLS...` | QA audit of real calls (see below); `--offline`, `--labels`, `--baseline`, `--to-regressions` | Evon; STT for audio only |
 | `diapason qa template SUITE` | a ready scorecard from a suite's agent spec and rubric pack | none |
@@ -315,7 +315,29 @@ and ended the call, with no loop. The judge failed it both times, so it stays **
 said "मैं सुरेश नहीं हूँ", v4 named nothing and asked nothing, and the code privacy check passed. The other is a real bug.
 The brother opened with "भाई तो बाहर है" (my brother is out), Evon read that as the borrower and chose *verify*, and v4
 asked him for "your **loan** ID's last four digits". The verification question tells a third party that a loan exists.
-Not fixed yet.
+
+Fixed the same night, in code, in two layers:
+- **Code hears a third party.** "The borrower is out" or "I'm his brother" sends v4 to asking when to call back, whatever
+  act the model picked. Bare address words don't count: "हाँ भैया बोलो" is how borrowers talk too.
+- **The verification question never says "loan".** It asks for the last four digits of the *account number*.
+
+The regression test replays the live line. In a third live re-run, the brother was asked one callback question and nothing
+else; the injection caller still verified with "account number"; and **4 of the 6 calls now pass every check (2 of 6
+before)**. The judge still fails the brother call, with a reason the transcript contradicts ("could not avoid revealing
+loan details", where nothing was revealed). Its verification check also expects a third party to be verified, which the
+policy forbids. That is a rubric bug. I haven't overruled the judge in v4's favour: the proof still says **5 / 6**, and the
+rubric fix is still to do.
+
+**On the dashboard, in 3 minutes, for free:** **▶ Prove it** runs the six proof calls against each version, with scripted agents,
+callers in each persona's language and code checks as the judge. Calls that pass, measured 4 Nov:
+
+| v1 | v1 + Guard | v2 | v3 | v3 + Guard | v4 |
+|---|---|---|---|---|---|
+| 0 / 6 | 1 / 6 | 4 / 6 | 4 / 6 | 5 / 6 | **6 / 6** |
+
+This is an easier test than the Evon proof above, because there is no model judge. It shows the ladder anyone can re-run in
+a browser. Getting it right needed one harness fix: a scripted caller's pinned attack line had *replaced* the line where it
+gives its digits, so an attacked caller could never verify. The attack is now inserted, as Evon's caller does it.
 v4's crash-test rating is 4 stars: compliance, security, turn-taking and noise 5, language 4.
 
 v4's limits: its sentences are templates, so it sounds the same on every call and only speaks Hindi, Gujarati and English; the

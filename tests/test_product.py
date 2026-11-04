@@ -4,6 +4,7 @@ import asyncio
 import json
 
 import websockets
+from pathlib import Path
 from fastapi.testclient import TestClient
 
 from diapason.checks import CATALOG, explain, explain_verdict, metric_id
@@ -72,3 +73,23 @@ def test_compare_says_what_was_fixed_and_what_broke(tmp_path):
     assert by["b"]["explained"][0]["id"] == "latency" and by["b"]["explained"][0]["fix"]
     assert d["criteria_delta"] == [{"id": "privacy", "delta": -1, "name": "Privacy breach"}]
     assert c.get("/api/compare", params={"a": "r1", "b": "../x"}).status_code == 404
+
+
+def test_dashboard_runs_a_reference_agent_so_v1_to_v4_can_be_shown_live(tmp_path):
+    import time
+
+    from fastapi.testclient import TestClient
+
+    from diapason.server import create_app
+    root = Path(__file__).resolve().parents[1]
+    with TestClient(create_app(suites_dir=root / "suites", runs_dir=tmp_path)) as c:
+        assert c.post("/api/runs", json={"suite": "proof.yaml", "mode": "reference", "version": "v9"}).status_code == 400
+        r = c.post("/api/runs", json={"suite": "proof.yaml", "mode": "reference", "version": "v1+guard", "limit": 1}).json()
+        assert r["agent"] == "v1+guard" and r["evon"] is False
+        for _ in range(300):
+            if not c.get("/api/status").json()["running"]:
+                break
+            time.sleep(0.1)
+        runs = c.get("/api/runs").json()
+        assert len(runs) == 1 and runs[0]["calls"] == 1
+        assert c.get("/theme.css").status_code == 200
