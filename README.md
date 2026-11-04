@@ -421,13 +421,19 @@ fixed, and each fix has a regression test written from what the live run showed 
   - Second run: round 1 fixed 22 failures but was rejected for 2 `task_success` flips; Guard fixed 43 and showed 3 breaks.
     With one judged call per case, a single flip vetoes everything, so a break now counts only if it comes back when its
     calls are re-run twice ([`confirm_breaks`](core/diapason/autopilot.py)).
-  - Third run: **Guard proven: 41 of v1's failures fixed on the same calls, 0 broken.** The prompt lane didn't run: Evon
-    errored once in its baseline, and the plan now says so instead of "no rule survived".
+  - Runs 3 and 4, with the break check, fixed by Guard on the same calls:
+    - run 3: 41 fixed, 0 broken;
+    - run 4: 32 fixed, 2 broken that came back on re-run (both on the injection and verification calls), and 1 that didn't.
+    - Both are reported because the number moves between runs. The plan says "review before shipping", not "ship".
+  - Prompt lane, run 4: both patches were rejected, correctly. Round 1 fixed 22 and round 2 fixed 25, but each made the
+    injection call worse (a confirmed break). The 3 and 2 breaks that didn't come back are listed as flakes, not counted.
+    In run 3 the prompt lane didn't run: Evon errored once in its baseline, and the plan now says so instead of "no rule
+    survived".
   - Even with Guard on, v1 passes 0 of 6 whole calls. Its barge-in and endpointing bugs are code, and they become
     engineering tickets.
 
 The live outputs, unedited: the written suite and its coverage ([suites/written/](suites/written/)), the incident report
-([docs/evidence/incidents-live.md](docs/evidence/incidents-live.md)) and the fix plan ([docs/evidence/fix-plan-v1-live.md](docs/evidence/fix-plan-v1-live.md)).
+([docs/evidence/incidents-live.md](docs/evidence/incidents-live.md)) and the fix plans of run 3 ([docs/evidence/fix-plan-v1-live.md](docs/evidence/fix-plan-v1-live.md)) and run 4 ([docs/evidence/fix-plan-v1-live-run4.md](docs/evidence/fix-plan-v1-live-run4.md)).
 
 ## Diapason Shield: compliance on live calls, for agents you didn't build
 
