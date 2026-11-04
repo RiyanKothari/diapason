@@ -11,14 +11,18 @@ digits every way there is:
     with repeats        "डबल सात तीन शून्य", "double seven three zero"
 
 Words 0-99 in Hindi, Gujarati and English, English number words written in Devanagari or Gujarati script, hundred and
-thousand, and double/triple. Spelling variants of nukta and chandrabindu are folded before lookup.
+thousand, and double/triple. Spelling variants of nukta and chandrabindu are folded before lookup. Marathi, Tamil, Telugu
+and Kannada come from indic.py (measured first: what Prisma writes there is in that module's docstring), and digits in
+every Indian script are read.
 """
 
 from __future__ import annotations
 
 import re
 
-_DIGITS = str.maketrans("०१२३४५६७८९૦૧૨૩૪૫૬૭૮૯", "01234567890123456789")
+from . import indic
+
+_DIGITS = indic.DIGITS
 _SPLIT = re.compile(r"[\s,.;:!?।()\"'“”‘’/₹-]+")      # "₹4,500" is 4500
 
 _HI = ["शून्य|जीरो|ज़ीरो|झीरो", "एक", "दो", "तीन", "चार", "पांच|पाँच", "छह|छः|छे", "सात", "आठ", "नौ", "दस", "ग्यारह", "बारह",
@@ -79,6 +83,13 @@ WORDS.update({k: k for k in _MULT} | {k: k for k in _REPEAT})
 # Gujarati says 200-900 as one word ("ત્રણ હજાર બસો" = 3200); found by `diapason atlas` checking its own corpus
 for _n, _ws in enumerate(["", "", "બસો|બેસો", "ત્રણસો", "ચારસો", "પાંચસો", "છસો", "સાતસો", "આઠસો", "નવસો"]):
     WORDS.update({_fold(w): _n * 100 for w in _ws.split("|") if w})
+_IN_WORDS, _IN_MULT = indic.number_words()
+COLLISIONS = {w for w, n in _IN_WORDS.items() if WORDS.get(_fold(w), n) != n}   # a word Hindi/Gujarati read differently
+WORDS.update({_fold(w): n for w, n in _IN_WORDS.items() if w not in COLLISIONS})
+for _en, _ws in indic.EN_SPELT.items():
+    WORDS.update({_fold(w): _en for w in _ws.split("|")})
+_MULT.update(_IN_MULT)
+WORDS.update({k: k for k in _IN_MULT})
 
 
 def word_value(tok: str) -> int | None:
@@ -101,7 +112,9 @@ def _value(tok: str) -> int | str | None:
 
 def _phrase(vals: list) -> str:
     """One unbroken run of number tokens, as the digits it means."""
-    if any(v in _MULT for v in vals):                     # "four thousand eight hundred twenty one" = 4821
+    # "four thousand eight hundred twenty one" = 4821; and a value that is itself a hundred or a thousand adds up too:
+    # Tamil "நான்காயிரத்தி ஐநூறு" is 4000 + 500, not the digits 4000 then 500
+    if any(v in _MULT for v in vals) or any(isinstance(v, int) and v >= 100 for v in vals):
         total = cur = 0
         for v in vals:
             if v in _REPEAT:
