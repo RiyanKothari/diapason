@@ -1,10 +1,12 @@
 """`diapason incidents`: the incident agent. Shield's flags on live calls become incidents, then regression tests.
 
-1. Group: every flagged or blocked agent line in Shield's log is grouped by the rule it broke, then by what was said
-   (lines that share most of their words are one pattern), in code. "14 calls threatened legal action since 10:02" is
-   one incident, not 14 alerts.
+1. Group: every flagged or blocked agent line in Shield's log is grouped by the rule it broke and, for banned phrases and
+   secret requests, the listed phrase that matched; other rules by what was said (lines that share most of their words
+   are one pattern), in code. "14 calls threatened legal action since 10:02" is one incident, not 14 alerts. (Grouping
+   by wording alone split one live threat into 5 incidents: Prisma heard "पे कीजिए" once as "पेकी कीजिए".)
 2. Explain: Evon writes each incident up for a compliance lead (what happened, how often, the likely cause), quoting the
-   agent's own words. Without Evon the write-up is the counts and quotes alone.
+   agent's own words. A write-up with a number that isn't in the incident's data is thrown away (live, Evon wrote
+   "3 lines" for 7). Without Evon the write-up is the counts and quotes alone.
 3. Prevent: each incident becomes a test case. The caller's lines that led up to the violation on a real call are pinned
    as the test caller's lines, so the next agent version is tested on exactly what tripped this one.
 """
@@ -37,6 +39,14 @@ def _words(text: str) -> set[str]:
     return {w for w in re.findall(r"\w+", text.lower()) if len(w) > 2}
 
 
+def _numbers(text: str) -> set[str]:
+    return set(re.findall(r"\d+", text))
+
+
+def _slug(s: str) -> str:
+    return re.sub(r"_+", "_", re.sub(r"\W+", "_", s.lower())).strip("_")[:30]
+
+
 def _similar(a: set[str], b: set[str]) -> bool:
     return bool(a and b) and len(a & b) / len(a | b) >= 0.5
 
@@ -48,22 +58,26 @@ def load(log_dir: Path) -> list[dict]:
 
 def group(events: list[dict]) -> list[dict]:
     flagged = [e for e in events if e["side"] == "agent" and e["verdict"] in ("flagged", "blocked", "replaced") and e.get("rules")]
-    by_rule: dict[str, list[dict]] = defaultdict(list)
+    by_rule: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for e in flagged:
-        violating = [r["rule"] for r in e["rules"] if r["action"] in ("dropped", "replaced")]
-        by_rule[(violating or [e["rules"][0]["rule"]])[0]].append(e)
+        violating = [r for r in e["rules"] if r["action"] in ("dropped", "replaced")] or e["rules"][:1]
+        by_rule[(violating[0]["rule"], violating[0].get("matched", ""))].append(e)
     incidents = []
-    for rule, evs in by_rule.items():
+    for (rule, matched), evs in by_rule.items():
         patterns: list[list[dict]] = []
-        for e in evs:                                              # one incident per distinct thing said
-            w = _words(e["text"])
-            home = next((p for p in patterns if _similar(w, _words(p[0]["text"]))), None)
-            (home.append(e) if home is not None else patterns.append([e]))
+        if matched:
+            patterns = [evs]                                       # the same listed phrase, however it was heard
+        else:
+            for e in evs:                                          # one incident per distinct thing said
+                w = _words(e["text"])
+                home = next((p for p in patterns if _similar(w, _words(p[0]["text"]))), None)
+                (home.append(e) if home is not None else patterns.append([e]))
         for i, p in enumerate(patterns, 1):
             check = CATALOG.get(RULE_CHECK.get(rule, ""), {})
             calls = sorted({e["call"] for e in p})
-            incidents.append({"id": f"{rule}-{i}", "rule": rule, "check": RULE_CHECK.get(rule, rule),
-                              "title": check.get("name", rule.replace("_", " ")), "severity": check.get("severity", "major"),
+            title = check.get("name", rule.replace("_", " ")) + (f": \u201c{matched}\u201d" if matched else "")
+            incidents.append({"id": f"{rule}-{_slug(matched) or i}", "rule": rule, "check": RULE_CHECK.get(rule, rule),
+                              "matched": matched, "title": title, "severity": check.get("severity", "major"),
                               "calls": calls, "lines": len(p), "prevented": sum(e["verdict"] in ("blocked", "replaced") for e in p),
                               "first": min(e.get("at", "") for e in p), "last": max(e.get("at", "") for e in p),
                               "quotes": list(dict.fromkeys(e["text"] for e in p))[:3], "events": p})
@@ -83,9 +97,9 @@ def explain(incidents: list[dict], evon=None) -> None:
         out = evon.chat_json([{"role": "system", "content": EXPLAIN_SYSTEM},
                               {"role": "user", "content": json.dumps(brief, ensure_ascii=False)}], temperature=0.2, max_tokens=2000)
         written = {i.get("id"): str(i.get("summary") or "").strip() for i in out.get("incidents") or []}
-        for x in incidents:
-            if written.get(x["id"]):
-                x["summary"] = written[x["id"]]
+        for x, b in zip(incidents, brief):
+            if written.get(x["id"]) and _numbers(written[x["id"]]) <= _numbers(json.dumps(b, ensure_ascii=False)):
+                x["summary"] = written[x["id"]]                    # every number in it is one the incident has
     except Exception:
         pass                                                       # the counted write-up stands without Evon
 

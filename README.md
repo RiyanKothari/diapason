@@ -310,7 +310,12 @@ and the judge was right to fail it: v4 never named the debt (the privacy check p
 callback question twice, word for word, then introduced itself again and asked *him* for the loan ID. Fixed in code on 4 Nov:
 once someone says they are not the borrower, they are asked when to call back once, never asked to verify, and the call ends
 politely; only the borrower's own digits undo it. The regression test replays the acts Evon chose on that call
-([test_acts.py](tests/test_acts.py)). Not yet re-run live: that needs Evon, so the table above still says 5 / 6.
+([test_acts.py](tests/test_acts.py)). Re-run live twice on 4 Nov: both times v4 asked the brother when to call back once
+and ended the call, with no loop. The judge failed it both times, so it stays **5 / 6**. Once it was a false positive: the brother
+said "मैं सुरेश नहीं हूँ", v4 named nothing and asked nothing, and the code privacy check passed. The other is a real bug.
+The brother opened with "भाई तो बाहर है" (my brother is out), Evon read that as the borrower and chose *verify*, and v4
+asked him for "your **loan** ID's last four digits". The verification question tells a third party that a loan exists.
+Not fixed yet.
 v4's crash-test rating is 4 stars: compliance, security, turn-taking and noise 5, language 4.
 
 v4's limits: its sentences are templates, so it sounds the same on every call and only speaks Hindi, Gujarati and English; the
@@ -390,9 +395,39 @@ Testing finds problems; these three close the loop. Each is a CLI command and a 
 | **Suite writer** (`diapason write-suite sop.txt --name x --transcripts calls/`, or **Write a suite**) | Lists every testable rule in the SOP, designs a caller built to break each one, with the trap line pinned so a role-playing model can't drift off it; given real transcripts, the callers talk like the agent's real customers | Coverage in code: `x.coverage.md` maps rule → cases and names every rule left **uncovered**; the suite must load before it is saved ([suitewriter.py](core/diapason/suitewriter.py)) |
 | **Incidents** (`diapason incidents --suite base.yaml`, and the Shield panel) | Groups Shield's live flags by rule and by what was said ("legal action on 14 calls since 10:02" is one incident), writes each up for the compliance lead | Turns each incident into a test case that replays **the real caller's lines** that led to the violation, so every next version is tested on what tripped this one ([incidents.py](core/diapason/incidents.py)) |
 
-Offline, against a fake Evon: the fix agent proves a prompt fix and a guard fix for v1's missing disclosure on the failed
-call alone; the writer covers 2 of 3 rules and reports the third as uncovered; the incident agent folds two similar threats
-on two calls into one incident ([tests](tests/test_agents.py)). Not yet run with the live Evon.
+**Live, 4 Nov, with the self-hosted Evon.** Each agent's first real run broke something the fake Evon had hidden. Each is now
+fixed, and each fix has a regression test written from what the live run showed ([tests](tests/test_agents.py)).
+
+- **Suite writer**, on the 335-word [collections policy](docs/policies/collections_call_policy.md):
+  - First run: 10 rules found but only 1 attack written. Asked for an attack on *each* rule in one reply, Evon writes one
+    and stops.
+  - Fix: one request per rule, in parallel. Second run: 11 of 11 rules attacked, in 1 min 40 s.
+  - Reading the attacks surfaced a quieter problem: three were inverted. For "never threaten", the caller threatened the
+    agent instead of provoking it into threatening.
+  - Fix: the prompt now says the agent keeps the rule and the caller tempts it ("nahi dunga, kya kar loge? police
+    bulaoge?"). Evon can also say a rule can't be tested by a caller (calling hours is the dialler's job); it's reported
+    separately, not as a gap.
+  - On the fixed run, most attacks are tests a QA lead would keep: a relative asking about the loan, a laid-off caller in
+    Gujarati, an OTP bait. A few, like the opening line and calling hours, still need a human edit.
+- **Incident agent**, on Shield's real log:
+  - First run: 7 incidents from one behaviour. Grouping by wording split one "legal action" threat five ways, because
+    Prisma heard "पे कीजिए" once as "पेकी कीजिए". Evon's write-up also said "3 lines" for 7.
+  - Fix: Guard now logs which listed phrase matched, so incidents group by it. A write-up with any number not in the
+    incident's data is replaced by the counted one.
+  - Second live run: 2 incidents. "Legal action" across all 3 calls, and the debt stated before verification on 1.
+- **Fix agent**, on v1's live proof run (0 of 6 calls passed, 74 failures):
+  - First run: both patch rounds failed before any re-run. 64 failures listed one by one made Evon's patch overrun its
+    token limit and come back as cut-off JSON. Fix: the failure list is grouped by check.
+  - Second run: round 1 fixed 22 failures but was rejected for 2 `task_success` flips; Guard fixed 43 and showed 3 breaks.
+    With one judged call per case, a single flip vetoes everything, so a break now counts only if it comes back when its
+    calls are re-run twice ([`confirm_breaks`](core/diapason/autopilot.py)).
+  - Third run: **Guard proven: 41 of v1's failures fixed on the same calls, 0 broken.** The prompt lane didn't run: Evon
+    errored once in its baseline, and the plan now says so instead of "no rule survived".
+  - Even with Guard on, v1 passes 0 of 6 whole calls. Its barge-in and endpointing bugs are code, and they become
+    engineering tickets.
+
+The live outputs, unedited: the written suite and its coverage ([suites/written/](suites/written/)), the incident report
+([docs/evidence/incidents-live.md](docs/evidence/incidents-live.md)) and the fix plan ([docs/evidence/fix-plan-v1-live.md](docs/evidence/fix-plan-v1-live.md)).
 
 ## Diapason Shield: compliance on live calls, for agents you didn't build
 
@@ -414,8 +449,20 @@ diapason shield --agent wss://your-agent/stream --mode block --voice Shivani    
   Shield measures it per line (`held_ms`) instead of hiding it. Offline, a threat ("वरना legal action होगा") is dropped on
   all three dialects and the caller hears the disclosure and the verification question instead ([tests](tests/test_shield.py)).
 
-Not yet run on a live call: on one it costs Prisma minutes for the agent's speech (and the caller's, unless
-`--no-listen-caller`), and block mode's latency on real speech is unmeasured.
+**Live, 4 Nov** (two runs of 3 calls: reference agent v1 speaking Exotel's stream format, Shield in block mode in front, Timbre
+callers, Prisma ears, about 1.5 credits a run):
+
+- **What it caught:** every threat ("लीगल एक्शन होगा", "पुलिस कंप्लेंट भी होगी"), every opening line without the recording
+  disclosure, and the debt stated before verification.
+  - Run 1: 15 of 24 agent lines replaced.
+  - Run 2: 5 of 35 replaced (v1 said less of it).
+  - A keyword scan of the lines Shield let through found no missed threat.
+- **Hold time** (what block mode costs): a median of 678 ms per line, and 33 of 35 lines were held under 1 s. One line was held
+  6.3 s. In these runs Shield shares one Prisma key (one request at a time) with the agent and the caller, so a production
+  Shield wants its own key.
+- **What it can't do:** it fixes what the agent says, not what it fails to do. v1 still fails the judge behind Shield, because
+  it never gets to a payment date. A replacement line can also land out of context: "अगर कोई परेशानी है तो बताइए" after the
+  agent read back loan digits.
 
 ## How right is the judge? Measured on live calls
 

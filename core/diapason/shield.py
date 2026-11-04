@@ -141,7 +141,7 @@ class Shield:
             before = len(guard.events)
             after = guard.filter(text) if text else ""
             new = guard.events[before:]
-            rules = [{"rule": e.rule, "action": e.action} for e in new]
+            rules = [{"rule": e.rule, "action": e.action, **({"matched": e.matched} if e.matched else {})} for e in new]
             bad = any(e.action in VIOLATIONS for e in new)
             missing_disclosure = any(e.rule == "missing_disclosure" for e in new)
             held_ms = round((time.perf_counter() - began) * 1000) if began and self.mode == "block" else None

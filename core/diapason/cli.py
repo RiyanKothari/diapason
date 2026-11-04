@@ -586,7 +586,9 @@ def write_suite_cmd(sop: Path, name: str = typer.Option(..., help="Suite name"),
     path = out or Path("suites") / f"{name}.yaml"
     save(suite_, cov, path)
     typer.echo(f"{len(suite_.cases)} attack cases for {len(cov['rules'])} rules"
-               + (f", uncovered: {', '.join(cov['uncovered'])}" if cov["uncovered"] else ", every rule covered")
+               + (f", uncovered: {', '.join(cov['uncovered'])}" if cov["uncovered"] else ", every testable rule covered")
+               + (f"\nnot testable by a caller: " + "; ".join(f"{k} ({v})" for k, v in cov["untestable"].items())
+                  if cov["untestable"] else "")
                + f"\nsuite: {path}\ncoverage: {path.with_suffix('.coverage.md')}")
 
 

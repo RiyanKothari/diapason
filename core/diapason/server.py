@@ -289,7 +289,8 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
         async def work():
             suite, cov = await asyncio.to_thread(write_suite_for, evon, req.sop, name, [tmp] if req.transcripts.strip() else [])
             save(suite, cov, suites_dir / f"{name}.yaml")
-            return {"suite": f"{name}.yaml", "cases": len(suite.cases), "rules": len(cov["rules"]), "uncovered": cov["uncovered"]}
+            return {"suite": f"{name}.yaml", "cases": len(suite.cases), "rules": len(cov["rules"]), "uncovered": cov["uncovered"],
+                    "untestable": cov["untestable"]}
         return job("write", work)
 
     @app.get("/api/incidents")

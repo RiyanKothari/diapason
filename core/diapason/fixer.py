@@ -21,7 +21,7 @@ import time
 from dataclasses import replace
 from pathlib import Path
 
-from .autopilot import compare, heal, prompt_items
+from .autopilot import compare, confirm_breaks, heal, prompt_items
 from .checks import explain, metric_id
 from .reference_agent import VERSIONS, AgentVersion
 from .scenarios.schema import Case, Suite
@@ -88,7 +88,11 @@ async def fix(run_dir: Path, suite: Suite, evon, out: Path, agent: AgentVersion 
         plan["prompt"] = {"before_pass_rate": h["before_pass_rate"], "after_pass_rate": h["after_pass_rate"],
                           "rules": accepted, "greeting": h["healed"]["greeting"] if h["healed"]["greeting"] != agent.greeting else "",
                           "fixed": prompt_items(h["fixed"]), "broken": prompt_items(h["broken"]), "still": prompt_items(h["still"]),
-                          "attempts": len(h["attempts"]), "error": h.get("error"),
+                          "flaky_breaks": h.get("flaky_breaks") or [], "attempts": len(h["attempts"]), "error": h.get("error"),
+                          "tried": [{"round": a["round"], "accepted": a["accepted"], "rules": a["rules"],
+                                     "fixed": len(prompt_items(a.get("fixed") or [])), "broken": prompt_items(a.get("broken") or []),
+                                     "flaky_breaks": a.get("flaky_breaks") or [],
+                                     "error": a.get("error", "")} for a in h["attempts"]],
                           "baseline_dir": h["before_dir"], "after_dir": h["after_dir"]}
     if lanes["guard"] and not agent.guard:
         # the guard lane: the same failed calls, the same prompt, Guard on
@@ -103,22 +107,33 @@ async def fix(run_dir: Path, suite: Suite, evon, out: Path, agent: AgentVersion 
         rep = (await run_version(agent.name, retest, out / "guard", on_event, evon=evon, judge_samples=judge_samples,
                                  agent=guarded, label=guarded.name)).to_dict()
         d = compare(base, rep)
+        broken, flaky = prompt_items(d["broken"]), []
+        if broken and prompt_items(d["fixed"]):
+            broken, flaky = await confirm_breaks(evon, retest, guarded, broken, out / "guard", judge_samples, on_event)
         plan["guard"] = {"before_pass_rate": base["pass_rate"], "after_pass_rate": rep["pass_rate"],
-                         "fixed": prompt_items(d["fixed"]), "broken": prompt_items(d["broken"]), "still": prompt_items(d["still"]),
+                         "fixed": prompt_items(d["fixed"]), "broken": broken, "flaky_breaks": flaky, "still": prompt_items(d["still"]),
                          "after_dir": Path(rep["dir"]).relative_to(out).as_posix()}
     plan["ship"] = _recommend(plan)
     return _write(plan, out)
+
+
+def _flakes(lane: dict) -> str:
+    n = len(lane.get("flaky_breaks") or [])
+    return f" ({n} seen once and gone on 2 re-runs)" if n else ""
 
 
 def _recommend(plan: dict) -> list[str]:
     out = []
     p, g = plan.get("prompt"), plan.get("guard")
     if p and p["rules"] and not p["broken"]:
-        out.append(f"Add {len(p['rules'])} prompt rule(s): re-run fixed {len(p['fixed'])} failure(s), broke none.")
-    elif p and not p.get("error"):
+        out.append(f"Add {len(p['rules'])} prompt rule(s): re-run fixed {len(p['fixed'])} failure(s), broke none{_flakes(p)}.")
+    elif p and p.get("error"):
+        out.append(f"Prompt lane not run ({p['error']}): run the fix again.")
+    elif p:
         out.append("No prompt patch survived the re-run: fix by hand, or move the rule into code (Guard).")
     if g and g["fixed"] and not g["broken"]:
-        out.append(f"Turn on Guard (or put Shield in block mode in front of the agent): re-run fixed {len(g['fixed'])} failure(s), broke none.")
+        out.append(f"Turn on Guard (or put Shield in block mode in front of the agent): re-run fixed {len(g['fixed'])} failure(s), "
+                   f"broke none{_flakes(g)}.")
     elif g and g["broken"]:
         out.append(f"Guard fixed {len(g['fixed'])} but broke {len(g['broken'])}: review before shipping.")
     for t in plan["engineering"]:
@@ -140,13 +155,18 @@ def _write(plan: dict, out: Path) -> dict:
         md += ["## Prompt lane (proven by re-running the failed calls)",
                f"Pass rate on the failed calls {round(100 * p['before_pass_rate'])}% → {round(100 * p['after_pass_rate'])}%; "
                f"fixed {len(p['fixed'])}, broke {len(p['broken'])}, still failing {len(p['still'])}.", ""]
-        md += [f"- `{r}`" for r in p["rules"]] or ["- no rule survived"]
+        md += [f"- `{r}`" for r in p["rules"]] or [f"- not run: {p['error']}" if p.get("error") else "- no rule survived"]
+        for a in p.get("tried") or []:
+            flaky = f" ({len(a['flaky_breaks'])} more seen once, gone on 2 re-runs)" if a.get("flaky_breaks") else ""
+            md.append(f"- round {a['round']}: " + (a["error"] or (f"accepted: fixed {a['fixed']}{flaky}" if a["accepted"] else
+                      f"rejected: fixed {a['fixed']}, broke {', '.join(a['broken'][:4])} (confirmed on re-run){flaky}")))
         md.append("")
     if plan.get("guard"):
         g = plan["guard"]
         md += ["## Guard lane (same prompt, code checks before speech)",
                f"Pass rate {round(100 * g['before_pass_rate'])}% → {round(100 * g['after_pass_rate'])}%; fixed {len(g['fixed'])}, "
-               f"broke {len(g['broken'])}.", ""]
+               f"broke {len(g['broken'])}" + (f"; {len(g['flaky_breaks'])} more seen once and gone on 2 re-runs: "
+                                             f"{', '.join(g['flaky_breaks'])}" if g.get("flaky_breaks") else "") + ".", ""]
     if plan["engineering"]:
         md += ["## Engineering tickets", *[f"- **{t['title']}** ({t['severity']}) on {len(t['calls'])} call(s): {t['measured'][0]}. "
                                             f"Fix: {t['fix']}" for t in plan["engineering"]], ""]
