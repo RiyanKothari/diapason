@@ -3,193 +3,421 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Diapason</title>
+<title>Diapason · Mission control</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500&family=Noto+Sans+Gujarati:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
 <style>
-:root{--bg:#f9fafb;--fg:#111111;--text:#333333;--muted:#636363;--card:#ffffff;--soft:#f5f5f5;--line:rgba(0,0,0,.1);--ink:#000000;--ink-fg:#ffffff;
-  --accent:#4169e1;--pass:#1f7a4d;--fail:#c2410c;--warn:#a16207;--caller:#eef2fd;--agent:#f5f5f5;--cream:#fcf7f2;
-  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;--sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
-@media (prefers-color-scheme:dark){:root{--bg:#0b0b0c;--fg:#f4f4f5;--text:#d4d4d8;--muted:#9a9aa2;--card:#141416;--soft:#1c1c1f;--line:rgba(255,255,255,.1);
-  --ink:#ffffff;--ink-fg:#000000;--accent:#7b96ff;--pass:#4ade80;--fail:#fb923c;--warn:#facc15;--caller:#1a2140;--agent:#1c1c1f;--cream:#1a1714}}
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
-.topbar{border-bottom:1px solid var(--line);background:var(--card)}
-.topbar .in{max-width:1280px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.brand{font:500 15px var(--sans);color:var(--fg);letter-spacing:-.01em}.brand b{font-weight:600}
-.built{font-size:13px;color:var(--muted)}.spacer{flex:1}
-.hero{max-width:1280px;margin:0 auto;padding:36px 16px 8px}
-.hero h1{font:400 clamp(32px,5vw,52px)/1.05 var(--serif);color:var(--fg);margin:0;letter-spacing:-.01em}
-.hero p{margin:10px 0 0;color:var(--muted);max-width:640px}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:500;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
-.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7}
-.pill.on{color:var(--accent)}.pill.pass{color:var(--pass)}.pill.fail{color:var(--fail)}
-main{max-width:1280px;margin:0 auto;padding:0 16px 72px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:20px 0}
+.shell{max-width:1320px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:36px}
+.rail{position:sticky;top:84px;align-self:start;display:flex;flex-direction:column;gap:2px;padding-top:8px}
+.rail a{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;color:var(--muted);text-decoration:none;font-size:13.5px;transition:background .2s,color .2s}
+.rail a:hover{color:var(--fg);background:var(--raise)}
+.rail a.cur{color:var(--fg);background:var(--grad-soft);box-shadow:inset 0 0 0 1px var(--line)}
+.rail a i{font:600 10px var(--mono);color:var(--dim);width:18px}
+.rail a.cur i{color:var(--cyan)}
+.rail .sys{margin-top:18px;padding:12px;border:1px solid var(--line-2);border-radius:12px;font:500 11px/1.7 var(--mono);color:var(--muted)}
+.rail .sys b{color:var(--fg);font-weight:500}
+@media (max-width:980px){.shell{grid-template-columns:1fr;gap:0}.rail{position:sticky;top:60px;z-index:10;flex-direction:row;overflow-x:auto;padding:8px 0;margin:0 -20px;padding-left:20px;
+  background:rgba(4,5,10,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-2)}.rail a{white-space:nowrap}.rail .sys{display:none}}
+main{min-width:0;padding-bottom:96px}
+section.blk{padding-top:64px;scroll-margin-top:70px}
+.blk>header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;margin-bottom:18px}
+.blk>header p{margin:8px 0 0;color:var(--muted);max-width:760px}
+
+/* hero: a live oscilloscope of every call in flight */
+.hero{position:relative;padding:56px 0 8px}
+.hero .grid2{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;align-items:center}
+@media (max-width:1100px){.hero .grid2{grid-template-columns:1fr}}
+.scope{position:relative;height:340px;border-radius:24px;overflow:hidden;border:1px solid var(--line);background:
+  linear-gradient(rgba(4,5,10,.2),rgba(4,5,10,.7)),repeating-linear-gradient(0deg,transparent 0 33px,rgba(150,160,255,.06) 33px 34px),
+  repeating-linear-gradient(90deg,transparent 0 33px,rgba(150,160,255,.06) 33px 34px),var(--panel-solid);box-shadow:var(--shadow)}
+.scope canvas{position:absolute;inset:0;width:100%;height:100%}
+.scope .hud{position:absolute;left:16px;right:16px;top:14px;display:flex;justify-content:space-between;font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.scope .hud b{color:var(--fg);font-weight:500}
+.scope .read{position:absolute;left:16px;right:16px;bottom:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.scope .read div{background:rgba(4,5,10,.6);border:1px solid var(--line-2);border-radius:10px;padding:8px 10px;font:500 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.scope .read b{display:block;font:500 18px var(--mono);letter-spacing:-.01em;color:var(--fg);text-transform:none;margin-top:2px}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+.stack{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+
+/* run console */
 .controls{display:flex;flex-wrap:wrap;gap:14px;align-items:end}
-label{display:flex;flex-direction:column;font-size:12px;font-weight:500;color:var(--muted);gap:6px}
-select,input{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0}
-select:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px}
-input[type=number]{width:90px}input[type=text]{width:230px}
-button{font:500 14px var(--sans);border:0;border-radius:999px;padding:10px 22px;background:var(--ink);color:var(--ink-fg);cursor:pointer;transition:opacity .15s}
-button:hover{opacity:.85}button:disabled{opacity:.35;cursor:default}
-.check{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:var(--text);font-weight:400}
-.est{font-size:13px;color:var(--muted);margin-top:12px}
-.section-title{font:400 26px var(--serif);color:var(--fg);margin:36px 0 4px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
-.kpi span{font-size:12px;color:var(--muted);font-weight:500}.kpi b{display:block;font:400 30px/1.2 var(--serif);color:var(--fg);margin-top:4px}
-.bar{height:3px;background:var(--soft);border-radius:999px;overflow:hidden;margin-top:14px}.bar i{display:block;height:100%;width:0;background:var(--ink);transition:width .3s}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px;margin-top:14px}
-.call{background:var(--card);border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;max-height:480px;overflow:hidden}
-.call.pass{box-shadow:inset 0 3px 0 var(--pass)}.call.fail{box-shadow:inset 0 3px 0 var(--fail)}
-.call .head{padding:12px 14px;border-bottom:1px solid var(--line)}
-.call .title{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600;font-size:13px;color:var(--fg);word-break:break-word}
-.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.chip{font-size:11px;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
-.feed{padding:10px 14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:7px}
-.msg{max-width:88%;padding:8px 11px;border-radius:14px;font-size:14px;color:var(--fg)}
-.msg.caller{align-self:flex-end;background:var(--caller);border-bottom-right-radius:4px}.msg.agent{align-self:flex-start;background:var(--agent);border-bottom-left-radius:4px}
-.msg .meta{display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
+.controls>label{flex:0 1 auto}
+#suite{min-width:240px}#mode{min-width:300px}
+input[type=number]{width:96px}input[type=text]{width:280px}
+.est{display:flex;align-items:center;gap:10px;font:500 12.5px var(--mono);color:var(--muted);margin-top:16px;padding-top:14px;border-top:1px dashed var(--line-2)}
+.est:before{content:"≈";color:var(--cyan)}
+.hint{font-size:13px;color:var(--muted);margin-top:10px}
+.hint.ok{color:var(--pass)}.hint.bad{color:var(--fail)}
+@media (max-width:620px){#suite,#mode,input[type=text]{min-width:0;width:100%}.controls>*{flex:1 1 100%}}
+
+/* showdown: v1 to v4 side by side */
+.duel{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:16px}
+.fighter{position:relative;border:1px solid var(--line);border-radius:18px;padding:16px;background:var(--panel);overflow:hidden;transition:border-color .3s,box-shadow .3s}
+.fighter .v{font:400 34px/1 var(--serif);color:var(--fg)}.fighter .w{font-size:12px;color:var(--muted);margin-top:4px;min-height:34px}
+.fighter .s{font:500 30px/1 var(--mono);margin-top:14px;color:var(--dim)}.fighter .s small{font-size:13px;color:var(--muted)}
+.fighter.run{border-color:rgba(56,227,214,.5);box-shadow:0 0 30px -10px rgba(56,227,214,.6)}
+.fighter.run .s{color:var(--cyan)}
+.fighter.done.good .s{color:var(--pass)}.fighter.done.bad .s{color:var(--fail)}
+.fighter .mbar{height:4px;border-radius:9px;background:var(--raise-2);margin-top:12px;overflow:hidden}.fighter .mbar i{display:block;height:100%;width:0;background:var(--grad);transition:width .6s var(--ease)}
+
+/* live calls */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:14px;margin-top:16px}
+.call{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column;max-height:520px;overflow:hidden;
+  box-shadow:var(--shadow);animation:land .5s var(--ease)}
+@keyframes land{from{opacity:0;transform:translateY(12px) scale(.98)}}
+.call:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:var(--grad);opacity:.8}
+.call.pass:before{background:var(--pass);box-shadow:0 0 18px var(--pass)}.call.fail:before{background:var(--fail);box-shadow:0 0 18px var(--fail)}
+.call .head{padding:14px 16px 12px;border-bottom:1px solid var(--line-2)}
+.call .title{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600;font-size:13.5px;color:var(--fg);word-break:break-word}
+.call .mini{display:flex;align-items:end;gap:2px;height:16px;margin-top:10px}
+.call .mini i{flex:1;background:var(--dim);border-radius:2px;height:20%;transition:height .25s,background .25s}
+.call .mini.live i{background:var(--cyan)}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.feed{padding:12px 16px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:88%;padding:9px 12px;border-radius:16px;font-size:14px;line-height:1.5;color:var(--fg);animation:land .35s var(--ease)}
+.msg.caller{align-self:flex-end;background:linear-gradient(135deg,rgba(110,141,255,.28),rgba(154,138,255,.2));border:1px solid rgba(154,138,255,.25);border-bottom-right-radius:5px}
+.msg.agent{align-self:flex-start;background:var(--raise-2);border:1px solid var(--line-2);border-bottom-left-radius:5px}
+.msg .meta{display:block;font:500 10.5px var(--mono);color:var(--muted);margin-bottom:3px;letter-spacing:.02em}
 .lat{font-weight:600}.lat.slow{color:var(--fail)}.lat.ok{color:var(--pass)}
-.note{align-self:center;font-size:12px;color:var(--muted);background:var(--soft);padding:2px 10px;border-radius:999px}.note.warn{color:var(--warn)}
-.foot{padding:10px 14px;border-top:1px solid var(--line);font-size:13px;background:var(--cream);max-height:220px;overflow-y:auto}.foot .fail{color:var(--fail)}
-.why{margin:0 0 8px}.why summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:baseline;color:var(--fg);font-weight:500}
-.why summary::-webkit-details-marker{display:none}.why p{margin:4px 0 0 0;color:var(--muted)}.why q{color:var(--fg)}
-.sev{flex:none;font:600 10.5px var(--sans);letter-spacing:.04em;text-transform:uppercase;border-radius:6px;padding:1px 7px;border:1px solid currentColor}
-.sev.critical{color:var(--fail)}.sev.major{color:var(--warn)}.sev.minor,.sev.review{color:var(--muted)}
-.ok{color:var(--pass)}.bad{color:var(--fail)}.hint{font-size:13px;color:var(--muted);margin-top:10px}
-button.ghost{background:none;color:var(--fg);border:1px solid var(--line)}
-.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
-.cmp h4{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:500}.cmp ul{margin:0;padding-left:18px;font-size:14px}
-.delta{font-weight:600}.delta.up{color:var(--pass)}.delta.down{color:var(--fail)}
-table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:14px}
-th{color:var(--muted);font-weight:500;font-size:12px}td{color:var(--text)}tr:last-child td{border-bottom:0}
-a{color:var(--fg);text-underline-offset:3px}.scroll{overflow-x:auto}.empty{color:var(--muted);font-size:14px}
-@media (max-width:560px){input[type=text]{width:100%}.controls>*{flex:1 1 140px}.controls button{flex-basis:100%}}
+.note{align-self:center;font:500 11px var(--mono);color:var(--muted);background:var(--raise);border:1px solid var(--line-2);padding:3px 11px;border-radius:999px}
+.note.warn{color:var(--warn);border-color:rgba(255,193,77,.3)}
+.foot{padding:12px 16px;border-top:1px solid var(--line-2);font-size:13px;background:rgba(4,5,10,.45);max-height:240px;overflow-y:auto}
+.foot .fail{color:var(--fail)}
+.why{margin:0 0 9px}.why summary{cursor:pointer;list-style:none;display:flex;gap:9px;align-items:baseline;color:var(--fg);font-weight:500}
+.why summary::-webkit-details-marker{display:none}.why p{margin:5px 0 0;color:var(--muted)}.why q{color:var(--fg)}
+.progress{height:3px;background:var(--raise-2);border-radius:999px;overflow:hidden;margin-top:14px}
+.progress i{display:block;height:100%;width:0;background:var(--grad);transition:width .4s var(--ease);box-shadow:0 0 14px var(--cyan)}
+
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+.cmp>div{background:var(--raise);border:1px solid var(--line-2);border-radius:14px;padding:12px 14px}
+.cmp h4{margin:0 0 6px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.cmp ul{margin:0;padding-left:18px;font-size:14px}
+.delta{font:600 13px var(--mono)}.delta.up{color:var(--pass)}.delta.down{color:var(--fail)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media (max-width:900px){.two{grid-template-columns:1fr}}
+textarea{width:100%;resize:vertical}
+.toast{position:fixed;right:20px;bottom:20px;z-index:30;max-width:380px;padding:12px 16px;border-radius:14px;background:var(--panel-solid);border:1px solid var(--line-3);
+  box-shadow:var(--shadow);font-size:14px;color:var(--fg);transform:translateY(20px);opacity:0;transition:all .35s var(--ease);pointer-events:none}
+.toast.show{transform:none;opacity:1}
 </style>
 </head>
 <body>
-<div class="topbar"><div class="in"><span class="brand"><b>Diapason</b></span><span class="built">built on Gnani Prisma · Evon · Timbre</span><span class="spacer"></span><a href="/watch">Watch the demo</a><a href="/studio">QA Studio</a><span id="status" class="pill">idle</span></div></div>
-<section class="hero"><h1>Every caller your agent<br>will meet, before it meets them.</h1>
-<p>Synthetic Indian callers, noisy 8 kHz lines, code-mixed speech and barge-ins. Each call is measured, judged with quoted evidence, and gated.</p></section>
+<div class="room"><i></i></div>
+<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="dpg" x1="0" x2="1"><stop offset="0" stop-color="#b3a6ff"/><stop offset="1" stop-color="#38e3d6"/></linearGradient></defs></svg>
+
+<nav class="topnav"><div class="in">
+  <a class="logo" href="/"><svg viewBox="0 0 26 26"><circle class="fork-ring" cx="13" cy="9" r="8"/><circle class="fork-ring r2" cx="13" cy="9" r="8"/>
+    <path d="M9 2v9a4 4 0 0 0 8 0V2" fill="none" stroke="url(#dpg)" stroke-width="2.2" stroke-linecap="round"/><path d="M13 15v9" stroke="url(#dpg)" stroke-width="2.2" stroke-linecap="round"/></svg>Diapason</a>
+  <span class="chip hide-sm">Gnani Prisma · Evon · Timbre</span>
+  <span class="sp"></span>
+  <a class="nl hide-sm" href="/watch">Watch the demo</a><a class="nl hide-sm" href="/studio">QA Studio</a>
+  <span id="status" class="pill">idle</span>
+</div></nav>
+
+<div class="shell">
+<aside class="rail" id="rail">
+  <a href="#top" class="cur"><i>00</i>Mission control</a>
+  <a href="#run"><i>01</i>Run a test</a>
+  <a href="#live"><i>02</i>Live calls</a>
+  <a href="#evolution"><i>03</i>v1 → v4 proof</a>
+  <a href="#runs"><i>04</i>Runs &amp; fixes</a>
+  <a href="#writer"><i>05</i>Suite writer</a>
+  <a href="#shieldSec"><i>06</i>Shield</a>
+  <a href="#accuracy"><i>07</i>Accuracy</a>
+  <a href="#audits"><i>08</i>QA audits</a>
+  <div class="sys" id="sys">suites <b id="sSuites">—</b><br>runs <b id="sRuns">—</b><br>proof <b id="sProof">—</b></div>
+</aside>
+
 <main>
-  <section class="panel">
-    <div class="controls">
-      <label>Suite<select id="suite"></select></label>
-      <label>Agent under test<select id="mode">
-        <option value="offline">Built-in fake agent (offline, free)</option>
-        <option value="websocket">Your agent: Diapason websocket</option>
-        <option value="media_stream">Your agent: Twilio Media Streams</option>
-        <option value="exotel">Your agent: Exotel voicebot stream</option>
-        <option value="plivo">Your agent: Plivo audio stream</option></select></label>
-      <label>Scenarios<input id="limit" type="number" min="1" value="4"></label>
-      <label id="urlWrap" hidden>Agent URL<input id="url" type="text" placeholder="wss://your-agent.example.com/stream"></label>
-      <button id="check" class="ghost" type="button" hidden>Check connection</button>
-      <label class="budget" hidden>TTS chars budget<input id="ttsCap" type="number" min="1" value="400"></label>
-      <label class="budget" hidden>STT seconds budget<input id="sttCap" type="number" min="1" value="60"></label>
-      <label class="check" id="stubWrap"><input id="stubborn" type="checkbox"> fake agent ignores barge-ins</label>
-      <button id="run">Run suite</button>
+  <section class="hero" id="top">
+    <div class="grid2">
+      <div>
+        <span class="eyebrow">Voice-agent QA for India</span>
+        <h1 class="display" style="margin-top:18px">Every caller your agent will meet, <i>before it meets them.</i></h1>
+        <p class="lede">Synthetic Indian callers on noisy 8 kHz lines, code-mixing, cutting in, posing as someone else. Every call measured, judged with the agent's
+          own words as evidence, and gated before launch. Then guarded live, and audited after.</p>
+        <div class="cta"><button class="primary" id="prove">▶ Prove it: run v1 → v4</button><a class="btn" href="#run">Test your own agent</a><a class="btn ghost" href="/watch">Watch the film</a></div>
+        <div class="stack"><span class="chip">Hindi · Hinglish · Gujarati · English</span><span class="chip">Twilio · Exotel · Plivo · websocket</span><span class="chip">pass/fail gate for CI</span></div>
+      </div>
+      <div class="scope" id="scope"><canvas id="wave"></canvas>
+        <div class="hud"><span>signal · <b id="hudState">standing by</b></span><span id="hudClock">00:00.0</span></div>
+        <div class="read"><div>calls<b id="rCalls">0</b></div><div>pass<b id="rPass">—</b></div><div>p95 reply<b id="rP95">—</b></div><div>turns<b id="rTurns">0</b></div></div>
+      </div>
     </div>
-    <div class="est" id="est"></div>
-    <div class="hint" id="checkOut" hidden></div>
-    <div class="hint" id="howto" hidden>Most voice stacks already take phone calls over a media stream: pick the platform yours runs on (<b>Twilio, Exotel or Plivo</b>) and paste that websocket URL.
-      Otherwise the Diapason protocol is four messages: a JSON <code>start</code>, binary PCM both ways, and optional <code>clear</code> / <code>hangup</code>.
-      Live calls use Timbre voices and Prisma ears, capped by the budgets above.</div>
   </section>
 
-  <h2 class="section-title">Live run</h2>
-  <section class="kpis">
-    <div class="kpi"><span>Calls done</span><b id="kDone">0 / 0</b></div>
-    <div class="kpi"><span>Passed</span><b id="kPass">—</b></div>
-    <div class="kpi"><span>Response latency p95</span><b id="kP95">—</b></div>
-    <div class="kpi"><span>Barge-ins ignored</span><b id="kBarge">0</b></div>
-    <div class="kpi"><span>Gate</span><b id="kGate">—</b></div>
-  </section>
-  <div class="bar"><i id="prog"></i></div>
-
-  <div class="grid" id="calls"><p class="empty">Start a run to watch every test call live.</p></div>
-
-  <h2 class="section-title">Past runs</h2>
-  <section class="panel">
-    <div class="controls" style="margin-bottom:10px"><button id="cmpBtn" class="ghost" disabled>Compare 2 selected runs</button><span class="hint" id="cmpHint" style="margin:0">Tick two runs of the same suite.</span></div>
-    <div class="scroll"><table><thead><tr><th></th><th>Suite</th><th>Started</th><th>Calls</th><th>Pass rate</th><th>p95</th><th>Gate</th><th></th></tr></thead><tbody id="runs"></tbody></table></div>
-    <div id="cmpOut" hidden></div>
-    <div id="fixBox" class="panel" hidden style="margin:14px 0 0">
-      <b>Fix agent</b> <span class="hint" id="fixRun"></span>
-      <div class="controls" style="margin-top:10px">
-        <label>Prove fixes on<select id="fixAgent"><option value="">Nothing (list the lanes only, no credits)</option>
-          <option>v1</option><option>v2</option><option>v3</option><option>v4</option></select></label>
-        <button id="fixGo">Run the fix agent</button></div>
-      <div class="hint" id="fixOut"></div></div>
-  </section>
-
-  <h2 class="section-title">Write a suite from your SOP</h2>
-  <p style="color:var(--muted);margin:-6px 0 12px">The suite-writer agent gives every rule in your SOP a caller built to break it, sounding like your real callers if you paste a few of their lines. Uses Evon.</p>
-  <section class="panel">
-    <div class="controls"><label>Suite name<input id="wName" type="text" placeholder="insurance-renewal"></label></div>
-    <label style="margin-top:12px">SOP or system prompt<textarea id="wSop" rows="5" style="font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px"></textarea></label>
-    <label style="margin-top:12px">Real callers' lines (optional, one per line: <code>caller: ...</code>)<textarea id="wLines" rows="3" style="font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px"></textarea></label>
-    <div class="controls" style="margin-top:12px"><button id="wGo">Write the suite</button></div>
-    <div class="hint" id="wOut"></div>
-  </section>
-
-  <h2 class="section-title">Shield: compliance on live calls</h2>
-  <p style="color:var(--muted);margin:-6px 0 12px">Any agent, no code change: point your Twilio, Exotel or Plivo stream at <code>diapason shield --agent &lt;its url&gt;</code>.
-    Monitor flags every line that breaks the rules; block holds each line until it is checked.</p>
-  <section class="kpis" id="shieldKpis"></section>
-  <section class="panel" id="incBox" hidden><b>Incidents</b> <span class="hint">grouped by the incident agent: <code>diapason incidents</code> also writes them up and turns each into a test</span>
-    <div class="scroll"><table><thead><tr><th>Severity</th><th>What</th><th>Calls</th><th>Lines</th><th>Stopped</th><th>Between</th></tr></thead><tbody id="inc"></tbody></table></div></section>
-  <section class="panel"><div class="scroll"><table><thead><tr><th>Call</th><th>At</th><th>Who</th><th>Said</th><th>Verdict</th><th>Rules</th></tr></thead>
-    <tbody id="shield"></tbody></table></div></section>
-
-  <h2 class="section-title">How accurate is it? Proof and autopilot</h2>
-  <p style="color:var(--muted);margin:-6px 0 12px">Measured against answers known in advance (<code>diapason proof</code>), and bugs nobody planted, found and fixed by Evon (<code>diapason autopilot</code>)</p>
-  <section class="panel">
-    <div class="scroll"><table><thead><tr><th>Kind</th><th>When</th><th>Result</th><th></th></tr></thead><tbody id="proofs"></tbody></table></div>
+  <section class="blk" id="run">
+    <header><div><span class="eyebrow">01 · Run a test</span><h2 class="h2" style="margin-top:10px">Point it at an agent. Press run.</h2>
+      <p>Diapason's own reference agents run free, so you can watch v1's planted bugs get caught and v4 pass. Your agent connects over the stream your phone platform already speaks.</p></div></header>
+    <div class="panel glow">
+      <div class="controls">
+        <label>Suite<select id="suite"></select></label>
+        <label>Agent under test<select id="mode">
+          <optgroup label="Diapason's reference agents (free)">
+            <option value="ref:v1">v1 · seeded bugs</option>
+            <option value="ref:v2">v2 · prompt fixed</option>
+            <option value="ref:v1+guard">v1 + Guard · same prompt, code checks</option>
+            <option value="ref:v3">v3 · secrets kept out of the prompt</option>
+            <option value="ref:v3+guard">v3 + Guard · both layers</option>
+            <option value="ref:v4">v4 · model picks acts, code speaks</option></optgroup>
+          <optgroup label="Your agent (live Gnani speech, capped)">
+            <option value="websocket">Diapason websocket</option>
+            <option value="media_stream">Twilio Media Streams</option>
+            <option value="exotel">Exotel voicebot stream</option>
+            <option value="plivo">Plivo audio stream</option></optgroup>
+          <optgroup label="Sandbox">
+            <option value="offline">Built-in fake agent (offline)</option></optgroup>
+        </select></label>
+        <label>Scenarios<input id="limit" type="number" min="1" value="6"></label>
+        <label id="urlWrap" hidden>Agent URL<input id="url" type="text" placeholder="wss://your-agent.example.com/stream"></label>
+        <button id="check" class="ghost" type="button" hidden>Check connection</button>
+        <label class="budget" hidden>TTS chars budget<input id="ttsCap" type="number" min="1" value="400"></label>
+        <label class="budget" hidden>STT seconds budget<input id="sttCap" type="number" min="1" value="60"></label>
+        <label class="check" id="stubWrap" hidden><input id="stubborn" type="checkbox"> fake agent ignores barge-ins</label>
+        <label class="check" id="evonWrap"><input id="evon" type="checkbox"> Evon plays it and judges (no speech credits)</label>
+        <button id="run" class="primary">Run suite</button>
+      </div>
+      <div class="est" id="est"></div>
+      <div class="hint" id="checkOut" hidden></div>
+      <div class="hint" id="howto" hidden>Most voice stacks already take phone calls over a media stream: pick the platform yours runs on (<b>Twilio, Exotel or Plivo</b>) and paste that websocket URL.
+        Otherwise the Diapason protocol is four messages: a JSON <code>start</code>, binary PCM both ways, and optional <code>clear</code> / <code>hangup</code>.
+        Live calls use Timbre voices and Prisma ears, capped by the budgets above.</div>
+    </div>
   </section>
 
-  <h2 class="section-title">Quality audits of real calls</h2>
-  <p style="color:var(--muted);margin:-6px 0 12px">Every production call scored against a QA scorecard with quoted evidence: <code>diapason qa audit scorecards/emi_collections.yaml calls/</code></p>
-  <section class="panel">
-    <div class="scroll"><table><thead><tr><th>Scorecard</th><th>Audited</th><th>Calls</th><th>Avg score</th><th>Pass</th><th>Fatal</th><th>Review</th><th></th></tr></thead><tbody id="audits"></tbody></table></div>
+  <section class="blk" id="live">
+    <header><div><span class="eyebrow">02 · Live calls</span><h2 class="h2" style="margin-top:10px">Every call, as it happens</h2>
+      <p>Transcript, reply latency and barge-ins stream in per turn; each call ends with a verdict that quotes the agent and says how to fix it.</p></div></header>
+    <div class="kpis">
+      <div class="kpi"><span>Calls done</span><b id="kDone">0 / 0</b></div>
+      <div class="kpi"><span>Passed</span><b id="kPass">—</b></div>
+      <div class="kpi"><span>Reply latency p95</span><b id="kP95">—</b></div>
+      <div class="kpi"><span>Barge-ins ignored</span><b id="kBarge">0</b></div>
+      <div class="kpi"><span>Gate</span><b id="kGate">—</b></div>
+    </div>
+    <div class="progress"><i id="prog"></i></div>
+    <div class="grid" id="calls"><p class="empty">Start a run, or press <b>Prove it</b>, to watch every test call live.</p></div>
+  </section>
+
+  <section class="blk" id="evolution">
+    <header><div><span class="eyebrow">03 · v1 → v4</span><h2 class="h2" style="margin-top:10px">Planted bugs, caught, then gone</h2>
+      <p>v1 has eight bugs planted on purpose. Each later version removes them a different way: a better prompt, code that checks every line before it's spoken,
+        secrets kept out of the model's reach, and finally a model that only picks what to do while code says it. Measured on the same calls, judged by Evon.</p></div>
+      <span class="chip" id="evoWhen"></span></header>
+    <div class="panel">
+      <div class="duel" id="duel"></div>
+      <p class="hint" id="duelNote">Press <b>Prove it</b> to run the six proof calls against each version right here (scripted agents, no credits). The matrix below is the latest full proof with Evon.</p>
+    </div>
+    <div class="panel" style="margin-top:14px"><div class="scroll"><div class="matrix" id="matrix"><p class="empty">No proof yet: run <code>diapason proof</code>.</p></div></div>
+      <div class="legend"><span><i class="cellx caught">●</i>caught by the test (v1)</span><span><i class="cellx clean">✓</i>gone</span><span><i class="cellx flagged">✕</i>still there</span>
+        <span><i class="cellx nr">○</i>engineering bug that didn't show on this run (not counted as fixed)</span><span><i class="cellx na">·</i>not measured</span></div></div>
+  </section>
+
+  <section class="blk" id="runs">
+    <header><div><span class="eyebrow">04 · Runs &amp; fixes</span><h2 class="h2" style="margin-top:10px">Every run, comparable and fixable</h2>
+      <p>Tick two runs of one suite to see what got fixed and what broke. <b>fix</b> sends a failed run to the fix agent: it proves each fix by re-running only the failed calls.</p></div>
+      <div style="display:flex;gap:10px;align-items:center"><span class="hint" id="cmpHint" style="margin:0">Tick two runs of the same suite.</span><button id="cmpBtn" class="ghost" disabled>Compare</button></div></header>
+    <div class="panel">
+      <div class="scroll"><table><thead><tr><th></th><th>Suite</th><th>Agent</th><th>Started</th><th>Calls</th><th>Pass</th><th>p95</th><th>Gate</th><th></th></tr></thead><tbody id="runList"></tbody></table></div>
+      <div id="cmpOut" hidden></div>
+      <div id="fixBox" class="panel glow" hidden style="margin:16px 0 0">
+        <h3>Fix agent <span class="hint" id="fixRun" style="margin-left:8px"></span></h3>
+        <div class="controls" style="margin-top:12px">
+          <label>Prove fixes on<select id="fixAgent"><option value="">Nothing (list the lanes only, no credits)</option>
+            <option>v1</option><option>v2</option><option>v3</option><option>v4</option></select></label>
+          <button id="fixGo" class="primary">Run the fix agent</button></div>
+        <div class="hint" id="fixOut"></div></div>
+    </div>
+  </section>
+
+  <section class="blk" id="writer">
+    <header><div><span class="eyebrow">05 · Suite writer</span><h2 class="h2" style="margin-top:10px">Your SOP in, an attack suite out</h2>
+      <p>Every rule in the SOP gets a caller built to tempt the agent into breaking it, sounding like your real callers if you paste a few of their lines. Rules no caller can test are named, not hidden. Uses Evon.</p></div></header>
+    <div class="panel">
+      <div class="two"><label>SOP or system prompt<textarea id="wSop" rows="7" placeholder="Identify the lender and say the call is recorded. Verify the last 4 digits before any account detail…"></textarea></label>
+        <label>Real callers' lines (optional, one per line: caller: …)<textarea id="wLines" rows="7" placeholder="caller: arre paise kal dunga na yaar"></textarea></label></div>
+      <div class="controls" style="margin-top:14px"><label>Suite name<input id="wName" type="text" placeholder="insurance-renewal"></label><button id="wGo" class="primary">Write the suite</button></div>
+      <div class="hint" id="wOut"></div>
+    </div>
+  </section>
+
+  <section class="blk" id="shieldSec">
+    <header><div><span class="eyebrow">06 · Shield</span><h2 class="h2" style="margin-top:10px">Compliance on live calls, no code change</h2>
+      <p>Point your Twilio, Exotel or Plivo stream at <code>diapason shield --agent &lt;its url&gt;</code>. Monitor flags every line that breaks the rules; block holds each line until it's checked and replaces a violation with a safe line.</p></div></header>
+    <section class="kpis" id="shieldKpis"></section>
+    <div class="panel" id="incBox" hidden style="margin-top:14px"><h3>Incidents <span class="hint" style="margin-left:8px">grouped by the incident agent · <code>diapason incidents</code> turns each into a test</span></h3>
+      <div class="scroll"><table><thead><tr><th>Severity</th><th>What</th><th>Calls</th><th>Lines</th><th>Stopped</th><th>Between</th></tr></thead><tbody id="inc"></tbody></table></div></div>
+    <div class="panel" style="margin-top:14px"><div class="scroll"><table><thead><tr><th>Call</th><th>At</th><th>Who</th><th>Said</th><th>Verdict</th><th>Rules</th></tr></thead>
+      <tbody id="shield"></tbody></table></div></div>
+  </section>
+
+  <section class="blk" id="accuracy">
+    <header><div><span class="eyebrow">07 · Accuracy</span><h2 class="h2" style="margin-top:10px">How right is the tester?</h2>
+      <p>Measured against answers known in advance (<code>diapason proof</code>), and bugs nobody planted, found and fixed by Evon (<code>diapason autopilot</code>).</p></div></header>
+    <div class="panel"><div class="scroll"><table><thead><tr><th>Kind</th><th>When</th><th>Result</th><th></th></tr></thead><tbody id="proofs"></tbody></table></div></div>
+  </section>
+
+  <section class="blk" id="audits">
+    <header><div><span class="eyebrow">08 · QA audits</span><h2 class="h2" style="margin-top:10px">Every real call, scored</h2>
+      <p>Production calls scored against a QA scorecard with quoted evidence: <code>diapason qa audit scorecards/emi_collections.yaml calls/</code></p></div></header>
+    <div class="panel"><div class="scroll"><table><thead><tr><th>Scorecard</th><th>Audited</th><th>Calls</th><th>Avg score</th><th>Pass</th><th>Fatal</th><th>Review</th><th></th></tr></thead><tbody id="auditList"></tbody></table></div></div>
   </section>
 </main>
+</div>
+<div class="toast" id="toast"></div>
+
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const SLOW = 2.5;
-let total = 0, done = 0, passed = 0, latencies = [], ignored = 0;
+let total = 0, done = 0, passed = 0, latencies = [], ignored = 0, turns = 0, runStarted = 0;
 const calls = new Map();
 let suites = [];
+let waiting = null;                      // resolves when the current run ends (the v1 -> v4 showdown runs them in turn)
+function toast(t) { const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 4200); }
 
+/* ---------------- the oscilloscope: resonance at rest, speech when calls are live ---------------- */
+const wave = { energy: .18, target: .18, kick: 0, t: 0 };
+function pulse(k = 1) { wave.kick = Math.min(1.6, wave.kick + k); }
+(function scope() {
+  const cv = $("wave"), cx = cv.getContext("2d");
+  const fit = () => { const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; cv.width = r.width * d; cv.height = r.height * d; cx.setTransform(d, 0, 0, d, 0, 0); };
+  fit(); addEventListener("resize", fit);
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const colors = ["rgba(179,166,255,", "rgba(123,147,255,", "rgba(56,227,214,", "rgba(154,138,255,", "rgba(56,227,214,"];
+  const draw = () => {
+    const w = cv.clientWidth, h = cv.clientHeight, mid = h * .46;
+    wave.energy += (wave.target - wave.energy) * .04; wave.kick *= .94; wave.t += still ? 0 : .016;
+    const e = wave.energy + wave.kick * .55;
+    cx.clearRect(0, 0, w, h);
+    cx.globalCompositeOperation = "lighter";
+    for (let k = 0; k < 5; k++) {
+      cx.beginPath();
+      for (let x = 0; x <= w; x += 3) {
+        const u = x / w, env = Math.pow(Math.sin(Math.PI * u), 2.2);
+        const f1 = Math.sin(u * (9 + k * 1.7) * Math.PI + wave.t * (1.6 + k * .35) + k);
+        const f2 = Math.sin(u * (31 + k * 5) * Math.PI - wave.t * (3.1 + k)) * wave.kick * .45;
+        const y = mid + (f1 + f2) * env * h * .3 * e * (1 - k * .14);
+        x ? cx.lineTo(x, y) : cx.moveTo(x, y);
+      }
+      cx.strokeStyle = colors[k] + (k === 0 ? .95 : .45) + ")"; cx.lineWidth = k === 0 ? 2.2 : 1.2;
+      cx.shadowColor = colors[k] + "0.9)"; cx.shadowBlur = k === 0 ? 18 : 8; cx.stroke();
+    }
+    cx.globalCompositeOperation = "source-over"; cx.shadowBlur = 0;
+    if (runStarted) { const s = (performance.now() - runStarted) / 1000; $("hudClock").textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${(s % 60).toFixed(1).padStart(4, "0")}`; }
+    requestAnimationFrame(draw);
+  };
+  requestAnimationFrame(draw);
+})();
+
+/* ---------------- rail: highlight the section in view ---------------- */
+const railLinks = [...document.querySelectorAll(".rail a")];
+const railIO = new IntersectionObserver((es) => es.forEach((e) => { if (!e.isIntersecting) return;
+  railLinks.forEach((a) => a.classList.toggle("cur", a.getAttribute("href") === "#" + e.target.id)); }), { rootMargin: "-40% 0px -55% 0px" });
+document.querySelectorAll("main > section").forEach((s) => railIO.observe(s));
+
+/* ---------------- suites, estimate, mode ---------------- */
 async function loadSuites() {
   suites = await (await fetch("/api/suites")).json();
+  const pick = $("suite").value;
   $("suite").innerHTML = suites.map((s) => `<option value="${esc(s.file)}">${esc(s.name || s.file)}${s.error ? " (invalid)" : ` · ${s.scenarios} scenarios`}</option>`).join("");
+  if (pick) $("suite").value = pick; else if (suites.some((s) => s.file === "proof.yaml")) $("suite").value = "proof.yaml";
+  $("sSuites").textContent = suites.length;
   showEstimate();
 }
+const isRef = () => $("mode").value.startsWith("ref:");
 function showEstimate() {
   const s = suites.find((x) => x.file === $("suite").value);
   if (!s) return;
   if (s.error) { $("est").textContent = "Invalid suite: " + s.error; return; }
-  const n = Math.min(+$("limit").value || s.scenarios, s.scenarios), f = n / s.scenarios, e = s.estimate;
-  $("est").textContent = $("mode").value === "offline"
-    ? `${n * s.runs_per_scenario} calls against a scripted fake agent. No API credits used.`
-    : (() => {
-        // the run stops at whichever comes first: the suite's own maximum or the budgets set here
-        const tts = Math.min(e.tts_chars_max * f, +$("ttsCap").value || Infinity), stt = Math.min(e.stt_seconds_max * f, +$("sttCap").value || Infinity);
-        return `Up to ${n * s.runs_per_scenario} live calls · at most ≈${(tts / 555 + stt / 180).toFixed(1)} Gnani credits (≤${Math.round(tts)} TTS chars, ≤${Math.round(stt)} s STT; `
-          + `the suite could use ≈${(e.credits_max * f).toFixed(1)} uncapped) · repeated caller lines are cached and free`;
-      })();
+  const n = Math.min(+$("limit").value || s.scenarios, s.scenarios), f = n / s.scenarios, e = s.estimate, m = $("mode").value;
+  if (m === "offline") $("est").textContent = `${n * s.runs_per_scenario} calls against a scripted fake agent · no API credits`;
+  else if (isRef()) $("est").textContent = $("evon").checked
+    ? `${n * s.runs_per_scenario} calls · Evon plays reference agent ${m.slice(4)}, the callers and the judge · no Gnani speech credits · a few minutes`
+    : `${n * s.runs_per_scenario} calls · reference agent ${m.slice(4)}, scripted · callers speak their persona's language · code checks judge · free, about a minute`;
+  else {
+    const tts = Math.min(e.tts_chars_max * f, +$("ttsCap").value || Infinity), stt = Math.min(e.stt_seconds_max * f, +$("sttCap").value || Infinity);
+    $("est").textContent = `up to ${n * s.runs_per_scenario} live calls · at most ${(tts / 555 + stt / 180).toFixed(1)} Gnani credits (≤${Math.round(tts)} TTS chars, ≤${Math.round(stt)} s STT; `
+      + `uncapped ≈${(e.credits_max * f).toFixed(1)}) · repeated caller lines are cached and free`;
+  }
 }
+$("mode").onchange = () => {
+  const m = $("mode").value, live = !isRef() && m !== "offline";
+  for (const id of ["urlWrap", "check", "howto"]) $(id).hidden = !live;
+  $("stubWrap").hidden = m !== "offline"; $("evonWrap").hidden = !isRef(); $("checkOut").hidden = true;
+  document.querySelectorAll(".budget").forEach((b) => { b.hidden = !live; });
+  showEstimate();
+};
+$("evon").onchange = showEstimate;
+$("suite").onchange = showEstimate; $("limit").oninput = showEstimate; $("ttsCap").oninput = showEstimate; $("sttCap").oninput = showEstimate;
+
+async function start(body) {
+  const r = await fetch("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) { const d = await r.json().catch(() => ({})); toast(d.detail || "could not start"); return false; }
+  return true;
+}
+$("run").onclick = async () => {
+  const m = $("mode").value, live = !isRef() && m !== "offline";
+  if (live && !$("url").value.trim()) { toast("Paste your agent's websocket URL first, and check the connection."); return; }
+  const body = { suite: $("suite").value, limit: +$("limit").value || null, stubborn: $("stubborn").checked };
+  if (isRef()) Object.assign(body, { mode: "reference", version: m.slice(4), evon: $("evon").checked });
+  else Object.assign(body, { mode: live ? "live" : "offline", target: live ? m : null, url: $("url").value.trim() || null,
+    max_tts_chars: +$("ttsCap").value || null, max_stt_seconds: +$("sttCap").value || null });
+  if (await start(body)) document.getElementById("live").scrollIntoView({ behavior: "smooth" });
+};
+
+/* ---------------- v1 -> v4, right here ---------------- */
+const DUEL = [["v1", "seeded bugs"], ["v2", "prompt fixed"], ["v1+guard", "v1 + Guard"], ["v3", "secrets out of the prompt"], ["v4", "model picks, code speaks"]];
+function drawDuel() {
+  $("duel").innerHTML = DUEL.map(([v, w]) => `<div class="fighter" id="f-${v.replace("+", "-")}"><div class="v">${esc(v.replace("+guard", " + G"))}</div><div class="w">${esc(w)}</div>
+    <div class="s">—</div><div class="mbar"><i></i></div></div>`).join("");
+}
+drawDuel();
+$("prove").onclick = async () => {
+  if (!suites.some((s) => s.file === "proof.yaml")) { toast("suites/proof.yaml is missing"); return; }
+  $("prove").disabled = true; drawDuel(); $("evolution").scrollIntoView({ behavior: "smooth" });
+  $("duelNote").textContent = "Running the six proof calls against each version in turn: scripted agents, callers in each persona's language, code checks as the judge. Free.";
+  for (const [v] of DUEL) {
+    const card = $(`f-${v.replace("+", "-")}`); card.classList.add("run"); card.querySelector(".s").textContent = "…";
+    const ended = new Promise((res) => { waiting = res; });
+    if (!(await start({ suite: "proof.yaml", mode: "reference", version: v, evon: false, limit: null }))) { card.classList.remove("run"); break; }
+    const e = await ended;
+    const pct = Math.round((e.pass_rate || 0) * 100);
+    card.classList.remove("run"); card.classList.add("done", pct >= 50 ? "good" : "bad");
+    card.querySelector(".s").innerHTML = `${pct}%<small> of calls pass</small>`; card.querySelector(".mbar i").style.width = `${pct}%`;
+  }
+  $("duelNote").innerHTML = "Same six calls, five agents. Each run is in <b>Runs &amp; fixes</b> below: tick two to see exactly which checks each version fixed. The scripted judge is code checks only; the matrix is the full proof with Evon.";
+  $("prove").disabled = false; loadRuns();
+};
+
+/* ---------------- the evolution matrix ---------------- */
+const CELL = { caught: "●", clean: "✓", flagged: "✕", missed: "✕", nr: "○", unjudged: "?", na: "·" };
+async function loadEvolution() {
+  const e = await (await fetch("/api/evolution")).json();
+  if (!e) return;
+  $("evoWhen").textContent = `proof started ${e.generated} · last re-run ${e.updated} · ${e.mode === "offline" ? "offline" : "judged by Evon"}`;
+  $("sProof").textContent = (e.updated || e.generated || "—").slice(5);
+  const vs = e.versions, m = $("matrix");
+  m.style.gridTemplateColumns = `minmax(220px,1.6fr) repeat(${vs.length}, minmax(86px,1fr))`;
+  m.innerHTML = `<div class="h">planted bug</div>${vs.map((v) => `<div class="h"><b>${esc(v.label)}</b><small>${esc(v.what)}</small></div>`).join("")}`
+    + e.bugs.map((b, i) => `<div class="bug">${esc(b.what)}</div>${vs.map((v, j) => { const c = b.cells[v.key] || "na";
+        return `<div class="cellx ${c}" style="transition-delay:${(i * vs.length + j) * 22}ms" title="${esc(v.label)} · ${esc(b.what)} · ${c}">${CELL[c]}</div>`; }).join("")}`).join("")
+    + `<div class="bug muted">score</div>${vs.map((v) => `<div class="score">${v.key === "v1" ? `${v.good}/${v.of} caught` : `${v.good}/${v.of} gone`}
+        <div class="meter"><i data-w="${v.of ? 100 * v.good / v.of : 0}"></i></div><span class="muted" style="font-size:11px">${v.pass_rate == null ? "" : `${Math.round(v.pass_rate * 100)}% calls pass`}</span></div>`).join("")}`;
+  new IntersectionObserver((es, o) => es.forEach((x) => { if (!x.isIntersecting) return; o.disconnect(); m.classList.add("show");
+    m.querySelectorAll(".meter i").forEach((i) => { i.style.width = i.dataset.w + "%"; }); }), { threshold: .2 }).observe(m);
+}
+
+/* ---------------- runs, compare, fix ---------------- */
 async function loadRuns() {
   const runs = await (await fetch("/api/runs")).json();
-  $("runs").innerHTML = runs.length ? runs.map((r) => `<tr><td><input type="checkbox" class="pick" value="${esc(r.dir)}" data-suite="${esc(r.suite)}" data-at="${esc(r.started_at)}" aria-label="select run"></td><td>${esc(r.suite)}</td><td>${esc(r.started_at)}</td><td>${r.calls}</td>
-    <td>${Math.round(r.pass_rate * 100)}%</td><td>${r.latency_p95_s ?? "—"}s</td>
+  $("sRuns").textContent = runs.length;
+  $("runList").innerHTML = runs.length ? runs.map((r) => `<tr><td><input type="checkbox" class="pick" value="${esc(r.dir)}" data-suite="${esc(r.suite)}" data-at="${esc(r.started_at)}" aria-label="select run"></td>
+    <td>${esc(r.suite)}</td><td class="muted">${esc((r.label || "").replace(/^reference agent /, ""))}</td><td class="num">${esc(r.started_at)}</td><td class="num">${r.calls}</td>
+    <td class="num">${Math.round(r.pass_rate * 100)}%</td><td class="num">${r.latency_p95_s ?? "—"}s</td>
     <td><span class="pill ${r.gate_passed ? "pass" : "fail"}">${r.gate_passed ? "passed" : "failed"}</span></td>
-    <td><a href="/runs/${encodeURIComponent(r.dir)}/report" target="_blank">report</a>${r.pass_rate < 1 ? ` · <a href="#" class="fixit" data-run="${esc(r.dir)}">fix</a>` : ""}</td></tr>`).join("")
-    : `<tr><td colspan="8" class="empty">No runs yet.</td></tr>`;
+    <td style="white-space:nowrap"><a href="/runs/${encodeURIComponent(r.dir)}/report" target="_blank">report</a>${r.pass_rate < 1 ? ` · <a href="#" class="fixit" data-run="${esc(r.dir)}">fix</a>` : ""}</td></tr>`).join("")
+    : `<tr><td colspan="9" class="empty">No runs yet.</td></tr>`;
   document.querySelectorAll(".pick").forEach((b) => { b.onchange = pickChanged; });
   document.querySelectorAll(".fixit").forEach((a) => { a.onclick = (ev) => { ev.preventDefault(); openFix(a.dataset.run); }; });
 }
@@ -207,9 +435,9 @@ async function compare() {
   const pr = (v) => `${Math.round(v * 100)}%`, dp = d.pass_rate_after - d.pass_rate_before;
   const group = (st) => d.changes.filter((c) => st.includes(c.status));
   const li = (c) => `<li>${esc(human(c.scenario_id))}${c.explained.length ? `: ${c.explained.map((e) => esc(e.name)).join(", ")}` : ""}</li>`;
-  const col = (title, cs, cls) => `<div><h4>${title} (${cs.length})</h4>${cs.length ? `<ul class="${cls}">${cs.map(li).join("")}</ul>` : `<p class="empty">none</p>`}</div>`;
-  out.innerHTML = `<h3 class="section-title" style="font-size:22px">${esc(d.before)} → ${esc(d.after)}</h3>
-    <p>Pass rate ${pr(d.pass_rate_before)} → ${pr(d.pass_rate_after)} <span class="delta ${dp >= 0 ? "up" : "down"}">${dp >= 0 ? "+" : ""}${Math.round(dp * 100)} pts</span>
+  const col = (title, cs, cls) => `<div><h4>${title} (${cs.length})</h4>${cs.length ? `<ul class="${cls}">${cs.map(li).join("")}</ul>` : `<p class="empty" style="margin:0">none</p>`}</div>`;
+  out.innerHTML = `<h3 class="h2" style="font-size:26px;margin-top:22px">${esc(d.before)} → ${esc(d.after)}</h3>
+    <p class="mono" style="margin:8px 0 0">pass rate ${pr(d.pass_rate_before)} → ${pr(d.pass_rate_after)} <span class="delta ${dp >= 0 ? "up" : "down"}">${dp >= 0 ? "+" : ""}${Math.round(dp * 100)} pts</span>
     · p95 ${d.p95_before ?? "—"}s → ${d.p95_after ?? "—"}s</p>
     <div class="cmp">${col("Regressed", group(["regressed", "worsened"]), "bad")}${col("Fixed", group(["fixed", "improved"]), "ok")}${col("Still failing", group(["still_failing"]), "")}${col("Still passing", group(["still_passing"]), "ok")}</div>
     ${d.criteria_delta.length ? `<p class="hint">Failures by check: ${d.criteria_delta.map((c) => `${esc(c.name)} <span class="delta ${c.delta < 0 ? "up" : "down"}">${c.delta > 0 ? "+" : ""}${c.delta}</span>`).join(" · ")}</p>` : ""}`;
@@ -221,35 +449,35 @@ function human(id) {
 async function loadAudits() {
   const qa = await (await fetch("/api/qa")).json();
   const pct = (x) => x == null ? "—" : `${Math.round(x * 100)}%`;
-  $("audits").innerHTML = qa.length ? qa.map((q) => `<tr><td>${esc(q.scorecard)}</td><td>${esc(q.generated)}</td><td>${q.calls}</td>
-    <td>${q.avg_score ?? "—"}</td><td>${pct(q.pass_rate)}</td><td>${pct(q.fatal_rate)}</td><td>${q.review}</td>
+  $("auditList").innerHTML = qa.length ? qa.map((q) => `<tr><td>${esc(q.scorecard)}</td><td class="num">${esc(q.generated)}</td><td class="num">${q.calls}</td>
+    <td class="num">${q.avg_score ?? "—"}</td><td class="num">${pct(q.pass_rate)}</td><td class="num">${pct(q.fatal_rate)}</td><td class="num">${q.review}</td>
     <td><a href="/runs/${encodeURIComponent(q.dir)}/qa" target="_blank">audit</a></td></tr>`).join("")
     : `<tr><td colspan="8" class="empty">No audits yet.</td></tr>`;
 }
 async function loadProofs() {
   const ps = await (await fetch("/api/proof")).json();
-  $("proofs").innerHTML = ps.length ? ps.map((p) => `<tr><td><span class="pill ${p.kind === "proof" ? "pass" : "fail"}">${esc(p.kind)}</span></td>
-    <td>${esc(p.generated)}</td><td>${esc(p.headline)}</td>
+  $("proofs").innerHTML = ps.length ? ps.map((p) => `<tr><td><span class="pill ${p.kind === "proof" ? "pass" : p.kind === "autopilot" ? "warn" : ""}">${esc(p.kind)}</span></td>
+    <td class="num">${esc(p.generated)}</td><td>${esc(p.headline)}</td>
     <td><a href="/runs/${encodeURIComponent(p.dir)}/${p.page}" target="_blank">open</a></td></tr>`).join("")
     : `<tr><td colspan="4" class="empty">Run <code>diapason proof</code> or <code>diapason autopilot</code>.</td></tr>`;
 }
 async function loadShield() {
   const s = await (await fetch("/api/shield")).json();
   const k = [["Calls watched", s.calls], ["Agent lines checked", s.utterances], ["Flagged", s.flagged], ["Blocked or replaced", s.blocked],
-             ["Hold per line (block, p50)", s.held_ms_p50 == null ? "—" : `${s.held_ms_p50} ms`]];
+             ["Hold per line · p50", s.held_ms_p50 == null ? "—" : `${s.held_ms_p50} ms`]];
   $("shieldKpis").innerHTML = k.map(([a, b]) => `<div class="kpi"><span>${a}</span><b>${b}</b></div>`).join("");
   const ev = s.events.filter((e) => e.side === "agent" || e.verdict === "heard").slice(-40).reverse();
-  const cls = { ok: "pass", flagged: "fail", blocked: "fail", replaced: "on", heard: "" };
-  $("shield").innerHTML = ev.length ? ev.map((e) => `<tr><td>${esc(String(e.call).slice(-8))}</td><td>${e.t.toFixed(1)}s</td><td>${esc(e.side)}</td>
+  const cls = { ok: "pass", flagged: "fail", blocked: "fail", replaced: "warn", heard: "" };
+  $("shield").innerHTML = ev.length ? ev.map((e) => `<tr><td class="num">${esc(String(e.call).slice(-8))}</td><td class="num">${e.t.toFixed(1)}s</td><td class="muted">${esc(e.side)}</td>
     <td>${esc(e.text)}${e.said_instead ? `<br><span class="ok">→ ${esc(e.said_instead)}</span>` : ""}</td>
-    <td><span class="pill ${cls[e.verdict] || ""}">${esc(e.verdict)}</span></td><td>${(e.rules || []).map((r) => esc(r.rule.replace(/_/g, " "))).join(", ")}</td></tr>`).join("")
+    <td><span class="pill ${cls[e.verdict] || ""}">${esc(e.verdict)}</span></td><td class="muted">${(e.rules || []).map((r) => esc(r.rule.replace(/_/g, " "))).join(", ")}</td></tr>`).join("")
     : `<tr><td colspan="6" class="empty">No live calls yet. Start <code>diapason shield</code> and send a call through it.</td></tr>`;
 }
 async function loadIncidents() {
   const inc = await (await fetch("/api/incidents")).json();
   $("incBox").hidden = !inc.length;
   $("inc").innerHTML = inc.map((x) => `<tr><td><span class="sev ${esc(x.severity)}">${esc(x.severity)}</span></td><td>${esc(x.title)}<br><span class="hint">“${esc(x.quotes[0])}”</span></td>
-    <td>${x.calls.length}</td><td>${x.lines}</td><td>${x.prevented}</td><td>${esc(x.first)} → ${esc(x.last)}</td></tr>`).join("");
+    <td class="num">${x.calls.length}</td><td class="num">${x.lines}</td><td class="num">${x.prevented}</td><td class="num">${esc(x.first)} → ${esc(x.last)}</td></tr>`).join("");
 }
 async function poll(job, out, done) {
   for (;;) {
@@ -259,7 +487,7 @@ async function poll(job, out, done) {
     await new Promise((r) => setTimeout(r, 2000));
   }
 }
-function openFix(run) { $("fixBox").hidden = false; $("fixBox").dataset.run = run; $("fixRun").textContent = `run ${run}`; $("fixOut").textContent = ""; $("fixBox").scrollIntoView({ block: "nearest" }); }
+function openFix(run) { $("fixBox").hidden = false; $("fixBox").dataset.run = run; $("fixRun").textContent = `run ${run}`; $("fixOut").textContent = ""; $("fixBox").scrollIntoView({ block: "nearest", behavior: "smooth" }); }
 $("fixGo").onclick = async () => {
   const out = $("fixOut"); out.className = "hint"; out.textContent = $("fixAgent").value ? "Re-running the failed calls with each fix… (Evon)" : "Sorting the failures…";
   const r = await fetch("/api/fix", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -278,12 +506,14 @@ $("wGo").onclick = async () => {
     out.textContent = `${res.cases} attack cases for ${res.rules} rules${res.uncovered.length ? `; uncovered: ${res.uncovered.join(", ")}` : "; every testable rule covered"}${notTestable.length ? `; not testable by a caller: ${notTestable.join(", ")}` : ""}. Saved as suites/${res.suite}.`;
     loadSuites(); });
 };
+
+/* ---------------- live events ---------------- */
 function kpis() {
-  $("kDone").textContent = `${done} / ${total}`;
-  $("kPass").textContent = done ? `${Math.round(passed / done * 100)}%` : "—";
+  $("kDone").textContent = `${done} / ${total}`; $("rCalls").textContent = `${done}/${total}`;
+  const p = done ? `${Math.round(passed / done * 100)}%` : "—"; $("kPass").textContent = p; $("rPass").textContent = p;
   const s = [...latencies].sort((a, b) => a - b);
-  $("kP95").textContent = s.length ? `${s[Math.min(s.length - 1, Math.floor(0.95 * s.length))].toFixed(2)}s` : "—";
-  $("kBarge").textContent = ignored;
+  const p95 = s.length ? `${s[Math.min(s.length - 1, Math.floor(0.95 * s.length))].toFixed(2)}s` : "—"; $("kP95").textContent = p95; $("rP95").textContent = p95;
+  $("kBarge").textContent = ignored; $("rTurns").textContent = turns;
   $("prog").style.width = total ? `${done / total * 100}%` : "0";
 }
 function card(e) {
@@ -294,24 +524,27 @@ function card(e) {
   const el = document.createElement("article");
   el.className = "call";
   el.innerHTML = `<div class="head"><div class="title"><span title="${esc(e.scenario)}">${esc(human(e.scenario))}${e.run ? ` · run ${e.run + 1}` : ""}</span><span class="pill on" data-s>in call</span></div>
-    <div class="chips">${[e.persona, e.behaviour, e.channel].filter(Boolean).map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div></div>
+    <div class="chips">${[e.persona, e.behaviour, e.channel].filter(Boolean).map((x) => `<span class="chip">${esc(x)}</span>`).join("")}</div>
+    <div class="mini live">${"<i></i>".repeat(28)}</div></div>
     <div class="feed"></div><div class="foot" hidden></div>`;
   $("calls").prepend(el);
-  c = { el, feed: el.querySelector(".feed"), lastCallerEnd: null };
+  c = { el, feed: el.querySelector(".feed"), bars: [...el.querySelectorAll(".mini i")], lastCallerEnd: null };
   calls.set(key, c);
   return c;
 }
 function add(c, html) { c.feed.insertAdjacentHTML("beforeend", html); c.feed.scrollTop = c.feed.scrollHeight; }
+function shimmer(c, text) { c.bars.forEach((b, i) => { b.style.height = `${18 + Math.abs(Math.sin(i * 1.7 + text.length)) * 82 * Math.random()}%`; }); }
 
 function onEvent(e) {
   switch (e.type) {
     case "suite_start":
-      total = e.calls; done = passed = ignored = 0; latencies = []; calls.clear();
+      total = e.calls; done = passed = ignored = turns = 0; latencies = []; calls.clear(); runStarted = performance.now();
       $("calls").innerHTML = ""; $("kGate").textContent = "—"; $("status").className = "pill on"; $("status").textContent = "running"; $("run").disabled = true;
+      wave.target = .55; $("hudState").textContent = `live · ${e.suite}`; pulse(1); kpis();
       break;
-    case "call_start": card(e); break;
+    case "call_start": card(e); pulse(.4); break;
     case "turn": {
-      const c = card(e);
+      const c = card(e); turns++;
       let meta = `${e.start.toFixed(1)}s`;
       if (e.speaker === "caller") c.lastCallerEnd = e.end;
       else if (c.lastCallerEnd !== null && e.start >= c.lastCallerEnd) {
@@ -322,37 +555,41 @@ function onEvent(e) {
       }
       const tags = (e.tags || []).length ? ` · ${e.tags.map((t) => `&lt;${esc(t)}&gt;`).join(" ")}` : "";
       add(c, `<div class="msg ${e.speaker}"><span class="meta">${e.speaker}${e.kind === "interjection" ? " (barge-in)" : ""} · ${meta}${tags}</span>${esc(e.text)}</div>`);
-      kpis();
+      shimmer(c, e.text); pulse(e.speaker === "agent" ? .7 : .5); kpis();
       break;
     }
-    case "barge_in_attempt": add(card(e), `<div class="note warn">⚡ caller cuts in at ${e.t.toFixed(1)}s</div>`); break;
+    case "barge_in_attempt": add(card(e), `<div class="note warn">⚡ caller cuts in at ${e.t.toFixed(1)}s</div>`); pulse(1); break;
     case "agent_clear": add(card(e), `<div class="note">agent stopped talking (yielded)</div>`); break;
     case "silence": add(card(e), `<div class="note">caller goes silent for ${e.seconds}s</div>`); break;
     case "disposition": add(card(e), `<div class="note">agent recorded: ${esc(JSON.stringify(e.data.slots || {}))}</div>`); break;
-    case "call_end": { const c = card(e); c.el.querySelector("[data-s]").textContent = "judging"; add(c, `<div class="note">call ended: ${esc(e.reason)} · ${e.duration_s.toFixed(0)}s</div>`); break; }
+    case "call_end": { const c = card(e); c.el.querySelector("[data-s]").textContent = "judging"; c.el.querySelector(".mini").classList.remove("live");
+      add(c, `<div class="note">call ended: ${esc(e.reason)} · ${e.duration_s.toFixed(0)}s</div>`); break; }
     case "verdict": {
       const c = card(e); done++; if (e.passed) passed++;
       ignored += e.failures.filter((f) => /ignored \d+ of/.test(f)).length;
       c.el.classList.add(e.passed ? "pass" : "fail");
-      const s = c.el.querySelector("[data-s]"); s.className = `pill ${e.passed ? "pass" : "fail"}`; s.textContent = e.passed ? "PASS" : "FAIL";
+      const s = c.el.querySelector("[data-s]"); s.className = `pill ${e.passed ? "pass" : "fail"}`; s.textContent = e.passed ? "pass" : "fail";
       const f = c.el.querySelector(".foot"); f.hidden = false;
-      f.innerHTML = e.passed ? `<span class="ok">All checks passed.</span>` : (e.details || []).length
+      f.innerHTML = e.passed ? `<span class="ok">✓ All checks passed.</span>` : (e.details || []).length
         ? e.details.map((x) => `<details class="why"><summary><span class="sev ${esc(x.severity)}">${esc(x.severity)}</span>${esc(x.name)}</summary>
             ${x.quote ? `<p>Agent said: <q>${esc(x.quote)}</q></p>` : x.detail ? `<p>${esc(x.detail)}</p>` : ""}
             <p><b>Why it matters:</b> ${esc(x.why)}</p><p><b>Fix:</b> ${esc(x.fix)}</p></details>`).join("")
         : e.failures.map((x) => `<div class="fail">• ${esc(x)}</div>`).join("");
-      kpis();
+      pulse(e.passed ? .6 : 1.2); kpis();
       break;
     }
     case "call_error": { const c = card(e); done++; c.el.classList.add("fail"); add(c, `<div class="note warn">error: ${esc(e.error)}</div>`); kpis(); break; }
     case "suite_end": {
-      const g = $("kGate"); g.innerHTML = `<span class="pill ${e.gate_passed ? "pass" : "fail"}">${e.gate_passed ? "PASSED" : "FAILED"}</span>`;
+      const g = $("kGate"); g.innerHTML = `<span class="pill ${e.gate_passed ? "pass" : "fail"}">${e.gate_passed ? "passed" : "failed"}</span>`;
       const dir = String(e.report).split(/[\\/]/).slice(-2, -1)[0];
-      g.insertAdjacentHTML("beforeend", ` <a href="/runs/${encodeURIComponent(dir)}/report" target="_blank" style="font-size:14px">report</a>`);
+      g.insertAdjacentHTML("beforeend", ` <a href="/runs/${encodeURIComponent(dir)}/report" target="_blank" style="font:500 13px var(--sans)">report</a>`);
       $("status").className = "pill"; $("status").textContent = "idle"; $("run").disabled = false; loadRuns();
+      wave.target = .18; $("hudState").textContent = `done · ${Math.round(e.pass_rate * 100)}% pass`; runStarted = 0;
+      if (waiting) { const w = waiting; waiting = null; w(e); }
       break;
     }
-    case "suite_error": $("status").className = "pill fail"; $("status").textContent = "error"; $("run").disabled = false; alert(e.error); break;
+    case "suite_error": $("status").className = "pill fail"; $("status").textContent = "error"; $("run").disabled = false; wave.target = .18; runStarted = 0;
+      toast(e.error); if (waiting) { const w = waiting; waiting = null; w({ pass_rate: 0 }); } break;
   }
 }
 function connect() {
@@ -360,13 +597,6 @@ function connect() {
   ws.onmessage = (m) => onEvent(JSON.parse(m.data));
   ws.onclose = () => setTimeout(connect, 1500);
 }
-$("mode").onchange = () => {
-  const live = $("mode").value !== "offline";
-  for (const id of ["urlWrap", "check", "howto"]) $(id).hidden = !live;
-  $("stubWrap").hidden = live; $("checkOut").hidden = true;
-  document.querySelectorAll(".budget").forEach((b) => { b.hidden = !live; });
-  showEstimate();
-};
 $("check").onclick = async () => {
   const o = $("checkOut"); o.hidden = false; o.className = "hint"; o.textContent = "Calling the agent…";
   const r = await (await fetch("/api/check-agent", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -376,18 +606,9 @@ $("check").onclick = async () => {
                        : `Could not ${r.stage === "url" ? "use that URL" : "connect"}: ${r.error}`;
 };
 $("cmpBtn").onclick = compare;
-$("suite").onchange = showEstimate; $("limit").oninput = showEstimate; $("ttsCap").oninput = showEstimate; $("sttCap").oninput = showEstimate;
-$("run").onclick = async () => {
-  const live = $("mode").value !== "offline";
-  if (live && !$("url").value.trim()) { alert("Paste your agent's websocket URL first, and check the connection."); return; }
-  const body = { suite: $("suite").value, mode: live ? "live" : "offline", target: live ? $("mode").value : null,
-    limit: +$("limit").value || null, url: $("url").value.trim() || null, stubborn: $("stubborn").checked,
-    max_tts_chars: +$("ttsCap").value || null, max_stt_seconds: +$("sttCap").value || null };
-  const r = await fetch("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  if (!r.ok) alert((await r.json()).detail || "could not start");
-};
 fetch("/api/status").then((r) => r.json()).then((s) => { if (s.running) { $("status").className = "pill on"; $("status").textContent = "running"; $("run").disabled = true; } });
-loadSuites(); loadRuns(); loadAudits(); loadProofs(); loadShield(); connect();
+$("mode").value = "ref:v4"; $("mode").onchange();
+loadSuites(); loadRuns(); loadAudits(); loadProofs(); loadShield(); loadEvolution(); connect();
 loadIncidents();
 setInterval(() => { if (!document.hidden) { loadShield(); loadIncidents(); } }, 3000);
 </script>

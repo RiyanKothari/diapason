@@ -36,6 +36,8 @@ class RunRequest(BaseModel):
     max_tts_chars: int | None = 400
     max_stt_seconds: float | None = 60
     redact: bool = True            # dashboards get shared; mask PII by default
+    version: str | None = None     # reference mode: v1-v4, or v1+guard / v3+guard
+    evon: bool = False             # reference mode: Evon plays the agent and callers, and judges (no speech credits)
 
 
 class FixRequest(BaseModel):
@@ -155,6 +157,22 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
     def index():
         return (STATIC / "index.html").read_text(encoding="utf-8")
 
+    @app.get("/theme.css")
+    def theme():
+        return FileResponse(STATIC / "theme.css", media_type="text/css")
+
+    @app.get("/api/evolution")
+    def evolution_matrix():
+        """The newest proof that measured more than v1 and v2, as a bugs x versions matrix."""
+        from .proof import evolution
+        for d in sorted((d for d in runs_dir.iterdir() if (d / "proof.json").exists()),
+                        key=lambda d: (d / "proof.json").stat().st_mtime, reverse=True):
+            data = json.loads((d / "proof.json").read_text(encoding="utf-8"))
+            if data.get("tests", {}).get("bugs"):
+                updated = time.strftime("%Y-%m-%d %H:%M", time.localtime((d / "proof.json").stat().st_mtime))
+                return {"dir": d.name, "updated": updated, **evolution(data)}
+        return None
+
     @app.get("/api/suites")
     def suites():
         out = []
@@ -174,7 +192,7 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
             f = d / "report.json"
             if f.exists():
                 r = json.loads(f.read_text(encoding="utf-8"))
-                out.append({k: r.get(k) for k in ("suite", "run_id", "started_at", "calls", "pass_rate",
+                out.append({k: r.get(k) for k in ("suite", "run_id", "started_at", "calls", "pass_rate", "label",
                                                   "latency_p95_s", "gate_passed", "gate_reasons")} | {"dir": d.name})
         return out
 
@@ -187,6 +205,8 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
         if state["running"]:
             raise HTTPException(409, f"a run is already in progress: {state['running']}")
         suite = load_suite(suite_path(req.suite))
+        if req.mode == "reference":
+            return start_reference(req, suite)
         if req.mode == "live" and not (req.max_tts_chars and req.max_stt_seconds):
             raise HTTPException(400, "a live run needs a TTS character and an STT seconds budget")
         try:
@@ -209,6 +229,39 @@ def create_app(suites_dir: str | Path = "suites", runs_dir: str | Path = "runs",
 
         asyncio.create_task(go())
         return {"started": suite.name, "calls": len(scenarios) * suite.runs_per_scenario, "mode": req.mode}
+
+    def start_reference(req: RunRequest, suite):
+        """One of Diapason's own reference agents under test: scripted (free, instant) or played by Evon (no speech credits)."""
+        from dataclasses import replace
+
+        from .demo import run_version
+        from .reference_agent import VERSIONS
+        base, _, guarded = (req.version or "").partition("+")
+        if base not in VERSIONS or guarded not in ("", "guard"):
+            raise HTTPException(400, f"version must be one of {sorted(VERSIONS)}, optionally +guard")
+        agent = replace(VERSIONS[base], name=f"{base}+guard", guard=True) if guarded else VERSIONS[base]
+        evon = None
+        if req.evon:
+            from .gnani import Evon
+            try:
+                evon = Evon()
+            except Exception as e:
+                raise HTTPException(400, f"Evon is not configured: {e}") from e
+        if req.limit and suite.cases:
+            suite = suite.model_copy(update={"cases": suite.cases[: req.limit], "matrix": None})
+        state["running"] = f"{suite.name} · {agent.name}"
+
+        async def go():
+            try:
+                await run_version(base, suite, runs_dir, broadcast, evon=evon, judge_samples=1, agent=agent,
+                                  hear_callers=evon is None, label=f"reference agent {agent.name} ({'Evon' if evon else 'scripted'})")
+            except Exception as e:
+                broadcast({"type": "suite_error", "error": repr(e)})
+            finally:
+                state["running"] = None
+
+        asyncio.create_task(go())
+        return {"started": suite.name, "agent": agent.name, "mode": "reference", "evon": bool(evon)}
 
     @app.post("/api/check-agent")
     async def check_agent(req: AgentCheck):

@@ -98,6 +98,7 @@ def build_site(out: Path, runs_dir: Path = Path("runs"), scorecards_dir: Path = 
     atlas_page = (atlas_dir / "atlas.html") if atlas_dir else Path(__file__).resolve().parents[2] / "results" / "atlas" / "atlas.html"
     if atlas_page.exists():
         shutil.copy2(atlas_page, out / "atlas.html")
+    shutil.copy2(STATIC / "theme.css", out / "theme.css")       # the design system every page links
     (out / "index.html").write_text(_landing(proof, p, sims, data, voiced, bool(auto), repo_url, stress_data, rating, replay, asr,
                                              has_atlas=atlas_page.exists(), atlas=atlas), encoding="utf-8")
 
@@ -202,6 +203,13 @@ def _replay(proof: Path, t: dict) -> dict | None:
                    "judged afterwards by the same auditor. Nothing on this panel is staged; it is replayed from the proof run's files."}
 
 
+def _evolution(p: dict | None) -> dict | None:
+    if not p or not p.get("tests", {}).get("bugs"):
+        return None
+    from .proof import evolution
+    return evolution(p)
+
+
 def _landing(proof: Path | None, p: dict | None, sims: list, data: dict, voiced: int, has_auto: bool, repo_url: str,
              stress: dict | None = None, rating: dict | None = None, replay: dict | None = None, asr: dict | None = None,
              has_atlas: bool = False, atlas: dict | None = None) -> str:
@@ -289,6 +297,7 @@ def _landing(proof: Path | None, p: dict | None, sims: list, data: dict, voiced:
         "replay": _replay(proof, p["tests"]) if proof and p else None,
         "kpis": kpis, "kpi_note": (f"From the accuracy proof of {p.get('generated', '')} ({p.get('mode', 'mode not recorded')}) and the runs on disk." if p else ""),
         "moments": moments, "rating": rate or None, "stress": st, "links": links, "repo_url": repo_url,
+        "evolution": _evolution(p),
         "footer": "Built on Gnani Prisma (speech-to-text), Timbre (voices) and Evon (callers, judge, red team). Brands in the industry playbooks "
                   "are fictional. Simulated calls are test material written by Evon, not customer data.",
     }

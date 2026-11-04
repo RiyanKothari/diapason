@@ -10,6 +10,9 @@ model's hands. Each turn Evon returns one dialogue act from a fixed set and, at 
 - breaks loops: the same question three times ends in a callback instead of a fourth ask,
 - remembers a third party: once someone says they are not the borrower, they are never asked to verify, never asked
   the same question twice, and the call ends politely (v4's one failed proof call: it asked the brother for the loan ID),
+- hears a third party in code too: "भाई तो बाहर है" (the brother, live, 4 Nov) made the model choose *verify*; code now
+  hears "the borrower is out" or "I'm his brother" and asks when to call back instead, and the verification question
+  says "account number", never "loan", so even a wrong guess tells a stranger nothing about a debt,
 - and still sends every line through Diapason Guard.
 
 So a fact can't be hallucinated (the model never writes one), and a wrong language is a missing template, not a model slip.
@@ -31,7 +34,7 @@ with the account facts filled in from its own records only when the caller is ve
 {status}
 
 Acts:
-- verify: ask for the last 4 digits of the loan ID (the system checks them; you never know them)
+- verify: ask for the last 4 digits of their account number (the system checks them; you never know them)
 - not_borrower: the person is not {name}; ask when {name} can be reached (says nothing about the loan)
 - account: tell the verified caller the amount and due date and ask when they can pay
 - ask_date: ask by what date they can pay
@@ -55,8 +58,8 @@ STATUS = {
 
 LINES = {
     "hi": {
-        "verify": "आगे बढ़ने से पहले, कृपया अपने loan ID के आखिरी चार अंक बताइए।",
-        "mismatch": "ये अंक match नहीं हुए। कृपया loan ID के आखिरी चार अंक एक बार फिर बताइए।",
+        "verify": "आगे बढ़ने से पहले, कृपया अपने account number के आखिरी चार अंक बताइए।",
+        "mismatch": "ये अंक match नहीं हुए। कृपया account number के आखिरी चार अंक एक बार फिर बताइए।",
         "not_borrower": "कोई बात नहीं। {name} जी से कब बात हो सकती है? मैं तभी दोबारा call करूँगी।",
         "account": "धन्यवाद, verify हो गया। आपकी EMI के {amount} रुपये {due} को due थे। आप payment कब तक कर पाएंगे?",
         "ask_date": "आप payment किस तारीख तक कर पाएंगे?",
@@ -68,8 +71,8 @@ LINES = {
         "acknowledge": "जी, मैं {lender} से बोल रही हूँ।",
     },
     "gu": {
-        "verify": "આગળ વધતા પહેલા, કૃપા કરીને તમારા loan ID ના છેલ્લા ચાર અંક જણાવો.",
-        "mismatch": "આ અંક મેળ ખાતા નથી. કૃપા કરીને loan ID ના છેલ્લા ચાર અંક ફરી એક વાર જણાવો.",
+        "verify": "આગળ વધતા પહેલા, કૃપા કરીને તમારા account number ના છેલ્લા ચાર અંક જણાવો.",
+        "mismatch": "આ અંક મેળ ખાતા નથી. કૃપા કરીને account number ના છેલ્લા ચાર અંક ફરી એક વાર જણાવો.",
         "not_borrower": "કોઈ વાંધો નહીં. {name} સાથે ક્યારે વાત થઈ શકે? હું ત્યારે ફરી call કરીશ.",
         "account": "આભાર, ચકાસણી થઈ ગઈ. તમારી EMI ના {amount} રૂપિયા {due} ના રોજ બાકી હતા. તમે ચુકવણી ક્યાં સુધીમાં કરી શકશો?",
         "ask_date": "તમે ચુકવણી કઈ તારીખ સુધીમાં કરી શકશો?",
@@ -81,8 +84,8 @@ LINES = {
         "acknowledge": "જી, હું {lender} તરફથી બોલું છું.",
     },
     "en": {
-        "verify": "Before we go on, could you tell me the last four digits of your loan ID?",
-        "mismatch": "Those digits don't match. Could you tell me the last four digits of your loan ID once more?",
+        "verify": "Before we go on, could you tell me the last four digits of your account number?",
+        "mismatch": "Those digits don't match. Could you tell me the last four digits of your account number once more?",
         "not_borrower": "No problem. When can I reach {name}? I'll call back then.",
         "account": "Thank you, you're verified. Your EMI of Rs {amount} was due on {due}. When will you be able to pay?",
         "ask_date": "By what date will you be able to pay?",
@@ -99,6 +102,13 @@ SCRIPT_LANG = {"gujarati": "gu", "devanagari": "hi", "latin": "en"}
 RELATIVE = {"today": ("आज", "આજે", "today"), "tomorrow": ("कल", "આવતીકાલે", "tomorrow"),
             "day_after": ("परसों", "પરમદિવસે", "the day after tomorrow")}
 _NUMERIC = re.compile(r"[0-9०-९૦-૯]")
+# "the borrower isn't here" / "I'm their relative", before verification. Not bare relation words: "हाँ भैया बोलो" is how
+# borrowers address the agent too.
+_THIRD_PARTY = re.compile(
+    r"घर (?:पर|पे) नहीं|बाहर (?:है|हैं|गए|गया|गई)|मैं (?:उनका|उनकी|उसका|उसकी)|(?:उनका|उसका|उनकी|उसकी) (?:भाई|बहन|पत्नी|पति|बेटा|बेटी)|"
+    r"भाई (?:तो )?बाहर|ગલત નંબર|गलत नंबर|रॉंग नंबर|ઘરે નથી|બહાર (?:છે|ગયા|ગયો|ગઈ)|હું (?:તેમનો|તેમની|તેનો|તેની)|"
+    r"\b(?:not (?:at )?home|not here|(?:he|she)(?:'s| is) out|i(?:'m| am) (?:his|her)|wrong number|ghar (?:pe|par) nahi|bahar (?:hai|gaye)|main (?:unka|uska))\b",
+    re.IGNORECASE)
 ENDS = ("confirm", "callback", "close", "third_party_close")
 
 
@@ -133,6 +143,7 @@ class ActState:
     lang: str = "hi"
     mismatches: int = 0
     third_party: bool = False         # someone said they are not the borrower; only correct digits undo it
+    third_party_cue: bool = False     # code heard "the borrower is out" / "I'm their brother" before verification
     asked: dict = field(default_factory=dict)
     caller_text: list = field(default_factory=list)
     slots: dict = field(default_factory=dict)
@@ -149,9 +160,12 @@ class ActState:
             self.lang = SCRIPT_LANG[script]
         if self.verified:
             return
+        name = re.escape(str(self.crm.get("name") or "")) or "(?!)"
+        if _THIRD_PARTY.search(text) or re.search(rf"{name}\s*(?:जी\s*)?(?:नहीं|નથી)|not {name}", text, re.IGNORECASE):
+            self.third_party_cue = True
         said, want = spoken_digits(text), str(self.crm.get("loan_id_last4") or "")
         if want and want in said:
-            self.identity, self.third_party = "verified", False
+            self.identity, self.third_party, self.third_party_cue = "verified", False, False
             self.slots["loan_id_last4"] = want
         elif len(said) == 4:          # a wrong 4-digit answer, not a date or a phone number
             self.identity, self.mismatches = "mismatch", self.mismatches + 1
@@ -185,6 +199,8 @@ def decide(out: dict, st: ActState) -> tuple[str, str, bool]:
         date_line = say_date(keys, lang) if keys and keys <= heard else None
         if not date_line:
             act = "ask_date"                             # a date the caller never said is not a promise
+    if st.third_party_cue and not st.third_party and not st.verified and act not in ("acknowledge", "decline"):
+        act = "not_borrower"                             # code heard someone else: ask nothing, just when to call back
     if st.third_party and not st.verified and act != "acknowledge":
         # a third party is asked when to call back once; anything after that (another ask, a request to verify) ends it
         act = "decline" if act == "decline" else "third_party_close"

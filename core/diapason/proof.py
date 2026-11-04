@@ -300,3 +300,36 @@ Score error (MAE) {q['score_mae']} points · fatal false alarms {q['fatal_false_
 <div class="scroll"><table><tr><th>Parameter</th><th>Judge</th><th>n</th><th>Accuracy</th><th>Fail precision</th><th>Fail recall</th><th>Review</th></tr>{qa_rows}</table></div>
 </main></body></html>"""
     path.write_text(page, encoding="utf-8")
+
+
+# the versions a proof can measure, in the order they were built
+EVOLUTION = [("v1", "v1", "seeded bugs"), ("v2", "v2", "prompt fixed"), ("guard", "v1 + Guard", "same prompt, code checks every line"),
+             ("v3", "v3", "secrets kept out of the prompt"), ("v3guard", "v3 + Guard", "both layers"),
+             ("v4", "v4", "the model picks acts, code speaks")]
+
+
+def evolution(data: dict) -> dict:
+    """A proof as one matrix: every planted bug, per agent version, as `caught` (v1: the test found it), `clean`,
+    `flagged` (still there), `nr` (an engineering bug that didn't show up on this run: not counted as fixed),
+    `unjudged`, or `na` (not measured)."""
+    t = data["tests"]
+    cols = [c for c in EVOLUTION if c[0] in ("v1", "v2") or (t.get(c[0]) or {}).get("measured")]
+    rows = []
+    for b in t["bugs"]:
+        st = b["status"]
+        cells = {"v1": "caught" if st.startswith("caught") else "missed" if st.startswith("missed") else "na",
+                 "v2": "na" if not st.startswith(("caught", "missed")) else "flagged" if "v2 also flagged" in st else "clean"}
+        for k, _, _ in cols[2:]:
+            x = next((y for y in t[k]["bugs"] if y["id"] == b["id"]), None)
+            s = (x or {}).get("status", "")
+            cells[k] = ("clean" if s == "prevented" else "flagged" if s in ("still flagged", "not text (engineering)") else
+                        "nr" if s.endswith("not reproduced") else "unjudged" if s == "unjudged" else "na")
+        rows.append({"id": b["id"], "what": b.get("what", b["id"]), "cells": cells})
+    summary = {}
+    for k, _, _ in cols:
+        text = [r["cells"][k] for r in rows if r["cells"][k] in ("clean", "flagged", "caught", "missed")]
+        good = sum(c in ("clean", "caught") for c in text)
+        rate = t.get(f"{k}_pass_rate") if k in ("v1", "v2") else t[k].get("pass_rate")
+        summary[k] = {"good": good, "of": len(text), "pass_rate": rate}
+    return {"generated": data.get("generated"), "mode": data.get("mode"),
+            "versions": [{"key": k, "label": label, "what": what, **summary[k]} for k, label, what in cols], "bugs": rows}
