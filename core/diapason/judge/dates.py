@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import re
 
-from .numbers import word_value
+from . import indic
+from .numbers import COLLISIONS, word_value
 
-_DIGITS = str.maketrans("०१२३४५६७८९૦૧૨૩૪૫૬૭૮૯", "01234567890123456789")
+_DIGITS = indic.DIGITS
 
 _HI = ["एक", "दो", "तीन", "चार", "पांच|पाँच", "छह|छः|छ", "सात", "आठ", "नौ", "दस", "ग्यारह", "बारह", "तेरह", "चौदह",
        "पंद्रह|पन्द्रह", "सोलह", "सत्रह", "अठारह", "उन्नीस", "बीस", "इक्कीस", "बाईस", "तेईस", "चौबीस", "पच्चीस", "छब्बीस",
@@ -26,6 +27,7 @@ _EN = ["one|first", "two|second", "three|third", "four|fourth", "five|fifth", "s
        "twenty-four|twenty-fourth", "twenty-five|twenty-fifth", "twenty-six|twenty-sixth", "twenty-seven|twenty-seventh",
        "twenty-eight|twenty-eighth", "twenty-nine|twenty-ninth", "thirty|thirtieth", "thirty-one|thirty-first"]
 DAY_WORDS: dict[str, int] = {w: i + 1 for table in (_HI, _GU, _EN) for i, ws in enumerate(table) for w in ws.split("|")}
+DAY_WORDS.update({w: n for w, n in indic.number_words()[0].items() if 1 <= n <= 31 and w not in COLLISIONS and w not in DAY_WORDS})
 
 MONTHS: dict[int, list[str]] = {
     1: ["january", "jan", "जनवरी", "જાન્યુઆરી"], 2: ["february", "feb", "फरवरी", "फ़रवरी", "ફેબ્રુઆરી"],
@@ -34,12 +36,16 @@ MONTHS: dict[int, list[str]] = {
     9: ["september", "sep", "sept", "सितंबर", "सितम्बर", "સપ્ટેમ્બર"], 10: ["october", "oct", "अक्टूबर", "ऑक्टोबर", "ઑક્ટોબર", "ઓક્ટોબર"],
     11: ["november", "nov", "नवंबर", "नवम्बर", "નવેમ્બર"], 12: ["december", "dec", "दिसंबर", "दिसम्बर", "ડિસેમ્બર"],
 }
-MARKERS = ["तारीख", "तारीख़", "तारिख", "tarikh", "taarikh", "date", "તારીખ", "तारखेला", "तारीखला"]
+for _m, _names in indic.month_names().items():
+    MONTHS[_m] += [n for n in _names if n not in MONTHS[_m]]
+MARKERS = ["तारीख", "तारीख़", "तारिख", "tarikh", "taarikh", "date", "તારીખ", "तारखेला", "तारीखला"] + indic.DATE_MARKERS
 RELATIVE: dict[str, list[str]] = {
     "today": ["today", "आज", "આજે"], "tomorrow": ["tomorrow", "कल", "આવતીકાલે", "કાલે"],
     "day_after": ["परसों", "પરમદિવસે", "પરમ"], "next_week": ["अगले हफ्ते", "अगले हफ़्ते", "next week", "આવતા અઠવાડિયે"],
     "month_end": ["महीने के आखिर", "month end", "end of the month", "મહિનાના અંતે"],
 }
+for _k, _ws in indic.RELATIVE.items():
+    RELATIVE[_k] += _ws
 WEEKDAYS: dict[str, list[str]] = {
     "mon": ["monday", "सोमवार", "સોમવાર"], "tue": ["tuesday", "मंगलवार", "મંગળવાર"], "wed": ["wednesday", "बुधवार", "બુધવાર"],
     "thu": ["thursday", "गुरुवार", "बृहस्पतिवार", "ગુરુવાર"], "fri": ["friday", "शुक्रवार", "શુક્રવાર"],
