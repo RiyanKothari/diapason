@@ -274,7 +274,8 @@ $("wGo").onclick = async () => {
     body: JSON.stringify({ name: $("wName").value, sop: $("wSop").value, transcripts: $("wLines").value }) });
   const j = await r.json(); if (!r.ok) { out.className = "hint bad"; out.textContent = j.detail; return; }
   poll(j, out, (res) => { out.className = "hint ok";
-    out.textContent = `${res.cases} attack cases for ${res.rules} rules${res.uncovered.length ? `; uncovered: ${res.uncovered.join(", ")}` : "; every rule covered"}. Saved as suites/${res.suite}.`;
+    const notTestable = Object.keys(res.untestable || {});
+    out.textContent = `${res.cases} attack cases for ${res.rules} rules${res.uncovered.length ? `; uncovered: ${res.uncovered.join(", ")}` : "; every testable rule covered"}${notTestable.length ? `; not testable by a caller: ${notTestable.join(", ")}` : ""}. Saved as suites/${res.suite}.`;
     loadSuites(); });
 };
 function kpis() {

@@ -54,7 +54,7 @@ its opening line, and failures from test calls with the judge's reasons and quot
 Write the smallest set of new rules that fixes the failures without weakening any existing rule.
 Each rule: one or two plain imperative sentences, specific about what to say or never say and when.
 No JSON or curly braces in rules. Some failures are not prompt problems (speech endpointing, noise,
-barge-in handling, latency): do not write rules for those, list them under engineering.
+barge-in handling, latency): do not write rules for those, list them under engineering (at most 5, one line each).
 If the opening line itself causes a failure (e.g. it states the debt before verification or lacks a
 required disclosure), give a new opening line; it may use only the placeholders {{lender}} and {{name}}.
 Reply with ONLY JSON:
@@ -271,15 +271,22 @@ def patch_agent(agent: AgentVersion, rules: list[str], greeting: str | None, tag
 
 
 def heal_digest(report: dict) -> tuple[str, list[str]]:
-    """Prompt-fixable failures as text for Evon, and the metric failures that are engineering work."""
-    lines, eng = [], []
+    """Prompt-fixable failures as text for Evon, and the metric failures that are engineering work.
+
+    One line per failed criterion, naming every call it failed on, with one example: v1's live proof run fails 64
+    scenario-criterion pairs, and listed one by one (each quoting the same long opening line) the patch Evon wrote in
+    reply ran past its token limit and came back as cut-off JSON, twice."""
+    by_item: dict[str, dict] = {}
+    eng = []
     for sid, items in failing_items(report).items():
         for item, f in items.items():
             if item.startswith("metric:"):
                 eng.append(f"{sid}: {f['reason']}")
             else:
-                lines.append(f"- {sid}: {item}: {f['reason']} {_quote(f)}".strip())
-    return "\n".join(lines[:40]), eng
+                by_item.setdefault(item, {"calls": [], "f": f})["calls"].append(sid)
+    lines = [f"- {item} (failed on {', '.join(x['calls'])}): {x['f']['reason'][:220]} {_quote(x['f'])[:200]}".strip()
+             for item, x in sorted(by_item.items(), key=lambda kv: -len(kv[1]["calls"]))]
+    return "\n".join(lines[:25]), eng
 
 
 def compare(before: dict, after: dict) -> dict:
@@ -296,6 +303,27 @@ def prompt_items(items: list[str]) -> list[str]:
     return [x for x in items if not x.split(":", 1)[-1].startswith("metric:")]
 
 
+async def confirm_breaks(evon, suite: Suite, agent: AgentVersion, broken: list[str], out: Path, judge_samples: int = 3,
+                         on_event=None, reruns: int = 2) -> tuple[list[str], list[str]]:
+    """(breaks that came back, breaks that didn't) after re-running only the calls they showed up on, `reruns` more times.
+
+    One judged call is one sample. Live, on v1's failed proof calls, a prompt patch that fixed 22 failures was rejected
+    for 2 task_success flips, and Guard's 43 fixes came with 3: a single flip vetoed the lot. A break now stands only if it
+    shows up again; one that doesn't is reported as a flake, not hidden."""
+    ids = sorted({b.split(":", 1)[0] for b in broken})
+    if not broken or not suite.cases or not set(ids) <= {c.id for c in suite.cases}:
+        return broken, []                                  # nothing to check, or calls that can't be re-run alone
+    from .demo import run_version
+    sub = suite.model_copy(update={"cases": [c for c in suite.cases if c.id in ids], "matrix": None,
+                                   "name": f"{suite.name}-breakcheck"})
+    rep = (await run_version(agent.name, sub, out, on_event, evon=evon, judge_samples=judge_samples, agent=agent,
+                             runs_per_scenario=reruns, label=f"{agent.name} break check")).to_dict()
+    if rep["usage"].get("harness_errors"):
+        return broken, []                                  # a re-test Evon failed in proves nothing either way
+    again = {f"{v['scenario_id']}:{f['item']}" for v in rep["verdicts"] for f in call_failures(v)}
+    return [b for b in broken if b in again], [b for b in broken if b not in again]
+
+
 async def heal(evon, suite: Suite, agent: AgentVersion, out: Path, rounds: int = 2, judge_samples: int = 3,
                on_event=None) -> dict:
     from .demo import run_version
@@ -307,7 +335,7 @@ async def heal(evon, suite: Suite, agent: AgentVersion, out: Path, rounds: int =
                 "before_pass_rate": before["pass_rate"], "after_pass_rate": before["pass_rate"],
                 "before_dir": Path(before["dir"]).relative_to(out).as_posix(), "after_dir": Path(before["dir"]).relative_to(out).as_posix(),
                 "original": {"prompt": agent.prompt, "greeting": agent.greeting}, "healed": {"name": agent.name, "prompt": agent.prompt, "greeting": agent.greeting}}
-    current, current_rep, attempts, feedback, engineering = agent, before, [], "", []
+    current, current_rep, attempts, feedback, engineering, flakes = agent, before, [], "", [], []
     for r in range(1, rounds + 1):
         digest, eng = heal_digest(current_rep)
         engineering = eng
@@ -319,7 +347,7 @@ async def heal(evon, suite: Suite, agent: AgentVersion, out: Path, rounds: int =
         for _ in range(2):              # a malformed patch proposal is retried once, then the round is recorded as failed
             try:
                 data = evon.chat_json([{"role": "system", "content": HEAL_SYSTEM.format()}, {"role": "user", "content": user}],
-                                      temperature=0.3, max_tokens=2000)
+                                      temperature=0.3, max_tokens=4000)
                 break
             except Exception as e:
                 err = repr(e)[:160]
@@ -345,19 +373,24 @@ async def heal(evon, suite: Suite, agent: AgentVersion, out: Path, rounds: int =
         # A prompt patch is judged on the rubric. Timing metrics swing with machine and tunnel load (in the live heal, 7 of the
         # 52 "broken" items were metrics), so they're still reported but don't decide acceptance.
         fixed, broken = prompt_items(diff["fixed"]), prompt_items(diff["broken"])
+        flaky = []
+        if fixed and broken:
+            broken, flaky = await confirm_breaks(evon, suite, patched, broken, out / "heal", judge_samples, on_event)
         ok = bool(fixed) and not broken
         attempts.append({"round": r, "accepted": ok, "rules": rules, "greeting": patched.greeting if patched.greeting != current.greeting else "",
-                         "engineering": data.get("engineering") or [], **diff, "pass_rate": rep["pass_rate"],
-                         "report_dir": Path(rep["dir"]).relative_to(out).as_posix()})
+                         "engineering": data.get("engineering") or [], **diff, "broken": broken, "flaky_breaks": flaky,
+                         "pass_rate": rep["pass_rate"], "report_dir": Path(rep["dir"]).relative_to(out).as_posix()})
         if on_event:
             on_event({"type": "heal_round", "round": r, "accepted": ok, "fixed": len(diff["fixed"]), "broken": len(diff["broken"])})
         if ok:
             current, current_rep, feedback = patched, rep, ""
+            flakes += flaky
         else:
             feedback = (f"\nYOUR LAST PATCH WAS REJECTED. It fixed {fixed or 'nothing'} but broke "
                         f"{broken or 'nothing'}. Propose a different patch.")
     total = compare(before, current_rep)
-    return {"before_pass_rate": before["pass_rate"], "after_pass_rate": current_rep["pass_rate"],
+    total["broken"] = [b for b in total["broken"] if b not in flakes]
+    return {"flaky_breaks": flakes, "before_pass_rate": before["pass_rate"], "after_pass_rate": current_rep["pass_rate"],
             "before_dir": Path(before["dir"]).relative_to(out).as_posix(),
             "after_dir": Path(current_rep["dir"]).relative_to(out).as_posix(),
             "original": {"prompt": agent.prompt, "greeting": agent.greeting},

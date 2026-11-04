@@ -80,6 +80,7 @@ class GuardEvent:
     before: str
     after: str
     ms: float
+    matched: str = ""     # the banned phrase or secret request that tripped it, as listed (not the variant heard)
 
 
 @dataclass
@@ -146,11 +147,11 @@ class Guard:
         for s in _SENTENCE.split(out.strip()) if out.strip() else []:
             hit = self._has(self.banned, s, self.banned_variants)
             if hit:
-                self._log("banned_phrase", "dropped", s, "", t0)
+                self._log("banned_phrase", "dropped", s, "", t0, self._listed(self.banned, hit, self.banned_variants))
                 continue
             hit = self._has(SECRET_REQUESTS, s)
             if hit:
-                self._log("secret_request", "dropped", s, "", t0)
+                self._log("secret_request", "dropped", s, "", t0, self._listed(SECRET_REQUESTS, hit))
                 continue
             if self._echoes_id(s):
                 self._log("verification_digits", "dropped", s, "", t0)
@@ -180,5 +181,10 @@ class Guard:
                 pass                       # never block speech on a failed translation
         return out
 
-    def _log(self, rule: str, action: str, before: str, after: str, t0: float) -> None:
-        self.events.append(GuardEvent(rule, action, before, after, round((time.perf_counter() - t0) * 1000, 3)))
+    def _log(self, rule: str, action: str, before: str, after: str, t0: float, matched: str = "") -> None:
+        self.events.append(GuardEvent(rule, action, before, after, round((time.perf_counter() - t0) * 1000, 3), matched))
+
+    @staticmethod
+    def _listed(phrases: list[str], heard: str, extra: dict | None = None) -> str:
+        """The listed phrase a heard variant belongs to: "लीगल एक्शन" and "legal action" are one rule broken."""
+        return next((p for p in phrases if heard in variants(p, extra or {})), heard)
