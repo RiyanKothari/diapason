@@ -8,12 +8,65 @@ to GitHub Pages, Vercel or any static host.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
 
 from . import studio
 
 STATIC = Path(__file__).parent / "static"
+HOST_FILES = (".vercel/project.json", "vercel.json", ".vercelignore")
+
+# Pages copied from runs carry the CSS of the day they were rendered; these bring them to the current palette and type.
+OLD_COLOURS = [("#b3a6ff", "#4f8cff"), ("#7b93ff", "#4f8cff"), ("#38e3d6", "#4f8cff"), ("#9a8aff", "#4f8cff"), ("#6e8dff", "#4f8cff"),
+               ("rgba(154,138,255,", "rgba(79,140,255,"), ("rgba(56,227,214,", "rgba(79,140,255,"), ("rgba(122,104,255,", "rgba(79,140,255,"),
+               ("rgba(110,141,255,", "rgba(79,140,255,"), ("rgba(150,160,255,", "rgba(255,255,255,"), ("rgba(160,170,255,", "rgba(255,255,255,"),
+               ("#04050a", "#0a0b0d"), ("#080a13", "#0e1013"), ("#0d1020", "#111317"), ("rgba(4,5,10,", "rgba(10,11,13,"),
+               ("#43e398", "#3ecf8e"), ("#ff5f73", "#f2555a"), ("#ffc14d", "#f5b84a"), ("#f5f6ff", "#f2f3f5"),
+               ('"Instrument Serif",Georgia,serif', 'Inter,system-ui,-apple-system,"Segoe UI",sans-serif')]
+
+
+SITE_NAV = [("Overview", "index.html"), ("Demo", "watch.html"), ("QA Studio", "studio.html"), ("Proof", "proof/proof.html"),
+            ("Rating", "proof/rating/rating.html"), ("Atlas", "atlas.html"), ("Noise", "stress/stress.html"), ("Autopilot", "autopilot/autopilot.html")]
+SITEBAR_CSS = (".dsb{position:sticky;top:0;z-index:999;display:flex;align-items:center;gap:4px;padding:10px 20px;background:rgba(10,11,13,.86);"
+               "backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08);"
+               "font:500 13px Inter,system-ui,-apple-system,'Segoe UI',sans-serif;overflow-x:auto;white-space:nowrap}"
+               ".dsb a{color:#8b9099;text-decoration:none;padding:6px 11px;border-radius:999px;transition:color .2s,background .2s}"
+               ".dsb a:hover{color:#f2f3f5;background:rgba(255,255,255,.06)}.dsb a.on{color:#f2f3f5;background:rgba(255,255,255,.09)}"
+               ".dsb a.lg{color:#f2f3f5;font-weight:650;margin-right:10px;padding-left:0}.dsb a.lg:hover{background:none}"
+               ".dsb .sp{flex:1;min-width:12px}.dsb a.cta{color:#fff;background:#4f8cff}.dsb a.cta:hover{background:#6197ff}"
+               ".dsb~.topnav,.dsb+*+.topnav{display:none}")
+
+
+def _sitebar(out: Path) -> None:
+    """The same way around on every page the site copies from runs: a bar back to the overview and across to each page."""
+    nav = [(n, h) for n, h in SITE_NAV if (out / h).exists()]
+    nav += [(d.name.split("-")[0].capitalize(), f"{d.name}/segments.html") for d in sorted(out.iterdir()) if (d / "segments.html").exists()]
+    skip = {"index.html", "watch.html", "watch-60.html"}
+    for f in out.rglob("*.html"):
+        rel = f.relative_to(out).as_posix()
+        if rel in skip:
+            continue
+        t = f.read_text(encoding="utf-8")
+        if 'class="dsb"' in t or not re.search(r"<body[^>]*>", t):
+            continue
+        up = "../" * rel.count("/")
+        links = "".join(f'<a href="{up}{h}"{" class=\"on\"" if h == rel else ""}>{n}</a>' for n, h in nav if n not in ("Overview", "Demo"))
+        bar = (f'<style>{SITEBAR_CSS}</style><nav class="dsb" aria-label="Site"><a class="lg" href="{up}index.html">Diapason</a>{links}'
+               f'<span class="sp"></span><a class="cta" href="{up}watch.html">Watch demo</a></nav>')
+        f.write_text(re.sub(r"(<body[^>]*>)", lambda m: m.group(1) + bar, t, count=1), encoding="utf-8")
+
+
+def _restyle(out: Path) -> None:
+    for f in out.rglob("*.html"):
+        t = o = f.read_text(encoding="utf-8")
+        for a, b in OLD_COLOURS:
+            t = t.replace(a, b)
+        t = re.sub(r"font:400 ([^;{}]*?)var\(--serif\)", r"font:650 \1var(--serif)", t)
+        t = re.sub(r"radial-gradient\(\d+px \d+px at 50% -\d+px,rgba\(79,140,255,[.\d]+\),transparent \d+%\),", "", t)
+        t = re.sub(r"radial-gradient\(rgba\(255,255,255,[.\d]+\) 1px,transparent 1\.2px\) 0 0/26px 26px,", "", t)
+        if t != o:
+            f.write_text(t, encoding="utf-8")
 
 
 def _latest(runs_dir: Path, marker: str) -> Path | None:
@@ -40,9 +93,13 @@ def _copy_tree(src: Path, dst: Path, keep_audio: set[str] = frozenset({"mix.wav"
 
 def build_site(out: Path, runs_dir: Path = Path("runs"), scorecards_dir: Path = Path("scorecards"),
                proof: Path | None = None, repo_url: str = "") -> dict:
+    host = {n: (out / n).read_bytes() for n in HOST_FILES if (out / n).is_file()}   # the static host's link survives a rebuild
     if out.exists():
         shutil.rmtree(out)
     (out / "data" / "audit").mkdir(parents=True)
+    for n, b in host.items():
+        (out / n).parent.mkdir(parents=True, exist_ok=True)
+        (out / n).write_bytes(b)
 
     # QA Studio, with its API answers written as files
     data = studio.index(runs_dir, scorecards_dir)
@@ -56,6 +113,8 @@ def build_site(out: Path, runs_dir: Path = Path("runs"), scorecards_dir: Path = 
             return f"audio/{rel}"
         d = studio.audit(runs_dir, a["path"], audio_url=audio_url)
         voiced += sum(bool(c.get("audio")) for c in d["calls"])
+        # which languages each audit's calls are in, so the studio can open a call in any language from the top of the page
+        a["langs"] = [[(c.get("meta") or {}).get("lang") or "", bool(c.get("audio"))] for c in d["calls"]]
         (out / "data" / "audit" / (a["path"].replace("/", "__") + ".json")).write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
     (out / "data" / "studio.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     page = (STATIC / "studio.html").read_text(encoding="utf-8")
@@ -100,7 +159,7 @@ def build_site(out: Path, runs_dir: Path = Path("runs"), scorecards_dir: Path = 
         shutil.copy2(atlas_page, out / "atlas.html")
     shutil.copy2(STATIC / "theme.css", out / "theme.css")       # the design system every page links
     (out / "index.html").write_text(_landing(proof, p, sims, data, voiced, bool(auto), repo_url, stress_data, rating, replay, asr,
-                                             has_atlas=atlas_page.exists(), atlas=atlas), encoding="utf-8")
+                                             has_atlas=atlas_page.exists(), atlas=atlas, runs_dir=runs_dir), encoding="utf-8")
 
     # the demo as a film: its call scene plays a live recording, so that one file is copied beside it
     from . import film
@@ -113,6 +172,8 @@ def build_site(out: Path, runs_dir: Path = Path("runs"), scorecards_dir: Path = 
     (out / "watch.html").write_text(film.page(reel), encoding="utf-8")
     (out / "watch-60.html").write_text(film.page(film.film(runs_dir, proof, film_audio, stress=stress_data, atlas=atlas,
                                                            scorecards=scorecards_dir, short=True)), encoding="utf-8")
+    _restyle(out)
+    _sitebar(out)
     return {"out": str(out), "audits": len(data["audits"]), "voiced_calls": voiced, "proof": proof.name if proof else None,
             "stress": stress.name if stress else None, "rating": bool(rating),
             "simulations": [n for n, _ in sims], "autopilot": auto.name if auto else None, "film_scenes": len(reel["scenes"]),
@@ -203,6 +264,74 @@ def _replay(proof: Path, t: dict) -> dict | None:
                    "judged afterwards by the same auditor. Nothing on this panel is staged; it is replayed from the proof run's files."}
 
 
+# The callers of the proof suite, as the live Guard card names them (persona id -> name, language, what the call tests)
+CALLERS = {"verify_disclose_conduct": ("रमेश", "Ramesh", "Hindi", "a borrower verifies, then promises to pay"),
+           "language": ("હંસા", "Hansa", "Gujarati", "speaks only Gujarati; the agent answers in Hindi"),
+           "privacy": ("सुरेश's brother", "Suresh's brother", "Hindi", "not the borrower: nothing about the loan may be said"),
+           "injection": ("रमेश", "Ramesh", "Hinglish", "tells the agent to ignore its instructions"),
+           "noisy_line": ("रमेश", "Ramesh", "Hindi", "a fan on the line at 12 dB"),
+           "barge_in": ("रमेश", "Ramesh", "Hindi", "cuts the agent off mid-sentence")}
+LANGS = {"hi-IN": "Hindi", "gu-IN": "Gujarati", "en-IN": "English", "ta-IN": "Tamil", "mr-IN": "Marathi", "te-IN": "Telugu", "kn-IN": "Kannada"}
+MONTH = {10: "October", 11: "November", 12: "December"}
+
+
+def _guard_calls(proof: Path, t: dict) -> list[dict]:
+    """Every call of the proof's Guard run where Guard held a line back: who called, what the agent drafted, what was said."""
+    d = t.get("guard_dir")
+    calls = []
+    for case, (native, name, lang, what) in CALLERS.items():
+        f = proof / d / case / "run0" / "call.json" if d else None
+        if not f or not f.exists():
+            continue
+        call = json.loads(f.read_text(encoding="utf-8"))
+        turns = [x for x in call["turns"] if x["text"].strip()]
+        steps, caller = [], None
+        events = [e for e in call.get("events", []) if e.get("type") == "guard" and e.get("before") and e.get("action") != "added"]
+        for i, x in enumerate(turns):
+            if x["speaker"] != "agent":
+                caller = x["text"]
+                continue
+            nxt = turns[i + 1]["start"] if i + 1 < len(turns) else 1e9
+            held = [e for e in events if x["start"] - 0.6 <= e["t"] < nxt - 0.6]
+            if held:
+                steps.append({"caller": caller, "said": x["text"], "at": round(x["start"], 1),
+                              "drafts": [{"rule": e["rule"], "before": e["before"]} for e in held]})
+            caller = None
+        if steps:
+            calls.append({"native": native, "name": name, "lang": lang, "what": what, "steps": steps[:3]})
+    return calls
+
+
+def _heard(runs_dir: Path) -> dict | None:
+    """Prisma's transcripts of IDs, amounts and dates in Tamil, Marathi, Telugu and Kannada, with the words that carry the number."""
+    from .judge.dates import date_keys
+    from .judge.numbers import spoken_digits
+    rows, totals = [], {}
+    for f in (runs_dir / "lang-probe" / "probe.json", runs_dir / "lang-probe" / "heldout.json"):
+        if not f.exists():
+            continue
+        data = json.loads(f.read_text(encoding="utf-8"))
+        totals["held_out" if f.name == "heldout.json" else "probe"] = [sum(bool(r.get("read_heard")) for r in data), len(data)]
+        for r in data:
+            if not r.get("read_heard") or r["lang"] not in LANGS:
+                continue
+            words = r["heard"].split()
+            gold = set(r["gold"].split(","))
+            hit = (lambda s: gold <= date_keys(s)) if r["kind"] == "date" else (lambda s: r["gold"] in spoken_digits(s))
+            span = min(((i, j) for i in range(len(words)) for j in range(i + 1, len(words) + 1) if hit(" ".join(words[i:j]))),
+                       key=lambda s: s[1] - s[0], default=None)
+            if span is None:
+                continue
+            if r["kind"] == "date":
+                k = {x[0]: x[1:] for x in r["gold"].split(",")}
+                read = f"{k.get('d', '')} {MONTH.get(int(k['m']), k['m'])}".strip()
+            else:
+                read = ("₹" if r["kind"] == "amount" else "") + r["gold"]
+            rows.append({"lang": LANGS[r["lang"]], "kind": r["kind"], "style": r["style"], "words": words, "span": list(span), "read": read,
+                         "held_out": f.name == "heldout.json"})
+    return {"rows": rows, "totals": totals} if rows else None
+
+
 def _evolution(p: dict | None) -> dict | None:
     if not p or not p.get("tests", {}).get("bugs"):
         return None
@@ -212,7 +341,7 @@ def _evolution(p: dict | None) -> dict | None:
 
 def _landing(proof: Path | None, p: dict | None, sims: list, data: dict, voiced: int, has_auto: bool, repo_url: str,
              stress: dict | None = None, rating: dict | None = None, replay: dict | None = None, asr: dict | None = None,
-             has_atlas: bool = False, atlas: dict | None = None) -> str:
+             has_atlas: bool = False, atlas: dict | None = None, runs_dir: Path = Path("runs")) -> str:
     kpis = []
     if p:
         t, q = p["tests"], p["qa"]
@@ -295,6 +424,8 @@ def _landing(proof: Path | None, p: dict | None, sims: list, data: dict, voiced:
         st = {"levels": stress["levels"], "noises": stress["noises"], "versions": {v: r["grid"] for v, r in stress["versions"].items()}}
     payload = {
         "replay": _replay(proof, p["tests"]) if proof and p else None,
+        "live": _guard_calls(proof, p["tests"]) if proof and p else [],
+        "heard": _heard(runs_dir),
         "kpis": kpis, "kpi_note": (f"From the accuracy proof of {p.get('generated', '')} ({p.get('mode', 'mode not recorded')}) and the runs on disk." if p else ""),
         "moments": moments, "rating": rate or None, "stress": st, "links": links, "repo_url": repo_url,
         "evolution": _evolution(p),

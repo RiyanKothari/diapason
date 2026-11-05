@@ -19,7 +19,7 @@
 .rail .sys{margin-top:18px;padding:12px;border:1px solid var(--line-2);border-radius:12px;font:500 11px/1.7 var(--mono);color:var(--muted)}
 .rail .sys b{color:var(--fg);font-weight:500}
 @media (max-width:980px){.shell{grid-template-columns:1fr;gap:0}.rail{position:sticky;top:60px;z-index:10;flex-direction:row;overflow-x:auto;padding:8px 0;margin:0 -20px;padding-left:20px;
-  background:rgba(4,5,10,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-2)}.rail a{white-space:nowrap}.rail .sys{display:none}}
+  background:rgba(10,11,13,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-2)}.rail a{white-space:nowrap}.rail .sys{display:none}}
 main{min-width:0;padding-bottom:96px}
 section.blk{padding-top:64px;scroll-margin-top:70px}
 .blk>header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;margin-bottom:18px}
@@ -30,13 +30,13 @@ section.blk{padding-top:64px;scroll-margin-top:70px}
 .hero .grid2{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;align-items:center}
 @media (max-width:1100px){.hero .grid2{grid-template-columns:1fr}}
 .scope{position:relative;height:340px;border-radius:24px;overflow:hidden;border:1px solid var(--line);background:
-  linear-gradient(rgba(4,5,10,.2),rgba(4,5,10,.7)),repeating-linear-gradient(0deg,transparent 0 33px,rgba(150,160,255,.06) 33px 34px),
-  repeating-linear-gradient(90deg,transparent 0 33px,rgba(150,160,255,.06) 33px 34px),var(--panel-solid);box-shadow:var(--shadow)}
+  linear-gradient(rgba(10,11,13,.2),rgba(10,11,13,.7)),repeating-linear-gradient(0deg,transparent 0 33px,rgba(255,255,255,.06) 33px 34px),
+  repeating-linear-gradient(90deg,transparent 0 33px,rgba(255,255,255,.06) 33px 34px),var(--panel-solid);box-shadow:var(--shadow)}
 .scope canvas{position:absolute;inset:0;width:100%;height:100%}
 .scope .hud{position:absolute;left:16px;right:16px;top:14px;display:flex;justify-content:space-between;font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .scope .hud b{color:var(--fg);font-weight:500}
 .scope .read{position:absolute;left:16px;right:16px;bottom:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.scope .read div{background:rgba(4,5,10,.6);border:1px solid var(--line-2);border-radius:10px;padding:8px 10px;font:500 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.scope .read div{background:rgba(10,11,13,.6);border:1px solid var(--line-2);border-radius:10px;padding:8px 10px;font:500 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .scope .read b{display:block;font:500 18px var(--mono);letter-spacing:-.01em;color:var(--fg);text-transform:none;margin-top:2px}
 .cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
 .stack{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
@@ -55,9 +55,9 @@ input[type=number]{width:96px}input[type=text]{width:280px}
 /* showdown: v1 to v4 side by side */
 .duel{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:16px}
 .fighter{position:relative;border:1px solid var(--line);border-radius:18px;padding:16px;background:var(--panel);overflow:hidden;transition:border-color .3s,box-shadow .3s}
-.fighter .v{font:400 34px/1 var(--serif);color:var(--fg)}.fighter .w{font-size:12px;color:var(--muted);margin-top:4px;min-height:34px}
+.fighter .v{font:650 34px/1 var(--serif);color:var(--fg)}.fighter .w{font-size:12px;color:var(--muted);margin-top:4px;min-height:34px}
 .fighter .s{font:500 30px/1 var(--mono);margin-top:14px;color:var(--dim)}.fighter .s small{font-size:13px;color:var(--muted)}
-.fighter.run{border-color:rgba(56,227,214,.5);box-shadow:0 0 30px -10px rgba(56,227,214,.6)}
+.fighter.run{border-color:rgba(79,140,255,.5);box-shadow:0 0 30px -10px rgba(79,140,255,.6)}
 .fighter.run .s{color:var(--cyan)}
 .fighter.done.good .s{color:var(--pass)}.fighter.done.bad .s{color:var(--fail)}
 .fighter .mbar{height:4px;border-radius:9px;background:var(--raise-2);margin-top:12px;overflow:hidden}.fighter .mbar i{display:block;height:100%;width:0;background:var(--grad);transition:width .6s var(--ease)}
@@ -77,18 +77,18 @@ input[type=number]{width:96px}input[type=text]{width:280px}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
 .feed{padding:12px 16px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px}
 .msg{max-width:88%;padding:9px 12px;border-radius:16px;font-size:14px;line-height:1.5;color:var(--fg);animation:land .35s var(--ease)}
-.msg.caller{align-self:flex-end;background:linear-gradient(135deg,rgba(110,141,255,.28),rgba(154,138,255,.2));border:1px solid rgba(154,138,255,.25);border-bottom-right-radius:5px}
+.msg.caller{align-self:flex-end;background:linear-gradient(135deg,rgba(79,140,255,.28),rgba(79,140,255,.2));border:1px solid rgba(79,140,255,.25);border-bottom-right-radius:5px}
 .msg.agent{align-self:flex-start;background:var(--raise-2);border:1px solid var(--line-2);border-bottom-left-radius:5px}
 .msg .meta{display:block;font:500 10.5px var(--mono);color:var(--muted);margin-bottom:3px;letter-spacing:.02em}
 .lat{font-weight:600}.lat.slow{color:var(--fail)}.lat.ok{color:var(--pass)}
 .note{align-self:center;font:500 11px var(--mono);color:var(--muted);background:var(--raise);border:1px solid var(--line-2);padding:3px 11px;border-radius:999px}
 .note.warn{color:var(--warn);border-color:rgba(255,193,77,.3)}
-.foot{padding:12px 16px;border-top:1px solid var(--line-2);font-size:13px;background:rgba(4,5,10,.45);max-height:240px;overflow-y:auto}
+.foot{padding:12px 16px;border-top:1px solid var(--line-2);font-size:13px;background:rgba(10,11,13,.45);max-height:240px;overflow-y:auto}
 .foot .fail{color:var(--fail)}
 .why{margin:0 0 9px}.why summary{cursor:pointer;list-style:none;display:flex;gap:9px;align-items:baseline;color:var(--fg);font-weight:500}
 .why summary::-webkit-details-marker{display:none}.why p{margin:5px 0 0;color:var(--muted)}.why q{color:var(--fg)}
 .progress{height:3px;background:var(--raise-2);border-radius:999px;overflow:hidden;margin-top:14px}
-.progress i{display:block;height:100%;width:0;background:var(--grad);transition:width .4s var(--ease);box-shadow:0 0 14px var(--cyan)}
+.progress i{display:block;height:100%;width:0;background:var(--grad);transition:width .4s var(--ease)}
 
 .cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
 .cmp>div{background:var(--raise);border:1px solid var(--line-2);border-radius:14px;padding:12px 14px}
@@ -103,7 +103,7 @@ textarea{width:100%;resize:vertical}
 </head>
 <body>
 <div class="room"><i></i></div>
-<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="dpg" x1="0" x2="1"><stop offset="0" stop-color="#b3a6ff"/><stop offset="1" stop-color="#38e3d6"/></linearGradient></defs></svg>
+<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="dpg" x1="0" x2="1"><stop offset="0" stop-color="#4f8cff"/><stop offset="1" stop-color="#4f8cff"/></linearGradient></defs></svg>
 
 <nav class="topnav"><div class="in">
   <a class="logo" href="/"><svg viewBox="0 0 26 26"><circle class="fork-ring" cx="13" cy="9" r="8"/><circle class="fork-ring r2" cx="13" cy="9" r="8"/>
@@ -284,7 +284,7 @@ function pulse(k = 1) { wave.kick = Math.min(1.6, wave.kick + k); }
   const fit = () => { const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; cv.width = r.width * d; cv.height = r.height * d; cx.setTransform(d, 0, 0, d, 0, 0); };
   fit(); addEventListener("resize", fit);
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const colors = ["rgba(179,166,255,", "rgba(123,147,255,", "rgba(56,227,214,", "rgba(154,138,255,", "rgba(56,227,214,"];
+  const colors = ["rgba(179,166,255,", "rgba(123,147,255,", "rgba(79,140,255,", "rgba(79,140,255,", "rgba(79,140,255,"];
   const draw = () => {
     const w = cv.clientWidth, h = cv.clientHeight, mid = h * .46;
     wave.energy += (wave.target - wave.energy) * .04; wave.kick *= .94; wave.t += still ? 0 : .016;
@@ -558,7 +558,7 @@ function onEvent(e) {
       shimmer(c, e.text); pulse(e.speaker === "agent" ? .7 : .5); kpis();
       break;
     }
-    case "barge_in_attempt": add(card(e), `<div class="note warn">⚡ caller cuts in at ${e.t.toFixed(1)}s</div>`); pulse(1); break;
+    case "barge_in_attempt": add(card(e), `<div class="note warn">Caller cuts in at ${e.t.toFixed(1)}s</div>`); pulse(1); break;
     case "agent_clear": add(card(e), `<div class="note">agent stopped talking (yielded)</div>`); break;
     case "silence": add(card(e), `<div class="note">caller goes silent for ${e.seconds}s</div>`); break;
     case "disposition": add(card(e), `<div class="note">agent recorded: ${esc(JSON.stringify(e.data.slots || {}))}</div>`); break;

@@ -20,6 +20,32 @@ measurement. Nothing in a post may send a stranger to the code.
 5. Put the link in the first comment, not the post: LinkedIn shows posts with outside links to fewer people.
 6. Nominate this post in the participant workspace.
 
+## What goes in each post (media)
+
+LinkedIn can't mix a video and images in one post, so the launch post carries the video and the follow-ups carry the
+images. Images are in `runs/launch-media/` (captured from the live site at 2x; rerun the capture after a site change).
+
+| Post | Media | Notes |
+|---|---|---|
+| Launch (nominated) | Your own 60-75 s screen recording with voiceover (shot list below); fallback `runs/video/diapason-film-60s.mp4` | Native upload. Cover: `01-cover-16x9.png`. Turn on captions: most people watch muted |
+| Day 2: "4821" bug | `02-same-caller-guard.png` | The guard strikes out the threat and holds the amount until the caller verifies |
+| Day 3: the judge | `03-v1-to-v4.png` (and `06-proof.png` as a 2nd image) | The matrix is the single clearest image of the project |
+| Day 4: Tamil numerals | `09-every-language.png` (the transcript, its number words lit, the value read) | |
+| Day 5: Shield | a 20 s screen recording of a Shield block | |
+| X post 1 | the same video | X post 4: `03-v1-to-v4.png` |
+
+**The launch video (record it yourself: it is the "public video of a working application").** 1080p screen recording of
+`diapason dashboard`, your voice over it, captions burned in or added on upload. Keep every number on screen real.
+
+| Time | On screen | You say (roughly) |
+|---|---|---|
+| 0-4 s | The landing page hero: the live Guard card typing the agent's threat, striking it, saying the safe line | "This AI agent just threatened a borrower and said his debt before checking who he was." |
+| 4-15 s | Dashboard: pick the collections suite, start a run; callers in Hinglish and Gujarati, noise on, live transcript | "Diapason phones your agent with synthetic Indian callers on a noisy 8 kHz line and tries to break it." |
+| 15-27 s | A fail card quoting the agent's words | "Every fail quotes what the agent actually said." |
+| 27-40 s | The same call behind Guard: the threat struck out, the amount held until verified | "Guard checks each sentence in code before it's spoken. Same agent, prompt untouched." |
+| 40-52 s | **Prove it**: the v1 to v4 matrix filling in | "Seven planted bugs: eight of eight tests caught them, and v4 removes all six text bugs." |
+| 52-60 s | Logos of Prisma, Timbre, Evon as text; the site URL | "Built on Gnani's Prisma, Timbre and Evon, which I run myself. Link in the comments." |
+
 ## The post (LinkedIn, nominated)
 
 > Before an AI voice agent talks to a million Indians, who tests it the way Indians actually call?
