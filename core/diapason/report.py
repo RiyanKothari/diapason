@@ -8,21 +8,21 @@ from xml.etree import ElementTree as ET
 
 CSS = """
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500&family=Noto+Sans+Gujarati:wght@400;500&display=swap");
-:root{color-scheme:dark;--bg:#04050a;--fg:#f5f6ff;--text:#c6cbdd;--muted:#80879e;--card:rgba(15,18,31,.82);--soft:rgba(255,255,255,.06);
-  --line:rgba(150,160,255,.13);--pass:#43e398;--fail:#ff5f73;--review:#ffc14d;--cyan:#38e3d6;
-  --grad:linear-gradient(105deg,#b3a6ff 0%,#7b93ff 42%,#38e3d6 100%);
-  --serif:"Instrument Serif",Georgia,serif;--sans:Inter,"Noto Sans Devanagari","Noto Sans Gujarati",system-ui,-apple-system,"Segoe UI",sans-serif;
+:root{color-scheme:dark;--bg:#0a0b0d;--fg:#f2f3f5;--text:#c9ccd2;--muted:#8b9099;--card:rgba(15,18,31,.82);--soft:rgba(255,255,255,.06);
+  --line:rgba(255,255,255,.13);--pass:#3ecf8e;--fail:#f2555a;--review:#f5b84a;--cyan:#4f8cff;
+  --grad:linear-gradient(105deg,#4f8cff 0%,#4f8cff 42%,#4f8cff 100%);
+  --serif:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--sans:Inter,"Noto Sans Devanagari","Noto Sans Gujarati",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Consolas,monospace}
 *{box-sizing:border-box}
 body{margin:0;color:var(--text);font:15px/1.6 var(--sans);-webkit-font-smoothing:antialiased;
-  background:radial-gradient(900px 600px at 50% -200px,rgba(122,104,255,.22),transparent 70%),
-  radial-gradient(rgba(160,170,255,.09) 1px,transparent 1.2px) 0 0/26px 26px,var(--bg)}
-::selection{background:rgba(154,138,255,.35);color:#fff}
+  background:
+  var(--bg)}
+::selection{background:rgba(79,140,255,.35);color:#fff}
 main{max-width:1120px;margin:0 auto;padding:48px 20px 80px}
-a{color:var(--fg);text-decoration-color:rgba(154,138,255,.5);text-underline-offset:3px}
-h1{font:400 clamp(34px,5vw,54px)/1.02 var(--serif);letter-spacing:-.02em;color:var(--fg);margin:0 0 8px}
+a{color:var(--fg);text-decoration-color:rgba(79,140,255,.5);text-underline-offset:3px}
+h1{font:650 clamp(34px,5vw,54px)/1.02 var(--serif);letter-spacing:-.02em;color:var(--fg);margin:0 0 8px}
 h1:before{content:"DIAPASON";display:block;font:600 11px/1 var(--mono);letter-spacing:.18em;color:var(--cyan);margin-bottom:16px}
-h2{font:400 28px/1.1 var(--serif);color:var(--fg);margin:44px 0 14px;letter-spacing:-.01em}
+h2{font:650 28px/1.1 var(--serif);color:var(--fg);margin:44px 0 14px;letter-spacing:-.01em}
 h3{color:var(--fg)}
 .muted{color:var(--muted)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:26px 0}
@@ -35,11 +35,11 @@ h3{color:var(--fg)}
 table{border-collapse:collapse;width:100%;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
 th,td{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;vertical-align:top}
 th{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-tr:last-child td{border-bottom:0}tbody tr:hover{background:rgba(154,138,255,.05)}
+tr:last-child td{border-bottom:0}tbody tr:hover{background:rgba(79,140,255,.05)}
 .scroll{overflow-x:auto}.cell{font:600 13px var(--mono);text-align:center;color:var(--fg)}
 .pass{color:var(--pass)}.fail{color:var(--fail)}.review{color:var(--review)}.na{color:var(--muted)}
 details{background:var(--card);border:1px solid var(--line);border-radius:16px;margin:10px 0;padding:13px 16px}
-details[open]{border-color:rgba(154,138,255,.35)}summary{cursor:pointer;font-weight:500;color:var(--fg)}
+details[open]{border-color:rgba(79,140,255,.35)}summary{cursor:pointer;font-weight:500;color:var(--fg)}
 .turn{margin:4px 0}.turn .who{display:inline-block;min-width:70px;font:500 11px var(--mono);color:var(--muted)}
 audio{width:100%;margin:10px 0;filter:invert(.9) hue-rotate(180deg)}
 .ev{font-size:13px;border-left:2px solid var(--cyan);padding-left:10px;margin:5px 0}
