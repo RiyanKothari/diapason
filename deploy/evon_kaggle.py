@@ -14,9 +14,32 @@
 # Also accept the access conditions on https://huggingface.co/gnani/gnani-evon-v3.3-30B-A3B (the
 # challenge asks for it). If the GGUF repo ever becomes gated, add a Kaggle secret named `HF_TOKEN`.
 
-# %%
-import os, re, secrets, subprocess, time, json, urllib.error, urllib.request
-print(subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv"], capture_output=True, text=True).stdout)
+# %% Preflight: GPUs and internet, checked first, so a missing setting fails here in seconds with what to do,
+# not 10 minutes later as "[Errno -3] Temporary failure in name resolution" from the model download.
+import os, re, secrets, socket, subprocess, time, json, urllib.error, urllib.request
+gpus = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"],
+                      capture_output=True, text=True).stdout.strip().splitlines()
+print("GPUs:", gpus or "none")
+if len(gpus) < 2:
+    raise SystemExit("Need 2 GPUs: Session options (right panel) -> Accelerator -> GPU T4 x2, then Run -> Restart & clear "
+                     "cell outputs, then Run All.")
+
+def online(host="huggingface.co", tries=6):
+    for i in range(tries):                 # Kaggle's DNS can take a few seconds to come up at session start
+        try:
+            socket.getaddrinfo(host, 443)
+            urllib.request.urlopen(f"https://{host}", timeout=10)
+            return True
+        except Exception as e:
+            print(f"  no internet yet ({type(e).__name__}); retry {i + 1}/{tries} in 5 s")
+            time.sleep(5)
+    return False
+
+if not online():
+    raise SystemExit("No internet in this session. 1) Kaggle Settings -> Phone verification (needed for internet). "
+                     "2) Session options (right panel) -> Internet -> On. 3) Run -> Restart & clear cell outputs, then Run All. "
+                     "Changing the setting does not reach a session that is already running.")
+print("internet OK")
 
 # %% Start the 18.4 GB model download in the background, so it overlaps with the build below.
 import glob, shutil, threading
@@ -30,15 +53,24 @@ try:
 except Exception:
     pass
 download = {}
+GGUF = "gnani-evon-v3.3-30B-A3B-IQ4_XS.gguf"
+attached = glob.glob(f"/kaggle/input/**/{GGUF}", recursive=True)   # the model added as a Kaggle dataset: no download
 def _download():
-    try:   # /tmp sits outside the 20 GB /kaggle/working limit
-        download["path"] = hf_hub_download("luminenio/gnani-evon-v3.3-30B-A3B-GGUF", "gnani-evon-v3.3-30B-A3B-IQ4_XS.gguf",
-                                           local_dir="/tmp/models", token=token)
-    except Exception as e:
-        download["error"] = e
+    if attached:
+        download["path"] = attached[0]
+        return
+    for attempt in range(4):                  # a network blip mid-download: resume (hf_hub_download picks up the part file)
+        try:   # /tmp sits outside the 20 GB /kaggle/working limit
+            download["path"] = hf_hub_download("luminenio/gnani-evon-v3.3-30B-A3B-GGUF", GGUF, local_dir="/tmp/models", token=token)
+            download.pop("error", None)
+            return
+        except Exception as e:
+            download["error"] = e
+            print(f"model download failed ({type(e).__name__}: {str(e)[:120]}); retry {attempt + 1}/4 in 20 s", flush=True)
+            time.sleep(20)
 downloader = threading.Thread(target=_download, daemon=True)
 downloader.start()
-print("model download started in the background")
+print("using the attached model:", attached[0]) if attached else print("model download started in the background")
 
 # %% llama.cpp with CUDA for the T4 (compute capability 7.5): reuse a cached build, else compile (~30 min).
 # Compiling burns ~30 min of GPU quota every session. After the first build this cell saves
