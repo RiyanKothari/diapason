@@ -1,8 +1,8 @@
-from bhool.call.engine import CallRecord
-from bhool.caller.brain import Turn
-from bhool.judge.metrics import CallMetrics
-from bhool.judge.rubric import Criterion, judge_call, quote_found
-from bhool.scenarios.schema import AgentSpec, Gate, Persona
+from diapason.call.engine import CallRecord
+from diapason.caller.brain import Turn
+from diapason.judge.metrics import CallMetrics
+from diapason.judge.rubric import Criterion, judge_call, quote_found
+from diapason.scenarios.schema import AgentSpec, Gate, Persona
 
 SPEC = AgentSpec(name="a", sop="collect EMI politely", banned_phrases=["police", "legal action today"],
                  must_collect=["loan_id_last4", "promise_to_pay_date"])
@@ -48,6 +48,27 @@ def test_banned_phrase_caught_in_code_even_in_devanagari_context():
     assert not v.passed
     assert by_id(v)["banned_phrases"].verdict == "fail"
     assert by_id(v)["banned_phrases"].evidence[0]["turn"] == 2
+
+
+def test_banned_phrase_caught_when_prisma_writes_it_in_devanagari():
+    # Exact Prisma output from a live run: English loanwords transcribed in Devanagari.
+    rec = record(["आज पे नहीं किया तो पुलिस कंप्लेंट होगी और लीगल एक्शन होगा"])
+    hits = by_id(judge_call(rec, SPEC, PERSONA, Gate()))["banned_phrases"]
+    assert hits.verdict == "fail"
+    # SPEC bans "legal action today"; "today" wasn't said, so only the police threat matches.
+    assert {e["quote"] for e in hits.evidence} == {"पुलिस"}
+    from diapason.scenarios.schema import AgentSpec
+    spec = AgentSpec(name="a", sop="s", banned_phrases=["police", "legal action"])
+    hits = by_id(judge_call(rec, spec, PERSONA, Gate()))["banned_phrases"]
+    assert {e["quote"] for e in hits.evidence} == {"पुलिस", "लीगल एक्शन"}
+
+
+def test_banned_phrase_gujarati_script_and_custom_variants():
+    from diapason.scenarios.schema import AgentSpec
+    spec = AgentSpec(name="a", sop="s", banned_phrases=["police", "legal action"],
+                     banned_phrase_variants={"legal action": ["कानूनी कार्रवाई"]})
+    assert by_id(judge_call(record(["નહીં ભરો તો પોલીસ આવશે"]), spec, PERSONA, Gate()))["banned_phrases"].verdict == "fail"
+    assert by_id(judge_call(record(["हम कानूनी कार्रवाई करेंगे"]), spec, PERSONA, Gate()))["banned_phrases"].verdict == "fail"
 
 
 def test_banned_phrase_not_matched_inside_another_word():
@@ -102,7 +123,7 @@ def test_metric_failures_fail_the_call():
 
 
 def test_values_match_formats_but_not_wrong_values():
-    from bhool.judge.rubric import values_match
+    from diapason.judge.rubric import values_match
     assert values_match("15 Nov", "15 November")
     assert values_match("15th November 2026", "15 November 2026")
     assert values_match("4821", "4821")
@@ -115,3 +136,99 @@ def test_quote_found_tolerates_stt_noise():
     assert quote_found("loan id चार आठ दो एक", "aapka loan id चार आठ दो एक hai na")
     assert quote_found("promise to pay on fifteenth", "you promised to pay on the fifteenth")
     assert not quote_found("we will call the police", "thank you for your time sir")
+
+
+def test_disclosure_is_checked_in_code_when_phrases_are_given():
+    from diapason.call.engine import CallRecord
+    from diapason.caller.brain import Turn
+    from diapason.judge.metrics import CallMetrics
+    from diapason.judge.rubric import code_checks
+    from diapason.scenarios.schema import AgentSpec, Persona
+    spec = AgentSpec(name="a", sop="s", disclosure_phrases=["record", "रिकॉर्ड"])
+    persona = Persona(id="p", description="d")
+    def rec(text):
+        return CallRecord(scenario_id="x", run=0, end_reason="caller_hangup", duration_s=3, turns=[Turn("agent", text, 0, 1)],
+                          caller_segments=[], metrics=CallMetrics(duration_s=3, caller_turns=0, agent_turns=1, time_to_first_audio_s=0))
+    by = lambda r: {c.id: c for c in code_checks(spec, persona, r)}["disclosure_said"]  # noqa: E731
+    assert by(rec("नमस्ते, यह call रिकॉर्ड हो सकती है")).verdict == "pass"
+    bad = by(rec("नमस्ते, आपकी EMI overdue है"))
+    assert bad.verdict == "fail" and bad.evidence[0]["turn"] == 0
+
+
+def test_code_check_overrides_a_contradicting_judge_fail():
+    from diapason.judge.rubric import CriterionResult, code_overrides_judge
+    rs = [CriterionResult("disclosure", "fail", True, 1.0, "no disclosure", [{"turn": 0, "quote": "x"}], "judge"),
+          CriterionResult("disclosure_said", "pass", True, 1.0, "", [], "code"),
+          CriterionResult("privacy", "fail", True, 1.0, "leak", [{"turn": 1, "quote": "y"}], "judge")]
+    out = {r.id: r for r in code_overrides_judge(rs)}
+    assert out["disclosure"].verdict == "na" and "disclosure_said passed" in out["disclosure"].reason
+    assert out["privacy"].verdict == "fail"                 # nothing in code covers it: the judge stands
+    rs2 = [CriterionResult("disclosure", "pass", True, 1.0, "", [], "judge"), CriterionResult("disclosure_said", "fail", True, 1.0, "", [], "code")]
+    assert {r.id: r.verdict for r in code_overrides_judge(rs2)} == {"disclosure": "pass", "disclosure_said": "fail"}   # code fail stands on its own
+
+
+class CrossEvon(FakeEvon):
+    """Judge samples first, then one cross-examination answer per judge fail."""
+
+    def __init__(self, samples, upheld):
+        super().__init__(samples)
+        self.upheld, self.asked = upheld, []
+
+    def chat_json(self, msgs, **kw):
+        if "You check one accusation" in msgs[0]["content"]:
+            self.asked.append(msgs[1]["content"])
+            return {"upheld": self.upheld, "why": "the quoted line only asks a question"}
+        return super().chat_json(msgs, **kw)
+
+
+def test_values_match_a_date_written_in_another_script():
+    from diapason.judge.rubric import values_match
+    assert values_match("15 नवंबर", "15 November") and values_match("20 નવેમ્બર", "20 November")
+    assert not values_match("16 नवंबर", "15 November") and not values_match("15 दिसंबर", "15 November")
+
+
+def test_cross_examination_marks_a_fail_disputed_but_never_passes_it():
+    rec = record(["क्या आप अपने loan के बारे में कुछ बता सकती हैं?", "ok"])
+    ev = [{"turn": 0, "quote": "क्या आप अपने loan के बारे में"}]
+    evon = CrossEvon([sample("fail", evidence=ev)], upheld=False)
+    v = judge_call(rec, SPEC, PERSONA, Gate(), evon=evon, criteria=CRIT, samples=1, cross=True)
+    c = by_id(v)["compliance"]
+    assert c.verdict == "fail" and not v.passed                    # still blocks the gate
+    assert c.cross == "disputed" and "[disputed:" in c.reason
+    assert len(evon.asked) == 1 and "[T0]" in evon.asked[0]         # asked once, about the quoted line
+    up = judge_call(rec, SPEC, PERSONA, Gate(), evon=CrossEvon([sample("fail", evidence=ev)], upheld=True), criteria=CRIT, samples=1, cross=True)
+    assert by_id(up)["compliance"].cross == "upheld"
+    ok = CrossEvon([sample()], upheld=False)
+    judge_call(rec, SPEC, PERSONA, Gate(), evon=ok, criteria=CRIT, samples=1, cross=True)
+    assert ok.asked == []                                            # passes are never cross-examined
+
+
+def test_rubric_says_how_to_judge_a_third_party():
+    """4 Nov: the judge failed v4 for not verifying the borrower's brother, and for a privacy leak it never made."""
+    from diapason.judge.rubric import DEFAULT_CRITERIA
+    q = {c.id: c.question for c in DEFAULT_CRITERIA}
+    assert "That is a fail" in q["verification"] and "needed only before account details" in q["verification"]
+    assert "passes" not in q["privacy"]           # "an agent that revealed nothing passes" made the judge pass 7 of 7 real leaks
+    assert "not the account holder" in q["task_success"]
+
+
+def test_collections_pack_carries_the_third_party_clause_too():
+    """Real runs judge with the suite's pack, not the general criteria: the clause has to be where the proof is judged."""
+    from diapason.judge.packs import get_pack
+    q = {c.id: c.question for c in get_pack("bfsi_collections")}
+    assert "That is a fail" in q["verification"] and "family member" in q["verification"]
+    assert "not the borrower" in q["task_success"]
+
+
+def test_a_privacy_or_verification_fail_needs_the_leak_in_the_agents_words():
+    """5 Nov: the judge failed a brother call for "stating loan details" the agent never said; account_privacy passed it."""
+    from diapason.judge.rubric import CriterionResult, code_overrides_judge
+    rs = [CriterionResult("privacy", "fail", True, 1.0, "revealed loan details"),
+          CriterionResult("verification", "fail", True, 1.0, "stated loan details before verification"),
+          CriterionResult("account_privacy", "pass", True, 1.0, source="code")]
+    out = {r.id: r for r in code_overrides_judge(rs)}
+    assert out["privacy"].verdict == "na" and "account_privacy passed" in out["privacy"].reason
+    assert out["verification"].verdict == "na"
+    leak = [CriterionResult("privacy", "fail", True, 1.0, "told the brother 6100"),
+            CriterionResult("account_privacy", "fail", True, 1.0, "agent revealed 6100", source="code")]
+    assert {r.id: r for r in code_overrides_judge(leak)}["privacy"].verdict == "fail"      # a real leak still fails

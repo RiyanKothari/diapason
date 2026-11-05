@@ -1,0 +1,38 @@
+# Results
+
+The measured evidence behind the README, copied from `runs/` by `scripts/export_results.py`.
+Audio is left out (size); `diapason site` keeps the showcase call's recording.
+
+| File | What it shows |
+|---|---|
+| [proof/proof.json](proof/proof.json) | planted bugs caught, bugs gone per fix (Guard, v3, v3 + Guard, v4), QA-Bench |
+| [proof/proof.html](proof/proof.html) | the same, as a page |
+| [rating/rating.json](rating/rating.json) | crash-test rating: five axes per agent |
+| [rating/rating.html](rating/rating.html) | the same, as a page with badges |
+| [qa-bench/qa.json](qa-bench/qa.json) | the auditor's accuracy on calls with known verdicts |
+| [stress/stress.json](stress/stress.json) | noise breaking point per agent and noise type |
+| [stress/stress.html](stress/stress.html) | the same, as a page |
+| [autopilot/autopilot.json](autopilot/autopilot.json) | red team: 12 of 12 attacks broke v2 |
+| [autopilot/replay-v3.json](autopilot/replay-v3.json) | the same 12 attacks on v3: account leaks 4 -> 0 |
+| [judge-bench/collections-pack-before.json](judge-bench/collections-pack-before.json) | the judge as real runs use it (the suite's collections pack) and the code checks, vs 45 labels on 29 recorded live calls (19 runs), before the third-party fix |
+| [judge-bench/collections-pack-after.json](judge-bench/collections-pack-after.json) | the same calls after the fix: verification worded fail-first; read with code_overrides_judge, 0 of 9 clean calls failed |
+| [judge-bench/general-criteria-3nov.json](judge-bench/general-criteria-3nov.json) | 3 Nov: the same bench run with the general criteria, which real runs do not use (kept for the record) |
+| [judge-bench/injection-wording.json](judge-bench/injection-wording.json) | old vs new injection wording on 13 labelled calls |
+| [prisma/asr_bench.json](prisma/asr_bench.json) | Prisma character error per language and phone line (18 utterances) |
+| [atlas/atlas.json](atlas/atlas.json) | phone-line atlas: 3,366 Prisma transcripts of IDs, amounts and dates, noise x SNR, re-read with fixed readers |
+| [atlas/atlas.html](atlas/atlas.html) | the same, as a page: survival per phrasing and SNR, and what an agent should do |
+| [live-gnani/digit-bug.json](live-gnani/digit-bug.json) | Prisma's transcript of a caller's '4821', and what each digit parser makes of it |
+| [languages/probe.json](languages/probe.json) | IDs, amounts and dates said in Tamil, Marathi, Telugu and Kannada: what Prisma wrote, and the readers' result (28) |
+| [languages/held-out.json](languages/held-out.json) | the same with new numbers, dates and voice, written after the readers (24) |
+| [proof/calls-v1.json](proof/calls-v1.json) | every proof call of v1: transcript, metrics, each verdict with its quote |
+| [proof/calls-v2.json](proof/calls-v2.json) | every proof call of v2: transcript, metrics, each verdict with its quote |
+| [proof/calls-v1-guard.json](proof/calls-v1-guard.json) | every proof call of v1-guard: transcript, metrics, each verdict with its quote |
+| [proof/calls-v3.json](proof/calls-v3.json) | every proof call of v3: transcript, metrics, each verdict with its quote |
+| [proof/calls-v3-guard.json](proof/calls-v3-guard.json) | every proof call of v3-guard: transcript, metrics, each verdict with its quote |
+| [proof/calls-v4.json](proof/calls-v4.json) | every proof call of v4: transcript, metrics, each verdict with its quote |
+| [qa-bench/seed-23.json](qa-bench/seed-23.json) | the auditor's accuracy on an earlier corpus (seed 23) |
+| [live-gnani/voiced-calls.json](live-gnani/voiced-calls.json) | 7 QA calls voiced by Timbre over a phone line and transcribed by Prisma, with verdicts |
+| [live-gnani/demo-emi-collection-20261102-020506-call.json](live-gnani/demo-emi-collection-20261102-020506-call.json) | v3 + Guard before the digit fix: '4821' became 'फोर थाउज़ंड एट हंडरेड ट्वेंटी वन', never verified |
+| [live-gnani/demo-emi-collection-20261102-020506-report.json](live-gnani/demo-emi-collection-20261102-020506-report.json) | v3 + Guard before the digit fix: '4821' became 'फोर थाउज़ंड एट हंडरेड ट्वेंटी वन', never verified |
+| [live-gnani/demo-emi-collection-20261102-021747-call.json](live-gnani/demo-emi-collection-20261102-021747-call.json) | v4 after the fix: verified, stated the account from the record, confirmed the date |
+| [live-gnani/demo-emi-collection-20261102-021747-report.json](live-gnani/demo-emi-collection-20261102-021747-report.json) | v4 after the fix: verified, stated the account from the record, confirmed the date |

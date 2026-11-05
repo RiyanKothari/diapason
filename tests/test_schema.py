@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from bhool.scenarios import Persona, load_suite
+from diapason.scenarios import Persona, load_suite
 
 SUITE = Path(__file__).parent.parent / "suites" / "emi_collection.yaml"
 

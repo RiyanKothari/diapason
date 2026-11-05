@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from bhool.channel import PRESETS, ChannelProfile, apply_channel
-from bhool.channel.sim import active_speech_power, gilbert_elliott, mulaw
+from diapason.channel import PRESETS, ChannelProfile, apply_channel
+from diapason.channel.sim import active_speech_power, gilbert_elliott, mulaw
 
 SR = 16000
 

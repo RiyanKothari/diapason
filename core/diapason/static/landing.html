@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diapason</title>
+<meta name="description" content="Crash-testing Indian voice agents before launch, guarding every sentence during the call, and auditing every call after. Built on Gnani Prisma, Timbre and Evon.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500&family=Noto+Sans+Gujarati:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+section{padding:88px 0 0}
+.sub{color:var(--muted);max-width:760px;margin:14px 0 0}
+/* hero */
+.hero{position:relative;padding:92px 0 24px;text-align:center}
+.hero .display{max-width:1060px;margin:22px auto 0;font-size:clamp(46px,8.4vw,112px)}
+.hero .lede{margin:24px auto 0}
+.hero .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+.hero canvas{display:block;width:100%;height:220px;margin-top:44px;mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.ticker{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:4px}
+/* replay */
+.replay{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:30px}
+@media (max-width:860px){.replay{grid-template-columns:1fr}}
+.side{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;min-height:580px;box-shadow:var(--shadow)}
+.side:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:var(--fail);box-shadow:0 0 22px var(--fail)}
+.side.g:before{background:var(--pass);box-shadow:0 0 22px var(--pass)}
+.side header{padding:16px 18px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;gap:12px}
+.side header .t{font-weight:600;color:var(--fg)}.side header .m{font:500 11px var(--mono);color:var(--muted);margin-top:2px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--fail);flex:none;box-shadow:0 0 12px var(--fail)}.side.g .dot{background:var(--pass);box-shadow:0 0 12px var(--pass)}
+.wave{display:flex;align-items:center;gap:2px;height:48px;padding:0 18px;margin:14px 0 4px;cursor:pointer}
+.wave i{flex:1;background:var(--raise-2);border-radius:2px;min-height:2px;transition:background .2s}
+.wave i.on{background:var(--fail)}.side.g .wave i.on{background:var(--pass)}
+.feed{padding:8px 18px 18px;display:flex;flex-direction:column;gap:10px;flex:1}
+.b{max-width:92%;padding:10px 13px;border-radius:16px;font-size:15px;color:var(--fg);opacity:0;transform:translateY(8px);transition:opacity .35s,transform .35s}
+.b.show{opacity:1;transform:none}
+.b.agent{align-self:flex-start;background:var(--raise-2);border:1px solid var(--line-2);border-bottom-left-radius:5px}
+.b.caller{align-self:flex-end;background:linear-gradient(135deg,rgba(110,141,255,.28),rgba(154,138,255,.2));border:1px solid rgba(154,138,255,.25);border-bottom-right-radius:5px}
+.b .who{display:block;font:500 10.5px var(--mono);color:var(--muted);margin-bottom:3px}
+.cut{display:block;color:var(--fail);text-decoration:line-through;text-decoration-thickness:2px;opacity:.85;font-size:14px;margin:4px 0}
+.gtag{display:inline-block;font:700 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--pass);border:1px solid rgba(67,227,152,.4);background:var(--pass-bg);border-radius:999px;padding:1px 8px;margin:4px 6px 2px 0}
+.after{display:block;border-left:2px solid var(--pass);padding-left:9px;margin-top:4px}
+.stamp{display:inline-block;font:700 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--fail);border-radius:6px;padding:2px 7px;margin:6px 6px 0 0;
+  box-shadow:0 0 18px -2px var(--fail);transform:scale(1.6) rotate(-4deg);opacity:0;transition:transform .25s cubic-bezier(.2,1.6,.4,1),opacity .2s}
+.stamp.show{transform:none;opacity:1}
+.verdict{margin:auto 18px 18px;padding:14px 16px;border-radius:14px;font-weight:600;opacity:0;transition:opacity .5s}
+.verdict.show{opacity:1}.verdict.fail{background:var(--fail-bg);color:var(--fail);border:1px solid rgba(255,95,115,.25)}
+.verdict.pass{background:var(--pass-bg);color:var(--pass);border:1px solid rgba(67,227,152,.25)}
+.verdict small{display:block;font-weight:400;color:var(--muted);margin-top:4px}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:22px}
+.controls .muted{font:500 12px var(--mono)}
+/* numbers */
+.bigkpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:30px}
+.bigkpis .kpi{padding:22px 22px 20px}.bigkpis .kpi b{font:400 54px/1 var(--serif);letter-spacing:-.02em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bigkpis .kpi span{font:400 13px/1.45 var(--sans);letter-spacing:0;text-transform:none;margin-top:10px}
+/* moments */
+.moments{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:30px}
+@media (max-width:860px){.moments{grid-template-columns:1fr}}
+.mo{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:10px;text-decoration:none;transition:transform .3s var(--ease),border-color .3s}
+.mo:hover{transform:translateY(-4px);border-color:rgba(154,138,255,.45)}
+.mo .k{font:600 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+.mo h3{font:400 30px/1.05 var(--serif);color:var(--fg);margin:0}.mo p{margin:0;color:var(--muted);font-size:15px}
+.mo ul{margin:4px 0 0;padding-left:18px;color:var(--text);font-size:14px}
+/* rating */
+.badges{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:30px}
+.badge{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:22px}
+.badge .n{font-weight:600;color:var(--fg)}.stars{font-size:34px;letter-spacing:5px;margin:6px 0 10px}
+.stars i{font-style:normal;color:var(--raise-2);transition:color .3s,text-shadow .3s}.stars i.on{color:var(--warn);text-shadow:0 0 18px rgba(255,193,77,.6)}
+.ax{display:grid;grid-template-columns:110px 1fr 26px;align-items:center;gap:10px;font:500 12px var(--mono);color:var(--muted);margin:6px 0}
+.ax .bar{height:6px;border-radius:9px;background:var(--raise-2);overflow:hidden}.ax .bar i{display:block;height:100%;width:0;background:var(--grad);transition:width .9s}
+.noise{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:22px;margin-top:16px;overflow-x:auto}
+.noise table{border-collapse:separate;border-spacing:6px;min-width:560px;width:auto}.noise th{font:500 11px var(--mono);color:var(--muted);text-align:left;padding:0 6px;border:0}
+.noise td{padding:0;border:0}
+.cell{width:40px;height:24px;border-radius:7px}.cell.ok{background:rgba(67,227,152,.55);box-shadow:0 0 12px -3px var(--pass)}.cell.no{background:rgba(255,95,115,.65);box-shadow:0 0 12px -3px var(--fail)}.cell.na{background:var(--raise-2)}
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:26px}
+.links a{display:block;padding:18px 20px;background:var(--panel);border:1px solid var(--line);border-radius:18px;text-decoration:none;transition:border-color .3s,transform .3s var(--ease)}
+.links a:hover{border-color:rgba(56,227,214,.45);transform:translateY(-2px)}
+.links a b{display:block;color:var(--fg);font-weight:600}.links a span{font-size:13px;color:var(--muted)}
+.evo{margin-top:30px}
+</style>
+</head>
+<body>
+<div class="room"><i></i></div>
+<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="dpg" x1="0" x2="1"><stop offset="0" stop-color="#b3a6ff"/><stop offset="1" stop-color="#38e3d6"/></linearGradient></defs></svg>
+<nav class="topnav"><div class="in">
+  <a class="logo" href="#"><svg viewBox="0 0 26 26"><circle class="fork-ring" cx="13" cy="9" r="8"/><circle class="fork-ring r2" cx="13" cy="9" r="8"/>
+    <path d="M9 2v9a4 4 0 0 0 8 0V2" fill="none" stroke="url(#dpg)" stroke-width="2.2" stroke-linecap="round"/><path d="M13 15v9" stroke="url(#dpg)" stroke-width="2.2" stroke-linecap="round"/></svg>Diapason</a>
+  <span class="sp"></span><a class="nl" href="watch.html">Demo</a><a class="nl hide-sm" href="#replay">Replay</a><a class="nl hide-sm" href="#evolution">v1 → v4</a><a class="nl hide-sm" href="studio.html">QA Studio</a>
+  <a class="nl hide-sm" href="proof/proof.html">Proof</a><a class="nl hide-sm" id="navRating" href="#rating">Rating</a><a class="btn sm" id="navSource" hidden>Source</a></div></nav>
+
+<header class="hero"><div class="wrap">
+  <span class="eyebrow">Voice-agent QA for India · built on Gnani Prisma · Timbre · Evon</span>
+  <h1 class="display">Your agent will talk to a million Indians. <i>Crash-test it first.</i></h1>
+  <p class="lede">Synthetic callers phone your voice agent in Hindi, Hinglish, Gujarati, Tamil, Marathi, Telugu, Kannada or English, on noisy 8 kHz lines, interrupting,
+  posing as someone else, trying to break its rules. A guard checks every sentence before the agent says it. An auditor scores every
+  call after, quoting the agent's own words for every fail. Every number on this page is measured.</p>
+  <div class="cta"><a class="btn primary" href="watch.html">▶ Watch the demo</a><a class="btn" href="#replay">See a call get caught</a><a class="btn" href="studio.html">Open the QA Studio</a></div>
+  <canvas id="wave" aria-hidden="true"></canvas>
+  <div class="ticker"><span class="chip">Hindi · Hinglish · Gujarati · Tamil · Marathi · Telugu · Kannada · English</span><span class="chip">Twilio · Exotel · Plivo streams</span><span class="chip">pre-launch · live · post-call</span></div>
+</div></header>
+
+<section id="replay"><div class="wrap">
+  <span class="eyebrow">One real test call, twice</span>
+  <h2 class="h2" id="replayTitle" style="margin-top:14px">Same caller. Same agent. One has a guard.</h2>
+  <p class="sub" id="replaySub"></p>
+  <div class="controls"><button class="primary" id="play">▶ Play the replay</button><span class="muted" id="clock">0.0 s</span>
+    <span class="muted">speech shown as transcribed · 🔊 plays the recorded call</span></div>
+  <div class="replay" id="sides"></div>
+</div></section>
+
+<section id="evolution"><div class="wrap">
+  <span class="eyebrow">Planted bugs, caught, then gone</span>
+  <h2 class="h2" style="margin-top:14px">v1 to v4, on the same calls</h2>
+  <p class="sub">v1 has eight bugs planted on purpose. The tests catch them, then each version removes them a different way: a better prompt, code that checks
+    every line before it's spoken, secrets kept out of the model's reach, and finally a model that only picks what to do while code says it.</p>
+  <div class="panel evo"><div class="scroll"><div class="matrix" id="matrix"></div></div>
+    <div class="legend"><span><i class="cellx caught">●</i>caught by the test</span><span><i class="cellx clean">✓</i>gone</span><span><i class="cellx flagged">✕</i>still there</span>
+      <span><i class="cellx nr">○</i>engineering bug that didn't show on this run (not counted as fixed)</span></div>
+    <p class="hint muted" id="evoNote" style="font-size:13px;margin:12px 0 0"></p></div>
+</div></section>
+
+<section><div class="wrap">
+  <span class="eyebrow">Measured, not claimed</span>
+  <h2 class="h2" style="margin-top:14px">The numbers</h2>
+  <p class="sub" id="kpiSub"></p>
+  <div class="bigkpis" id="kpis"></div>
+</div></section>
+
+<section><div class="wrap">
+  <span class="eyebrow">Three moments in a call's life</span>
+  <h2 class="h2" style="margin-top:14px">Before launch. During the call. After it.</h2>
+  <div class="moments" id="moments"></div>
+</div></section>
+
+<section id="rating"><div class="wrap">
+  <span class="eyebrow">Crash-test rating</span>
+  <h2 class="h2" style="margin-top:14px">Stars, from measured calls</h2>
+  <p class="sub">Five axes, each from judged test calls and a noise sweep. Overall is the mean, rounded down, and never more than one star above
+  compliance: a pleasant agent that breaks the rules is not a good agent.</p>
+  <div class="badges" id="badges"></div>
+  <div class="noise" id="noise" hidden></div>
+</div></section>
+
+<section><div class="wrap">
+  <span class="eyebrow">Go deeper</span>
+  <h2 class="h2" style="margin-top:14px">Every claim has a page</h2>
+  <div class="links" id="links"></div>
+</div></section>
+
+<footer class="site" style="margin-top:88px"><div class="wrap" id="foot"></div></footer>
+
+<script id="diapason-data" type="application/json">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById("diapason-data").textContent);
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const LABEL = {disclosure:"recording disclosure", disclosure_said:"disclosure missing", verification:"verifies before details", privacy:"privacy",
+  no_harassment:"threat / pressure", banned_phrases:"banned phrase", calling_hours:"false urgency", injection_resistance:"prompt injection",
+  language_match:"wrong language", factual_accuracy:"factual accuracy", tone:"tone", task_success:"task", slot_capture:"captured details",
+  account_privacy:"account told unverified", injection_guard:"leaked under attack", language_script:"wrong script"};
+const GLABEL = {banned_phrase:"threat removed", missing_disclosure:"disclosure added", account_before_verification:"held until verified",
+  secret_request:"secret request removed", language_mismatch:"translated", verification_digits:"digits not read back", translation_rejected:"bad translation held"};
+if (D.repo_url) { const a = $("navSource"); a.hidden = false; a.href = D.repo_url; }
+
+/* ---------------- hero resonance ---------------- */
+(function () {
+  const cv = $("wave"), cx = cv.getContext("2d"), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const fit = () => { const d = devicePixelRatio || 1; cv.width = cv.clientWidth * d; cv.height = cv.clientHeight * d; cx.setTransform(d, 0, 0, d, 0, 0); };
+  fit(); addEventListener("resize", fit);
+  const col = ["rgba(179,166,255,", "rgba(123,147,255,", "rgba(56,227,214,", "rgba(154,138,255,", "rgba(56,227,214,", "rgba(123,147,255,"];
+  let t = 0;
+  const draw = () => {
+    const w = cv.clientWidth, h = cv.clientHeight, mid = h / 2; t += still ? 0 : .012;
+    cx.clearRect(0, 0, w, h); cx.globalCompositeOperation = "lighter";
+    const burst = .55 + .45 * Math.pow(Math.max(0, Math.sin(t * .9)), 6);      // a voice comes in, then rings out like a struck fork
+    for (let k = 0; k < 6; k++) {
+      cx.beginPath();
+      for (let x = 0; x <= w; x += 3) {
+        const u = x / w, env = Math.pow(Math.sin(Math.PI * u), 1.6);
+        const y = mid + (Math.sin(u * (7 + k * 2.3) * Math.PI + t * (1.2 + k * .3) + k * 1.3) + .35 * Math.sin(u * (40 + k * 6) * Math.PI - t * 4) * burst)
+          * env * h * .32 * burst * (1 - k * .12);
+        x ? cx.lineTo(x, y) : cx.moveTo(x, y);
+      }
+      cx.strokeStyle = col[k] + (k ? .4 : .95) + ")"; cx.lineWidth = k ? 1.1 : 2.2; cx.shadowColor = col[k] + "1)"; cx.shadowBlur = k ? 8 : 20; cx.stroke();
+    }
+    cx.globalCompositeOperation = "source-over";
+    requestAnimationFrame(draw);
+  };
+  requestAnimationFrame(draw);
+})();
+
+/* ---------------- replay ---------------- */
+const R = D.replay;
+let T = 0, playing = false, last = 0;
+if (!R) { document.getElementById("replay").hidden = true; }
+else {
+  $("replaySub").textContent = R.sub;
+  $("sides").innerHTML = R.sides.map((s, k) => `<article class="side ${s.guarded ? "g" : ""}">
+    <header><span class="dot"></span><div><div class="t">${esc(s.label)}</div><div class="m">${esc(s.meta)}</div></div><span style="flex:1"></span>
+      ${s.audio ? `<button class="sm" data-a="${k}">🔊 Listen</button>` : ""}</header>
+    <div class="wave" data-k="${k}">${s.peaks.map((p) => `<i style="height:${Math.max(6, p * 100)}%"></i>`).join("")}</div>
+    <div class="feed" id="feed${k}">${s.turns.map((t) => `<div class="b ${t.who === "agent" ? "agent" : "caller"}" data-start="${t.start}">
+        <span class="who">${t.who === "agent" ? "agent" : "customer"} · ${t.start.toFixed(1)} s</span>
+        ${(t.guard || []).map((g) => `<span class="gtag">Guard · ${esc(GLABEL[g.rule] || g.rule)}</span>${g.before && g.action !== "added" ? `<span class="cut">${esc(g.before)}</span>` : ""}`).join("")}
+        <span class="${(t.guard || []).length ? "after" : ""}">${esc(t.text)}</span>
+        <div>${(t.flags || []).map((f) => `<span class="stamp">✕ ${esc(LABEL[f] || f)}</span>`).join("")}</div></div>`).join("")}</div>
+    <div class="verdict ${s.passed ? "pass" : "fail"}">${s.passed ? "✓ Passes" : "✕ Fails"} · ${esc(s.summary)}<small>${esc(s.note)}</small></div>
+  </article>`).join("");
+  const audios = R.sides.map((s) => s.audio ? new Audio(s.audio) : null);
+  document.querySelectorAll("[data-a]").forEach((b) => b.onclick = () => {
+    const a = audios[+b.dataset.a]; audios.forEach((x) => x && x !== a && x.pause());
+    if (a.paused) { a.currentTime = 0; a.play(); b.textContent = "■ Stop"; } else { a.pause(); b.textContent = "🔊 Listen"; }
+    a.onended = () => b.textContent = "🔊 Listen";
+  });
+  const render = () => {
+    $("clock").textContent = `${T.toFixed(1)} s of ${R.duration.toFixed(0)} s`;
+    R.sides.forEach((s, k) => {
+      document.querySelectorAll(`#feed${k} .b`).forEach((b) => {
+        const on = T >= +b.dataset.start; b.classList.toggle("show", on);
+        b.querySelectorAll(".stamp").forEach((st) => st.classList.toggle("show", T >= +b.dataset.start + 1.2));
+      });
+      const bars = document.querySelectorAll(`.wave[data-k="${k}"] i`);
+      bars.forEach((i, j) => i.classList.toggle("on", j / bars.length <= T / s.duration));
+      document.querySelectorAll(".verdict")[k].classList.toggle("show", T >= s.duration);
+    });
+  };
+  const step = (now) => {
+    if (!playing) return;
+    T = Math.min(R.duration, T + (now - last) / 1000 * R.speed); last = now; render();
+    if (T >= R.duration) { playing = false; $("play").textContent = "↺ Replay"; return; }
+    requestAnimationFrame(step);
+  };
+  const start = () => { if (T >= R.duration) T = 0; playing = true; last = performance.now(); $("play").textContent = "❚❚ Pause"; requestAnimationFrame(step); };
+  $("play").onclick = () => playing ? (playing = false, $("play").textContent = "▶ Play") : start();
+  render();
+  window.diapasonSeek = (t) => { playing = false; T = Math.max(0, Math.min(R.duration, t)); render(); };   // for screen recordings: jump to a moment
+  new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { start(); o.disconnect(); } }), {threshold: .35}).observe($("sides"));
+}
+
+/* ---------------- v1 -> v4 matrix ---------------- */
+const E = D.evolution;
+const CELL = { caught: "●", clean: "✓", flagged: "✕", missed: "✕", nr: "○", unjudged: "?", na: "·" };
+if (!E) { $("evolution").hidden = true; }
+else {
+  const vs = E.versions, m = $("matrix");
+  m.style.gridTemplateColumns = `minmax(220px,1.6fr) repeat(${vs.length}, minmax(86px,1fr))`;
+  m.innerHTML = `<div class="h">planted bug</div>${vs.map((v) => `<div class="h"><b>${esc(v.label)}</b><small>${esc(v.what)}</small></div>`).join("")}`
+    + E.bugs.map((b, i) => `<div class="bug">${esc(b.what)}</div>${vs.map((v, j) => { const c = b.cells[v.key] || "na";
+        return `<div class="cellx ${c}" style="transition-delay:${(i * vs.length + j) * 22}ms" title="${esc(v.label)} · ${esc(b.what)} · ${c}">${CELL[c]}</div>`; }).join("")}`).join("")
+    + `<div class="bug muted">score</div>${vs.map((v) => `<div class="score">${v.key === "v1" ? `${v.good}/${v.of} caught` : `${v.good}/${v.of} gone`}
+        <div class="meter"><i data-w="${v.of ? 100 * v.good / v.of : 0}"></i></div><span class="muted" style="font-size:11px">${v.pass_rate == null ? "" : `${Math.round(v.pass_rate * 100)}% calls pass`}</span></div>`).join("")}`;
+  $("evoNote").textContent = `From the accuracy proof of ${E.generated} (${E.mode}): Evon plays each agent and the callers, and judges every call; code checks run alongside.`;
+  new IntersectionObserver((es, o) => es.forEach((x) => { if (!x.isIntersecting) return; o.disconnect(); m.classList.add("show");
+    m.querySelectorAll(".meter i").forEach((i) => { i.style.width = i.dataset.w + "%"; }); }), { threshold: .2 }).observe(m);
+}
+
+/* ---------------- counters ---------------- */
+$("kpiSub").textContent = D.kpi_note;
+$("kpis").innerHTML = D.kpis.map((k) => `<div class="kpi"><b data-to="${k.value}" data-suffix="${esc(k.suffix || "")}" data-den="${esc(k.den || "")}">${esc(k.display)}</b><span>${esc(k.label)}</span></div>`).join("");
+new IntersectionObserver((es, o) => es.forEach((e) => { if (!e.isIntersecting) return; o.disconnect();
+  document.querySelectorAll("#kpis .kpi b").forEach((b) => { const to = +b.dataset.to, t0 = performance.now();
+    if (isNaN(to)) return;
+    const tick = (n) => { const p = Math.min(1, (n - t0) / 1100), v = to * (1 - Math.pow(1 - p, 3));
+      b.textContent = (Number.isInteger(to) ? Math.round(v) : v.toFixed(1)) + (b.dataset.den ? "/" + b.dataset.den : "") + b.dataset.suffix;
+      if (p < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
+}), {threshold: .4}).observe($("kpis"));
+
+/* ---------------- moments ---------------- */
+$("moments").innerHTML = D.moments.map((m) => `<a class="mo" href="${esc(m.href)}"><span class="k">${esc(m.k)}</span><h3>${esc(m.title)}</h3><p>${esc(m.text)}</p>
+  <ul>${m.points.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></a>`).join("");
+
+/* ---------------- rating + noise ---------------- */
+if (!D.rating) { $("rating").hidden = true; $("navRating").hidden = true; }
+else {
+  $("badges").innerHTML = Object.entries(D.rating).map(([n, r]) => `<div class="badge"><div class="n">${esc(n)}</div>
+    <div class="stars" data-n="${r.overall}">${[0,1,2,3,4].map(() => "<i>★</i>").join("")}</div>
+    ${Object.entries(r.axes).map(([a, v]) => `<div class="ax"><span>${esc(a)}</span><span class="bar"><i data-w="${v === null ? 0 : v * 20}"></i></span><span>${v === null ? "–" : v}</span></div>`).join("")}</div>`).join("");
+  new IntersectionObserver((es, o) => es.forEach((e) => { if (!e.isIntersecting) return; o.disconnect();
+    document.querySelectorAll(".stars").forEach((s) => [...s.children].forEach((i, j) => setTimeout(() => i.classList.toggle("on", j < +s.dataset.n), 180 * j)));
+    document.querySelectorAll(".ax .bar i").forEach((i) => i.style.width = i.dataset.w + "%");
+  }), {threshold: .3}).observe($("badges"));
+}
+if (D.stress) {
+  const S = D.stress; $("noise").hidden = false;
+  $("noise").innerHTML = `<b style="color:var(--fg)">Noise breaking point</b> <span style="color:var(--muted);font-size:13px">· green: the agent heard every turn · red: it missed the caller</span>
+    <table><tr><th></th><th></th>${S.levels.map((l) => `<th>${l} dB</th>`).join("")}</tr>
+    ${Object.entries(S.versions).map(([v, r]) => S.noises.map((n, i) => `<tr><th>${i ? "" : esc(v)}</th><th>${esc(n)}</th>${S.levels.map((l) => {
+      const x = r[n][String(l)]; return `<td><div class="cell ${x === true ? "ok" : x === false ? "no" : "na"}" title="${esc(v)} · ${esc(n)} · ${l} dB"></div></td>`; }).join("")}</tr>`).join("")).join("")}</table>`;
+}
+
+/* ---------------- links + footer ---------------- */
+$("links").innerHTML = D.links.map((l) => `<a href="${esc(l.href)}"><b>${esc(l.title)}</b><span>${esc(l.text)}</span></a>`).join("");
+$("foot").innerHTML = esc(D.footer);
+</script>
+</body>
+</html>

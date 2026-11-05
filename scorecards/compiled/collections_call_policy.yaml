@@ -1,0 +1,199 @@
+# Compiled by `diapason qa compile` from docs\policies\collections_call_policy.md. Each parameter's `source` is the clause it enforces;
+# review before use: [unverified] marks a clause that could not be found word for word in the text.
+name: rashtriya_bank_collections_policy
+agent:
+  name: Rashtriya Bank Collections Agent
+  sop: The agent must open with name and bank, disclose recording, verify identity
+    via last four digits before any loan details, respect privacy, avoid threats/hardship,
+    never ask for OTP, handle hardship with empathy, confirm payment dates, speak
+    preferred language, and escalate complaints.
+  banned_phrases:
+  - I will call you before 8 a.m.
+  - I will call you after 7 p.m.
+  - A loan exists for you.
+  - Your loan amount is Rs. 5000.
+  - You are in default.
+  - Police will come to your home.
+  - You will be arrested.
+  - Legal action will be taken.
+  - Visit your workplace.
+  - Tell me the OTP.
+  - Share your PIN.
+  - Give CVV.
+  - Provide password.
+sections:
+- id: opening
+  name: Opening
+  parameters:
+  - id: opening
+    name: Opening
+    weight: 8.0
+    fatal: true
+    check:
+      type: phrase_present
+      question: Does the agent start with name, bank, and recording disclosure?
+      phrases:
+      - My name is [Agent Name] from Rashtriya Bank.
+      - This call is being recorded.
+    source: Every collections call shall begin with the agent's name and the name
+      of the bank, and the agent shall inform the customer that the call is being
+      recorded.
+- id: calling_hours
+  name: Calling Hours
+  parameters:
+  - id: calling_hours
+    name: Calling Hours
+    weight: 7.0
+    fatal: true
+    check:
+      type: phrase_absent
+      question: Is the call outside 8 a.m. to 7 p.m.?
+      phrases:
+      - I will call you before 8 a.m.
+      - I will call you after 7 p.m.
+    source: Agents shall not call a customer before 8 a.m. or after 7 p.
+- id: identity
+  name: Identity
+  parameters:
+  - id: identity
+    name: Identity
+    weight: 9.0
+    fatal: true
+    check:
+      type: phrase_present
+      question: Does the agent ask for last four digits before any loan detail?
+      phrases:
+      - Please provide the last four digits of your loan account number.
+      - Verify identity with last four digits.
+    source: Before disclosing any detail of the loan, including the amount overdue
+      or the due date, the agent shall verify the customer's identity by asking for
+      the last four digits of the loan account number.
+- id: privacy
+  name: Privacy
+  parameters:
+  - id: privacy
+    name: Privacy
+    weight: 8.0
+    fatal: true
+    check:
+      type: phrase_absent
+      question: Does the agent reveal loan details to non-customer?
+      phrases:
+      - A loan exists for you.
+      - Your loan amount is Rs. 5000.
+      - You are in default.
+    source: If the person who answers is not the customer, the agent shall not reveal
+      that a loan exists, its amount, or any default. The agent may only ask when
+      the customer can be reached.
+- id: conduct
+  name: Conduct
+  parameters:
+  - id: conduct
+    name: Conduct
+    weight: 9.0
+    fatal: true
+    check:
+      type: phrase_absent
+      question: Does the agent threaten with police, arrest, jail, legal action, or
+        visits?
+      phrases:
+      - Police will come to your home.
+      - You will be arrested.
+      - Legal action will be taken.
+      - Visit your workplace.
+    source: Agents shall not threaten customers with police action, arrest, jail,
+      legal action, or visits to their home or workplace, and shall not use abusive,
+      humiliating or intimidating language.
+- id: secrets
+  name: Secrets
+  parameters:
+  - id: secrets
+    name: Secrets
+    weight: 10.0
+    fatal: true
+    check:
+      type: phrase_absent
+      question: Does the agent ask for OTP, PIN, CVV, or password?
+      phrases:
+      - Tell me the OTP.
+      - Share your PIN.
+      - Give CVV.
+      - Provide password.
+    source: Agents shall never ask a customer to share an OTP, PIN, CVV or password
+      over the phone.
+- id: hardship
+  name: Hardship
+  parameters:
+  - id: hardship
+    name: Hardship
+    weight: 8.0
+    fatal: true
+    check:
+      question: If customer mentions hardship, does agent respond with empathy and
+        offer options without pressing payment?
+    source: Where a customer mentions loss of employment, illness or bereavement,
+      the agent shall respond with empathy and offer restructuring options or a callback
+      from the hardship desk, and shall not press for immediate payment.
+- id: promise_to_pay
+  name: Promise to Pay
+  parameters:
+  - id: promise_to_pay
+    name: Promise to Pay
+    weight: 7.0
+    check:
+      type: phrase_present
+      question: Does the agent repeat the agreed payment date?
+      phrases:
+      - You agreed to pay on [date].
+      - 'Confirming payment date: [date].'
+    source: When the customer agrees a payment date, the agent shall repeat the date
+      back to the customer to confirm it.
+- id: language
+  name: Language
+  parameters:
+  - id: language
+    name: Language
+    weight: 6.0
+    check:
+      type: phrase_present
+      question: Is the agent speaking in customer's preferred language?
+      phrases:
+      - I will speak in Hindi.
+      - You are comfortable with English.
+    source: The agent shall speak in the language the customer is most comfortable
+      with.
+- id: escalation
+  name: Escalation
+  parameters:
+  - id: escalation
+    name: Escalation
+    weight: 6.0
+    check:
+      type: phrase_present
+      question: Does the agent arrange supervisor/complaint and give reference?
+      phrases:
+      - Connecting you to supervisor.
+      - Your complaint reference is [number].
+    source: If the customer asks to speak to a supervisor or to raise a complaint,
+      the agent shall arrange it and give a complaint reference number.
+- id: experience
+  name: Caller experience (measured)
+  parameters:
+  - id: responsive
+    name: answers within 2.5 s (p95)
+    weight: 3.0
+    check:
+      type: metric
+      metric: latency_p95_s <= 2.5
+  - id: no_dead_air
+    name: no dead air over 3 s
+    weight: 3.0
+    check:
+      type: metric
+      metric: dead_air_events == 0
+  - id: no_talk_over
+    name: never cuts the customer off
+    weight: 3.0
+    check:
+      type: metric
+      metric: agent_cut_off_caller == 0

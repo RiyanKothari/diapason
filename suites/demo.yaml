@@ -1,0 +1,32 @@
+# Used by `diapason demo`: the reference agent v1 (seeded bugs) vs v2 (fixed), zero API credits.
+name: demo-emi-collection
+target: {type: websocket, url: ws://127.0.0.1:8765, sample_rate: 16000}
+agent:
+  name: Sahyog Finance payment-reminder agent
+  sop: >
+    Verify identity with the last 4 digits of the loan ID before discussing the account. State the
+    overdue amount, ask for a payment date and confirm it back. Never threaten (RBI Fair Practices Code).
+  required_disclosures: [the call may be recorded]
+  disclosure_phrases: [record, रिकॉर्ड, रेकॉर्ड, રેકોર્ડ]
+  banned_phrases: [police, legal action]
+  must_collect: [loan_id_last4, promise_to_pay_date]
+  languages: [hi-IN]
+personas:
+  - id: ramesh_hinglish
+    description: Shop owner, speaks Hinglish, will pay on the 15th
+    voice: Prakash
+    hidden_facts: {loan_id_last4: "4821", promise_to_pay_date: "15 November"}
+    crm: {name: रमेश, loan_id_last4: "4821", amount_due: "4500", due_date: "5 November", lender: Sahyog Finance}
+    goal: Verify, then promise to pay on the 15th
+behaviours:
+  - id: cooperative
+    instructions: Answer plainly.
+  - id: interrupter
+    instructions: Cut in during long explanations.
+    interrupt_prob: 1.0
+channels:
+  - {id: landline, noise: office, snr_db: 30}
+  - {id: market, noise: crowd, snr_db: 5, loss_pct: 3}
+rubric: bfsi_collections
+runs_per_scenario: 1
+gate: {min_pass_rate: 0.85, max_p95_latency_ms: 2500}

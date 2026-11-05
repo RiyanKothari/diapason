@@ -6,9 +6,9 @@ import httpx
 import numpy as np
 import pytest
 
-from bhool import gnani
-from bhool.audio import wav_bytes
-from bhool.gnani import Evon, GnaniError, Prisma, Timbre
+from diapason import gnani
+from diapason.audio import wav_bytes
+from diapason.gnani import Evon, GnaniError, Prisma, Timbre
 
 
 @pytest.fixture(autouse=True)
@@ -89,3 +89,20 @@ def test_evon_json_tolerates_fences():
     evon = Evon(base_url="http://evon.test/v1", model="evon")
     evon.http = mock(handler)
     assert evon.chat_json([{"role": "user", "content": "x"}]) == {"pass": True}
+
+
+def test_one_active_request_limit_is_a_short_queue_not_a_backoff(monkeypatch):
+    from diapason import gnani
+    sleeps, calls = [], {"n": 0}
+    monkeypatch.setattr(gnani.time, "sleep", lambda s: sleeps.append(s))
+
+    def handler(req):
+        calls["n"] += 1
+        if calls["n"] <= 5:   # seen live: two STT users on one key
+            return httpx.Response(429, json={"detail": {"error_code": "RATE_LIMITED",
+                                  "message": "Only 1 active request is allowed at a time."}})
+        return httpx.Response(200, json={"transcript": "ok"})
+
+    resp = gnani._post_with_retry(httpx.Client(transport=httpx.MockTransport(handler)), "https://x/stt/v3")
+    assert resp.status_code == 200 and calls["n"] == 6
+    assert max(sleeps) < 0.2                   # polled, not 0.5 -> 1 -> 2 -> 4 s backoff that gives up after 4

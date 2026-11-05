@@ -1,0 +1,470 @@
+[
+ {
+  "split": "source",
+  "lang": "ta-IN",
+  "kind": "id",
+  "style": "numerals",
+  "sentence": "என் கடனின் கடைசி நான்கு இலக்கங்கள் 4821.",
+  "gold": "4821",
+  "heard": "என் கடனின் கடைசி நான்கு இலக்கங்கள் நான்கு ஆயிரத்தி எண்ணூற்றி இருபத்தொன்று"
+ },
+ {
+  "split": "source",
+  "lang": "ta-IN",
+  "kind": "id",
+  "style": "digit words",
+  "sentence": "என் கடனின் கடைசி நான்கு இலக்கங்கள் நான்கு எட்டு இரண்டு ஒன்று.",
+  "gold": "4821",
+  "heard": "என் கடனின் கடைசி நான்கு இலக்கங்கள் நான்கு எட்டு இரண்டு ஒன்று"
+ },
+ {
+  "split": "source",
+  "lang": "ta-IN",
+  "kind": "id",
+  "style": "English digit words",
+  "sentence": "என் கடனின் கடைசி நான்கு இலக்கங்கள் four eight two one.",
+  "gold": "4821",
+  "heard": "என் கடனின் கடைசி நான்கு இலக்கங்கள் ஃபோர் எய்ட் டூ ஒன்"
+ },
+ {
+  "split": "source",
+  "lang": "ta-IN",
+  "kind": "amount",
+  "style": "numerals",
+  "sentence": "உங்களுக்கு 4500 ரூபாய் நிலுவையில் உள்ளது.",
+  "gold": "4500",
+  "heard": "உங்களுக்கு நான்கு ஆயிரத்தி ஐநூறு ரூபாய் நிலுவையில் உள்ளது"
+ },
+ {
+  "split": "source",
+  "lang": "ta-IN",
+  "kind": "amount",
+  "style": "words",
+  "sentence": "உங்களுக்கு நான்காயிரத்து ஐநூறு ரூபாய் நிலுவையில் உள்ளது.",
+  "gold": "4500",
+  "heard": "உங்களுக்கு நான்காயிரத்தி ஐநூறு ரூபாய் நிலுவையில் உள்ளது"
+ },
+ {
+  "split": "source",
+  "lang": "ta-IN",
+  "kind": "date",
+  "style": "numerals + month",
+  "sentence": "நான் 15 நவம்பர் அன்று பணம் செலுத்துவேன்.",
+  "gold": "d15,m11",
+  "heard": "நான் பதினைந்து நவம்பர் அன்று பணம் செலுத்துவேன்"
+ },
+ {
+  "split": "source",
+  "lang": "ta-IN",
+  "kind": "date",
+  "style": "words + month",
+  "sentence": "நான் பதினைந்து நவம்பர் அன்று பணம் செலுத்துவேன்.",
+  "gold": "d15,m11",
+  "heard": "நான் பதினைந்து நவம்பர் அன்று பணம் செலுத்துவேன்"
+ },
+ {
+  "split": "source",
+  "lang": "mr-IN",
+  "kind": "id",
+  "style": "numerals",
+  "sentence": "माझ्या कर्जाचे शेवटचे चार अंक 4821 आहेत.",
+  "gold": "4821",
+  "heard": "माझ्या कर्जाचे शेवटचे चार अंक चार हजार आठ शे एकवीस आहेत"
+ },
+ {
+  "split": "source",
+  "lang": "mr-IN",
+  "kind": "id",
+  "style": "digit words",
+  "sentence": "माझ्या कर्जाचे शेवटचे चार अंक चार आठ दोन एक आहेत.",
+  "gold": "4821",
+  "heard": "माझ्या कर्जाचे शेवटचे चार अंक चार आठ दोन एक आहेत"
+ },
+ {
+  "split": "source",
+  "lang": "mr-IN",
+  "kind": "id",
+  "style": "English digit words",
+  "sentence": "माझ्या कर्जाचे शेवटचे चार अंक four eight two one आहेत.",
+  "gold": "4821",
+  "heard": "माझ्या कर्जाचे शेवटचे चार अंक फोर एट टू वन आहेत"
+ },
+ {
+  "split": "source",
+  "lang": "mr-IN",
+  "kind": "amount",
+  "style": "numerals",
+  "sentence": "तुमचे 4500 रुपये बाकी आहेत.",
+  "gold": "4500",
+  "heard": "तुमचे चार हजार पाचशे रुपये बाकी आहेत"
+ },
+ {
+  "split": "source",
+  "lang": "mr-IN",
+  "kind": "amount",
+  "style": "words",
+  "sentence": "तुमचे चार हजार पाचशे रुपये बाकी आहेत.",
+  "gold": "4500",
+  "heard": "तुमचे चार हजार पाचशे रुपये बाकी आहेत"
+ },
+ {
+  "split": "source",
+  "lang": "mr-IN",
+  "kind": "date",
+  "style": "numerals + month",
+  "sentence": "मी 15 नोव्हेंबरला पैसे भरीन.",
+  "gold": "d15,m11",
+  "heard": "मी पंधरा नोव्हेंबरला पैसे भरीन"
+ },
+ {
+  "split": "source",
+  "lang": "mr-IN",
+  "kind": "date",
+  "style": "words + month",
+  "sentence": "मी पंधरा नोव्हेंबरला पैसे भरीन.",
+  "gold": "d15,m11",
+  "heard": "मी पंधरा नोव्हेंबरला पैसे भरीन"
+ },
+ {
+  "split": "source",
+  "lang": "te-IN",
+  "kind": "id",
+  "style": "numerals",
+  "sentence": "నా లోన్ చివరి నాలుగు అంకెలు 4821.",
+  "gold": "4821",
+  "heard": "నా లోన్ చివరి నాలుగు అంకెలు నాలుగు వేల ఎనిమిది వందల ఇరవై ఒకటి"
+ },
+ {
+  "split": "source",
+  "lang": "te-IN",
+  "kind": "id",
+  "style": "digit words",
+  "sentence": "నా లోన్ చివరి నాలుగు అంకెలు నాలుగు ఎనిమిది రెండు ఒకటి.",
+  "gold": "4821",
+  "heard": "నా లోన్ చివరి నాలుగు అంకెలు నాలుగు ఎనిమిది రెండు ఒకటి"
+ },
+ {
+  "split": "source",
+  "lang": "te-IN",
+  "kind": "id",
+  "style": "English digit words",
+  "sentence": "నా లోన్ చివరి నాలుగు అంకెలు four eight two one.",
+  "gold": "4821",
+  "heard": "నా లోన్ చివరి నాలుగు అంకెలు ఫోర్ ఎయిట్ టూ వన్"
+ },
+ {
+  "split": "source",
+  "lang": "te-IN",
+  "kind": "amount",
+  "style": "numerals",
+  "sentence": "మీకు 4500 రూపాయలు బాకీ ఉంది.",
+  "gold": "4500",
+  "heard": "మీకు నాలుగు వేల ఐదు వందలు రూపాయలు బాకీ ఉంది"
+ },
+ {
+  "split": "source",
+  "lang": "te-IN",
+  "kind": "amount",
+  "style": "words",
+  "sentence": "మీకు నాలుగు వేల ఐదు వందల రూపాయలు బాకీ ఉంది.",
+  "gold": "4500",
+  "heard": "మీకు నాలుగు వేల ఐదు వందల రూపాయలు బాకీ ఉంది"
+ },
+ {
+  "split": "source",
+  "lang": "te-IN",
+  "kind": "date",
+  "style": "numerals + month",
+  "sentence": "నేను 15 నవంబర్ న చెల్లిస్తాను.",
+  "gold": "d15,m11",
+  "heard": "నేను పదిహేను నవంబర్ న చెల్లిస్తాను"
+ },
+ {
+  "split": "source",
+  "lang": "te-IN",
+  "kind": "date",
+  "style": "words + month",
+  "sentence": "నేను పదిహేను నవంబర్ న చెల్లిస్తాను.",
+  "gold": "d15,m11",
+  "heard": "నేను పదిహేను నవంబర్ న చెల్లిస్తాను"
+ },
+ {
+  "split": "source",
+  "lang": "kn-IN",
+  "kind": "id",
+  "style": "numerals",
+  "sentence": "ನನ್ನ ಸಾಲದ ಕೊನೆಯ ನಾಲ್ಕು ಅಂಕೆಗಳು 4821.",
+  "gold": "4821",
+  "heard": "ನನ್ನ ಸಾಲದ ಕೊನೆಯ ನಾಲ್ಕು ಅಂಕೆಗಳು ನಾಲ್ಕು ಸಾವಿರದ ಎಂಟುನೂರ ಇಪ್ಪತ್ತೊಂದು"
+ },
+ {
+  "split": "source",
+  "lang": "kn-IN",
+  "kind": "id",
+  "style": "digit words",
+  "sentence": "ನನ್ನ ಸಾಲದ ಕೊನೆಯ ನಾಲ್ಕು ಅಂಕೆಗಳು ನಾಲ್ಕು ಎಂಟು ಎರಡು ಒಂದು.",
+  "gold": "4821",
+  "heard": "ನನ್ನ ಸಾಲದ ಕೊನೆಯ ನಾಲ್ಕು ಅಂಕೆಗಳು ನಾಲ್ಕು ಎಂಟು ಎರಡು ಒಂದು"
+ },
+ {
+  "split": "source",
+  "lang": "kn-IN",
+  "kind": "id",
+  "style": "English digit words",
+  "sentence": "ನನ್ನ ಸಾಲದ ಕೊನೆಯ ನಾಲ್ಕು ಅಂಕೆಗಳು four eight two one.",
+  "gold": "4821",
+  "heard": "ನನ್ನ ಸಾಲದ ಕೊನೆಯ ನಾಲ್ಕು ಅಂಕೆಗಳು ಫೋರ್ ಏಟ್ ಟು ಒನ್"
+ },
+ {
+  "split": "source",
+  "lang": "kn-IN",
+  "kind": "amount",
+  "style": "numerals",
+  "sentence": "ನಿಮಗೆ 4500 ರೂಪಾಯಿ ಬಾಕಿ ಇದೆ.",
+  "gold": "4500",
+  "heard": "ನಿಮಗೆ ನಾಲ್ಕು ಸಾವಿರದ ಐನೂರು ರೂಪಾಯಿ ಬಾಕಿಯಿದೆ"
+ },
+ {
+  "split": "source",
+  "lang": "kn-IN",
+  "kind": "amount",
+  "style": "words",
+  "sentence": "ನಿಮಗೆ ನಾಲ್ಕು ಸಾವಿರದ ಐನೂರು ರೂಪಾಯಿ ಬಾಕಿ ಇದೆ.",
+  "gold": "4500",
+  "heard": "ನಿಮಗೆ ನಾಲ್ಕು ಸಾವಿರದ ಐನೂರು ರೂಪಾಯಿ ಬಾಕಿಯಿದೆ"
+ },
+ {
+  "split": "source",
+  "lang": "kn-IN",
+  "kind": "date",
+  "style": "numerals + month",
+  "sentence": "ನಾನು 15 ನವೆಂಬರ್ ರಂದು ಪಾವತಿಸುತ್ತೇನೆ.",
+  "gold": "d15,m11",
+  "heard": "ನಾನು ಹದಿನೈದು ನವೆಂಬರಂದು ಪಾವತಿಸುತ್ತೇನೆ"
+ },
+ {
+  "split": "source",
+  "lang": "kn-IN",
+  "kind": "date",
+  "style": "words + month",
+  "sentence": "ನಾನು ಹದಿನೈದು ನವೆಂಬರ್ ರಂದು ಪಾವತಿಸುತ್ತೇನೆ.",
+  "gold": "d15,m11",
+  "heard": "ನಾನು ಹದಿನೈದು ನವೆಂಬರಂದು ಪಾವತಿಸುತ್ತೇನೆ"
+ },
+ {
+  "split": "held_out",
+  "lang": "ta-IN",
+  "kind": "id",
+  "style": "numerals",
+  "sentence": "என் கணக்கு எண்ணின் கடைசி நான்கு இலக்கங்கள் 5519.",
+  "gold": "5519",
+  "heard": "என் கணக்கு எண்ணின் கடைசி நான்கு இலக்கங்கள் ஐந்து ஆயிரத்தி ஐநூற்றி பத்தொன்பது"
+ },
+ {
+  "split": "held_out",
+  "lang": "ta-IN",
+  "kind": "id",
+  "style": "digit words",
+  "sentence": "கடைசி நான்கு இலக்கங்கள் ஏழு ஏழு மூன்று பூஜ்ஜியம்.",
+  "gold": "7730",
+  "heard": "கடைசி நான்கு இலக்கங்கள் ஏழு ஏழு மூன்று பூஜ்ஜியம்"
+ },
+ {
+  "split": "held_out",
+  "lang": "ta-IN",
+  "kind": "amount",
+  "style": "numerals",
+  "sentence": "நிலுவைத் தொகை 6100 ரூபாய்.",
+  "gold": "6100",
+  "heard": "நிலுவைத் தொகை ஆறு ஆயிரத்தி நூறு ரூபாய்"
+ },
+ {
+  "split": "held_out",
+  "lang": "ta-IN",
+  "kind": "amount",
+  "style": "words",
+  "sentence": "நிலுவைத் தொகை மூவாயிரத்து இருநூறு ரூபாய்.",
+  "gold": "3200",
+  "heard": "நிலுவைத் தொகை மூவாயிரத்து இருநூறு ரூபாய்"
+ },
+ {
+  "split": "held_out",
+  "lang": "ta-IN",
+  "kind": "date",
+  "style": "numerals + month",
+  "sentence": "நான் 5 டிசம்பர் அன்று கட்டுவேன்.",
+  "gold": "d5,m12",
+  "heard": "நான் ஐந்து டிசம்பர் அன்று கட்டுவேன்"
+ },
+ {
+  "split": "held_out",
+  "lang": "ta-IN",
+  "kind": "date",
+  "style": "words + month",
+  "sentence": "நான் இருபது நவம்பர் அன்று கட்டுவேன்.",
+  "gold": "d20,m11",
+  "heard": "நான் இருபது நவம்பர் அன்று கட்டுவேன்"
+ },
+ {
+  "split": "held_out",
+  "lang": "mr-IN",
+  "kind": "id",
+  "style": "numerals",
+  "sentence": "माझ्या खात्याचे शेवटचे चार अंक 5519 आहेत.",
+  "gold": "5519",
+  "heard": "माझ्या खात्याचे शेवटचे चार अंक पाच हजार पाच शे एकोणीस आहेत"
+ },
+ {
+  "split": "held_out",
+  "lang": "mr-IN",
+  "kind": "id",
+  "style": "digit words",
+  "sentence": "शेवटचे चार अंक सात सात तीन शून्य आहेत.",
+  "gold": "7730",
+  "heard": "शेवटचे चार अंक सात सात तीन शून्य आहेत"
+ },
+ {
+  "split": "held_out",
+  "lang": "mr-IN",
+  "kind": "amount",
+  "style": "numerals",
+  "sentence": "तुमची थकबाकी 6100 रुपये आहे.",
+  "gold": "6100",
+  "heard": "तुमची थकबाकी सहा हजार शंभर रुपये आहे"
+ },
+ {
+  "split": "held_out",
+  "lang": "mr-IN",
+  "kind": "amount",
+  "style": "words",
+  "sentence": "तुमची थकबाकी तीन हजार दोनशे रुपये आहे.",
+  "gold": "3200",
+  "heard": "तुमची थकबाकी तीन हजार दोन शे रुपये आहे"
+ },
+ {
+  "split": "held_out",
+  "lang": "mr-IN",
+  "kind": "date",
+  "style": "numerals + month",
+  "sentence": "मी 5 डिसेंबरला पैसे भरीन.",
+  "gold": "d5,m12",
+  "heard": "मी पाच डिसेंबरला पैसे भरीन"
+ },
+ {
+  "split": "held_out",
+  "lang": "mr-IN",
+  "kind": "date",
+  "style": "words + month",
+  "sentence": "मी वीस नोव्हेंबरला पैसे भरीन.",
+  "gold": "d20,m11",
+  "heard": "मी वीस नोव्हेंबरला पैसे भरीन"
+ },
+ {
+  "split": "held_out",
+  "lang": "te-IN",
+  "kind": "id",
+  "style": "numerals",
+  "sentence": "నా ఖాతా చివరి నాలుగు అంకెలు 5519.",
+  "gold": "5519",
+  "heard": "నా ఖాతా చివరి నాలుగు అంకెలు ఐదు వేల ఐదు వందల పందొమ్మిది"
+ },
+ {
+  "split": "held_out",
+  "lang": "te-IN",
+  "kind": "id",
+  "style": "digit words",
+  "sentence": "చివరి నాలుగు అంకెలు ఏడు ఏడు మూడు సున్నా.",
+  "gold": "7730",
+  "heard": "చివరి నాలుగు అంకెలు ఏడు ఏడు మూడు సున్నా"
+ },
+ {
+  "split": "held_out",
+  "lang": "te-IN",
+  "kind": "amount",
+  "style": "numerals",
+  "sentence": "మీ బకాయి 6100 రూపాయలు.",
+  "gold": "6100",
+  "heard": "మీ బకాయి ఆరు వేల వంద రూపాయలు"
+ },
+ {
+  "split": "held_out",
+  "lang": "te-IN",
+  "kind": "amount",
+  "style": "words",
+  "sentence": "మీ బకాయి మూడు వేల రెండు వందల రూపాయలు.",
+  "gold": "3200",
+  "heard": "మీ బకాయి మూడు వేల రెండు వందల రూపాయలు"
+ },
+ {
+  "split": "held_out",
+  "lang": "te-IN",
+  "kind": "date",
+  "style": "numerals + month",
+  "sentence": "నేను 5 డిసెంబర్ న చెల్లిస్తాను.",
+  "gold": "d5,m12",
+  "heard": "నేను ఐదు డిసెంబర్ న చెల్లిస్తాను"
+ },
+ {
+  "split": "held_out",
+  "lang": "te-IN",
+  "kind": "date",
+  "style": "words + month",
+  "sentence": "నేను ఇరవై నవంబర్ న చెల్లిస్తాను.",
+  "gold": "d20,m11",
+  "heard": "నేను ఇరవై నవంబర్ న చెల్లిస్తాను"
+ },
+ {
+  "split": "held_out",
+  "lang": "kn-IN",
+  "kind": "id",
+  "style": "numerals",
+  "sentence": "ನನ್ನ ಖಾತೆಯ ಕೊನೆಯ ನಾಲ್ಕು ಅಂಕೆಗಳು 5519.",
+  "gold": "5519",
+  "heard": "ನನ್ನ ಖಾತೆಯ ಕೊನೆಯ ನಾಲ್ಕು ಅಂಕಿಗಳು ಐದು ಸಾವಿರದ ಐನೂರ ಹತ್ತೊಂಬತ್ತು"
+ },
+ {
+  "split": "held_out",
+  "lang": "kn-IN",
+  "kind": "id",
+  "style": "digit words",
+  "sentence": "ಕೊನೆಯ ನಾಲ್ಕು ಅಂಕೆಗಳು ಏಳು ಏಳು ಮೂರು ಸೊನ್ನೆ.",
+  "gold": "7730",
+  "heard": "ಕೊನೆಯ ನಾಲ್ಕು ಅಂಕೆಗಳು ಏಳು ಏಳು ಮೂರು ಸೊನ್ನೆ"
+ },
+ {
+  "split": "held_out",
+  "lang": "kn-IN",
+  "kind": "amount",
+  "style": "numerals",
+  "sentence": "ನಿಮ್ಮ ಬಾಕಿ 6100 ರೂಪಾಯಿ.",
+  "gold": "6100",
+  "heard": "ನಿಮ್ಮ ಬಾಕಿ ಆರು ಸಾವಿರದ ನೂರು ರೂಪಾಯಿ"
+ },
+ {
+  "split": "held_out",
+  "lang": "kn-IN",
+  "kind": "amount",
+  "style": "words",
+  "sentence": "ನಿಮ್ಮ ಬಾಕಿ ಮೂರು ಸಾವಿರದ ಇನ್ನೂರು ರೂಪಾಯಿ.",
+  "gold": "3200",
+  "heard": "ನಿಮ್ಮ ಬಾಕಿ ಮೂರು ಸಾವಿರದ ಇನ್ನೂರು ರೂಪಾಯಿ"
+ },
+ {
+  "split": "held_out",
+  "lang": "kn-IN",
+  "kind": "date",
+  "style": "numerals + month",
+  "sentence": "ನಾನು 5 ಡಿಸೆಂಬರ್ ರಂದು ಪಾವತಿಸುತ್ತೇನೆ.",
+  "gold": "d5,m12",
+  "heard": "ನಾನು ಐದು ಡಿಸೆಂಬರಂದು ಪಾವತಿಸುತ್ತೇನೆ"
+ },
+ {
+  "split": "held_out",
+  "lang": "kn-IN",
+  "kind": "date",
+  "style": "words + month",
+  "sentence": "ನಾನು ಇಪ್ಪತ್ತು ನವೆಂಬರ್ ರಂದು ಪಾವತಿಸುತ್ತೇನೆ.",
+  "gold": "d20,m11",
+  "heard": "ನಾನು ಇಪ್ಪತ್ತು ನವೆಂಬರಂದು ಪಾವತಿಸುತ್ತೇನೆ"
+ }
+]

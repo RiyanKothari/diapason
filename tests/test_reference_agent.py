@@ -9,12 +9,12 @@ import socket
 
 import numpy as np
 
-from bhool.call.engine import run_call
-from bhool.call.transport import WebSocketAgent
-from bhool.channel import PRESETS
-from bhool.fakes import ScriptedBrain, fake_hear, fake_speak, tone
-from bhool.reference_agent import serve
-from bhool.scenarios import Behaviour, Persona, Scenario
+from diapason.call.engine import run_call
+from diapason.call.transport import WebSocketAgent
+from diapason.channel import PRESETS
+from diapason.fakes import ScriptedBrain, fake_hear, fake_speak, tone
+from diapason.reference_agent import serve
+from diapason.scenarios import Behaviour, Persona, Scenario
 
 
 def free_port() -> int:

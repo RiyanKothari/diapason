@@ -3,9 +3,60 @@
   "configurations": [
     {
       "name": "dashboard",
-      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/bhool.exe",
-      "runtimeArgs": ["dashboard", "--port", "8000"],
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/diapason.exe",
+      "runtimeArgs": [
+        "dashboard",
+        "--port",
+        "8000"
+      ],
       "port": 8000
+    },
+    {
+      "name": "agent-v4",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/diapason.exe",
+      "runtimeArgs": [
+        "serve-agent",
+        "--version",
+        "v4"
+      ],
+      "port": 8765
+    },
+    {
+      "name": "site",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "-d",
+        "site",
+        "8080"
+      ],
+      "port": 8080
+    },
+    {
+      "name": "agent-v1",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/diapason.exe",
+      "runtimeArgs": [
+        "serve-agent",
+        "--version",
+        "v1",
+        "--port",
+        "8761"
+      ],
+      "port": 8761
+    },
+    {
+      "name": "agent-v1-guard",
+      "runtimeExecutable": "C:/Users/riyan/Agnani/.venv/Scripts/diapason.exe",
+      "runtimeArgs": [
+        "serve-agent",
+        "--version",
+        "v1",
+        "--guard",
+        "--port",
+        "8762"
+      ],
+      "port": 8762
     }
   ]
 }

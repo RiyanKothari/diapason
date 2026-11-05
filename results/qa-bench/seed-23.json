@@ -1,0 +1,129 @@
+{
+ "calls": 40,
+ "parameters": {
+  "identifies_lender": {
+   "n": 40,
+   "accuracy": 1.0,
+   "fail_precision": null,
+   "fail_recall": null,
+   "to_review": 0,
+   "type": "llm"
+  },
+  "recording_disclosure": {
+   "n": 40,
+   "accuracy": 1.0,
+   "fail_precision": 1.0,
+   "fail_recall": 1.0,
+   "to_review": 0,
+   "type": "phrase_present"
+  },
+  "verifies_before_amount": {
+   "n": 40,
+   "accuracy": 1.0,
+   "fail_precision": 1.0,
+   "fail_recall": 1.0,
+   "to_review": 0,
+   "type": "order"
+  },
+  "privacy": {
+   "n": 40,
+   "accuracy": 0.925,
+   "fail_precision": 0.75,
+   "fail_recall": 0.6,
+   "to_review": 0,
+   "type": "llm"
+  },
+  "banned_phrases": {
+   "n": 40,
+   "accuracy": 1.0,
+   "fail_precision": 1.0,
+   "fail_recall": 1.0,
+   "to_review": 0,
+   "type": "phrase_absent"
+  },
+  "no_harassment": {
+   "n": 40,
+   "accuracy": 0.9,
+   "fail_precision": 0.833,
+   "fail_recall": 1.0,
+   "to_review": 0,
+   "type": "llm"
+  },
+  "hardship_handling": {
+   "n": 40,
+   "accuracy": 1.0,
+   "fail_precision": 1.0,
+   "fail_recall": 1.0,
+   "to_review": 0,
+   "type": "llm"
+  },
+  "captures_ptp": {
+   "n": 40,
+   "accuracy": 0.975,
+   "fail_precision": 0.941,
+   "fail_recall": 1.0,
+   "to_review": 0,
+   "type": "slot"
+  },
+  "confirms_back": {
+   "n": 40,
+   "accuracy": 0.3,
+   "fail_precision": 0.154,
+   "fail_recall": 0.444,
+   "to_review": 2,
+   "type": "llm"
+  },
+  "tone": {
+   "n": 40,
+   "accuracy": 0.8,
+   "fail_precision": 0.714,
+   "fail_recall": 1.0,
+   "to_review": 0,
+   "type": "llm"
+  },
+  "language_match": {
+   "n": 40,
+   "accuracy": 0.75,
+   "fail_precision": 0.5,
+   "fail_recall": 0.7,
+   "to_review": 0,
+   "type": "llm"
+  },
+  "responsive": {
+   "n": 40,
+   "accuracy": 1.0,
+   "fail_precision": 1.0,
+   "fail_recall": 1.0,
+   "to_review": 0,
+   "type": "metric"
+  },
+  "no_dead_air": {
+   "n": 40,
+   "accuracy": 1.0,
+   "fail_precision": 1.0,
+   "fail_recall": 1.0,
+   "to_review": 0,
+   "type": "metric"
+  },
+  "no_talk_over": {
+   "n": 40,
+   "accuracy": 1.0,
+   "fail_precision": 1.0,
+   "fail_recall": 1.0,
+   "to_review": 0,
+   "type": "metric"
+  }
+ },
+ "overall": {
+  "n": 560,
+  "accuracy": 0.904,
+  "fail_precision": 0.777,
+  "fail_recall": 0.938,
+  "to_review": 2
+ },
+ "decision_accuracy": 0.925,
+ "fatal_recall": 1.0,
+ "fatal_false_alarms": 0,
+ "score_mae": 1.7,
+ "seed": 23
+}

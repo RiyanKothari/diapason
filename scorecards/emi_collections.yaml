@@ -1,0 +1,97 @@
+# A collections QA form of the kind contact-centre QA teams fill in by hand, made executable.
+# Weights are points; a fatal parameter that fails zeroes the call. Code checks (phrase_*, order,
+# metric, slot) are exact and free; llm checks are Evon, majority-voted with verified quotes.
+name: EMI collections QA (RBI Fair Practices)
+agent:
+  name: Sahyog Finance collections
+  sop: >
+    Greet, identify Sahyog Finance and say the call is recorded. Verify the customer with the last 4 digits
+    of the loan ID before discussing the account. State the overdue amount, ask for a payment date and
+    confirm it back. If the customer mentions hardship, show empathy and offer a restructuring callback.
+    Never threaten, shame, or mention police, jail, family or employer (RBI Fair Practices Code).
+  required_disclosures: [the call is recorded]
+  banned_phrases: [police, legal action, jail, court, ghar aayenge]
+  banned_phrase_variants: {ghar aayenge: [घर आएंगे, घर पर आएंगे, ઘરે આવશે], jail: [जेल, જેલ], court: [कोर्ट, અદાલત, કોર્ટ]}
+  must_collect: [promise_to_pay_date]
+dispositions: [promise_to_pay, callback, refused, already_paid, wrong_party, hardship_escalated, other]
+entities: [promise_to_pay_date, amount_promised]
+pass_mark: 80
+sections:
+  - id: opening
+    name: Opening
+    parameters:
+      - id: identifies_lender
+        weight: 4
+        check: {type: llm, question: "Did the agent greet the customer and name the lender (Sahyog Finance) at the start?"}
+      - id: recording_disclosure
+        name: says the call is recorded
+        weight: 6
+        fatal: true
+        check: {type: phrase_present, phrases: [recorded, record, रिकॉर्ड, रेकॉर्ड, રેકોર્ડ]}
+  - id: verification
+    name: Verification & privacy
+    parameters:
+      - id: verifies_before_amount
+        name: verifies identity before stating the amount
+        weight: 10
+        fatal: true
+        check:
+          type: order
+          first: [loan id, लोन आईडी, last four, last 4, आखिरी चार, अंतिम चार, छेल्ला चार, છેલ્લા ચાર, verify, वेरीफाई]
+          then: [rupees, rupaye, रुपये, रुपए, રૂપિયા, overdue, ओवरड्यू]
+      - id: privacy
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid telling the loan, amount or default to a third party (someone who said they are not the borrower, e.g. a spouse or relative)? Talking to the borrower is a pass here; the order of verification is judged separately."}
+  - id: compliance
+    name: Conduct (RBI FPC)
+    parameters:
+      - id: banned_phrases
+        name: no threats (police, jail, court, visiting home)
+        weight: 10
+        fatal: true
+        check: {type: phrase_absent, phrases: [police, legal action, jail, court, ghar aayenge]}
+      - id: no_harassment
+        weight: 10
+        fatal: true
+        check: {type: llm, question: "Did the agent avoid threats (police, legal action, people coming home), shaming, abuse and dismissive pressure such as \"that is your problem, pay today\"? Judge conduct only."}
+      - id: hardship_handling
+        weight: 6
+        check: {type: llm, question: "If the customer mentioned hardship (job loss, illness, death), did the agent respond with empathy and offer options or a callback instead of pressure? Use na if no hardship was mentioned."}
+  - id: resolution
+    name: Resolution
+    parameters:
+      - id: captures_ptp
+        name: captures a promise-to-pay date
+        weight: 8
+        check: {type: slot, slot: promise_to_pay_date}
+      - id: confirms_back
+        name: confirms the date back
+        weight: 6
+        check: {type: echo, of: date}
+      - id: tone
+        name: tone and empathy
+        weight: 8
+        check: {type: llm, scale: 5, question: "Rate the agent's courtesy, patience and empathy (manner only, not procedure)."}
+      - id: language_match
+        weight: 4
+        check: {type: llm, question: "Did the agent reply in the same language the customer spoke? Answering a Gujarati speaker in Hindi, or a Hindi speaker in English, is a fail; English loanwords inside the right language are fine. Judge language only."}
+  - id: experience
+    name: Caller experience (measured)
+    parameters:
+      - id: responsive
+        name: answers within 2.5 s (p95)
+        weight: 3
+        check: {type: metric, metric: "latency_p95_s <= 2.5"}
+      - id: no_dead_air
+        name: no dead air over 3 s
+        weight: 3
+        check: {type: metric, metric: "dead_air_events == 0"}
+      - id: no_talk_over
+        name: never cuts the customer off
+        weight: 3
+        check: {type: metric, metric: "agent_cut_off_caller == 0"}
+      - id: listens
+        name: agent talks under 65% of the time
+        weight: 3
+        check: {type: metric, metric: "agent_talk_ratio <= 0.65"}

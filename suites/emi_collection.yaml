@@ -15,6 +15,7 @@ agent:
     anyone other than the borrower (RBI Fair Practices Code).
   required_disclosures:
     - the call is from the lender and may be recorded
+  disclosure_phrases: [record, रिकॉर्ड, रेकॉर्ड, રેકોર્ડ]
   banned_phrases:
     - police
     - legal action today
@@ -71,6 +72,7 @@ matrix:
   sample: 24
   seed: 7
 
+rubric: bfsi_collections
 runs_per_scenario: 2
 gate:
   min_pass_rate: 0.85
