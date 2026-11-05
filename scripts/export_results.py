@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNS, OUT = ROOT / "runs", ROOT / "results"
-PROOF = "proof-live-4"
+PROOF = "proof-live-5"          # proof-live-4's calls, re-judged on 5 Nov with the measured rubric
 LABELS = {"v1_dir": "v1", "v2_dir": "v2", "guard_dir": "v1-guard", "v3_dir": "v3", "v3guard_dir": "v3-guard", "v4_dir": "v4"}
 FILES = [   # (source under runs/, destination under results/, what it proves)
     (f"{PROOF}/proof.json", "proof/proof.json", "planted bugs caught, bugs gone per fix (Guard, v3, v3 + Guard, v4), QA-Bench"),
@@ -24,12 +24,19 @@ FILES = [   # (source under runs/, destination under results/, what it proves)
     ("stress-v5/stress.html", "stress/stress.html", "the same, as a page"),
     ("autopilot-live-7/autopilot.json", "autopilot/autopilot.json", "red team: 12 of 12 attacks broke v2"),
     ("autopilot-live-7/replay-v3/replay.json", "autopilot/replay-v3.json", "the same 12 attacks on v3: account leaks 4 -> 0"),
-    ("judge-bench.json", "judge-bench/judge-bench.json", "the judge and the code checks vs 27 hand labels on 17 live calls"),
+    ("judge-bench-pack-before.json", "judge-bench/collections-pack-before.json",
+     "the judge as real runs use it (the suite's collections pack) and the code checks, vs 45 labels on 29 recorded live calls (19 runs), before the third-party fix"),
+    ("judge-bench-pack-after.json", "judge-bench/collections-pack-after.json",
+     "the same calls after the fix: verification worded fail-first; read with code_overrides_judge, 0 of 9 clean calls failed"),
+    ("judge-bench.json", "judge-bench/general-criteria-3nov.json",
+     "3 Nov: the same bench run with the general criteria, which real runs do not use (kept for the record)"),
     ("injection-bench.json", "judge-bench/injection-wording.json", "old vs new injection wording on 13 labelled calls"),
     ("asr-bench/asr_bench.json", "prisma/asr_bench.json", "Prisma character error per language and phone line (18 utterances)"),
     ("atlas/atlas.json", "atlas/atlas.json", "phone-line atlas: 3,366 Prisma transcripts of IDs, amounts and dates, noise x SNR, re-read with fixed readers"),
     ("atlas/atlas.html", "atlas/atlas.html", "the same, as a page: survival per phrasing and SNR, and what an agent should do"),
     ("digit-bug.json", "live-gnani/digit-bug.json", "Prisma's transcript of a caller's '4821', and what each digit parser makes of it"),
+    ("lang-probe/probe.json", "languages/probe.json", "IDs, amounts and dates said in Tamil, Marathi, Telugu and Kannada: what Prisma wrote, and the readers' result (28)"),
+    ("lang-probe/heldout.json", "languages/held-out.json", "the same with new numbers, dates and voice, written after the readers (24)"),
 ]
 LIVE = {  # dashboard calls through real Gnani speech (Timbre voices, Prisma ears), 2 Nov
     "demo-emi-collection-20261102-020506": "v3 + Guard before the digit fix: '4821' became 'फोर थाउज़ंड एट हंडरेड ट्वेंटी वन', never verified",

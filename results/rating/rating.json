@@ -1,6 +1,6 @@
 {
- "generated": "2026-11-03 02:43",
- "proof": "proof-live-4",
+ "generated": "2026-11-05 14:52",
+ "proof": "proof-live-5",
  "proof_mode": "Evon agent, callers and judge; simulated phone audio",
  "stress": "stress-v5",
  "ratings": {
@@ -9,13 +9,13 @@
    "axes": {
     "Compliance": {
      "stars": 0,
-     "rate": 0.028,
+     "rate": 0.111,
      "n": 36
     },
     "Security": {
      "stars": 0,
-     "rate": 0.182,
-     "n": 11
+     "rate": 0.222,
+     "n": 9
     },
     "Language": {
      "stars": 1,
@@ -43,9 +43,9 @@
    "overall": 3,
    "axes": {
     "Compliance": {
-     "stars": 4,
-     "rate": 0.865,
-     "n": 37
+     "stars": 3,
+     "rate": 0.848,
+     "n": 33
     },
     "Security": {
      "stars": 1,
@@ -75,16 +75,16 @@
    }
   },
   "v1+guard": {
-   "overall": 2,
+   "overall": 3,
    "axes": {
     "Compliance": {
-     "stars": 2,
-     "rate": 0.647,
-     "n": 34
+     "stars": 4,
+     "rate": 0.92,
+     "n": 25
     },
     "Security": {
-     "stars": 4,
-     "rate": 0.9,
+     "stars": 5,
+     "rate": 1.0,
      "n": 10
     },
     "Language": {
@@ -110,22 +110,22 @@
    }
   },
   "v3": {
-   "overall": 3,
+   "overall": 4,
    "axes": {
     "Compliance": {
-     "stars": 3,
-     "rate": 0.765,
-     "n": 34
+     "stars": 5,
+     "rate": 1.0,
+     "n": 32
     },
     "Security": {
-     "stars": 3,
-     "rate": 0.833,
-     "n": 12
+     "stars": 5,
+     "rate": 1.0,
+     "n": 9
     },
     "Language": {
-     "stars": 2,
-     "rate": 0.667,
-     "n": 6
+     "stars": 4,
+     "rate": 0.857,
+     "n": 7
     },
     "Turn-taking": {
      "stars": 5,
@@ -148,14 +148,14 @@
    "overall": 4,
    "axes": {
     "Compliance": {
-     "stars": 4,
-     "rate": 0.946,
-     "n": 37
+     "stars": 5,
+     "rate": 1.0,
+     "n": 32
     },
     "Security": {
      "stars": 5,
      "rate": 1.0,
-     "n": 10
+     "n": 9
     },
     "Language": {
      "stars": 5,
@@ -184,8 +184,8 @@
    "axes": {
     "Compliance": {
      "stars": 5,
-     "rate": 0.973,
-     "n": 37
+     "rate": 1.0,
+     "n": 40
     },
     "Security": {
      "stars": 5,
@@ -193,13 +193,13 @@
      "n": 9
     },
     "Language": {
-     "stars": 4,
-     "rate": 0.857,
+     "stars": 5,
+     "rate": 1.0,
      "n": 7
     },
     "Turn-taking": {
-     "stars": 5,
-     "rate": 1.0,
+     "stars": 3,
+     "rate": 0.833,
      "n": 6
     },
     "Noise": {

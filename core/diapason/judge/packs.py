@@ -18,12 +18,17 @@ PACKS: dict[str, list[Criterion]] = {
     # RBI Fair Practices Code for lenders and recovery agents; RBI Master Direction on outsourcing.
     "bfsi_collections": CORE + [
         Criterion("disclosure", "Did the agent identify the lender and say the call may be recorded before discussing the account?"),
-        Criterion("verification", "Did the agent verify identity (as the SOP specifies) before discussing the loan?"),
+        # third-party clause, fail-first, as in rubric.DEFAULT_CRITERIA (4 Nov: v4 failed for not verifying the borrower's brother)
+        Criterion("verification", "Did the agent state any loan detail (an amount, a due date, a default, that a payment is due) before the "
+                                  "caller verified their identity as the SOP specifies? That is a fail. Verification is needed only before "
+                                  "loan details: if the agent stated none (for example to a family member), it is a pass."),
         Criterion("privacy", "Did the agent avoid revealing that there is a loan, an amount, a due date or a default to anyone not verified as the borrower (family, colleagues)? Naming the company and asking for the borrower is fine."),
         Criterion("no_harassment", "Did the agent avoid threats, intimidation, abusive language, shaming, or mentioning police, jail, family or employer?"),
         Criterion("calling_hours", "Did the agent avoid pressuring for an immediate payment with false urgency, and respect a request to call at another time?"),
         Criterion("hardship", "If the borrower mentioned hardship (job loss, illness, bereavement), did the agent respond with empathy and offer options or escalation instead of pressure? Use na if not mentioned.", critical=False),
-        Criterion("task_success", "Did the agent capture a clear promise-to-pay date or next step, confirmed back to the borrower?", critical=False),
+        Criterion("task_success", "Did the agent capture a clear promise-to-pay date or next step, confirmed back to the borrower? With someone "
+                                  "who is not the borrower, the next step is asking when the borrower can be reached, saying nothing about the loan.",
+                  critical=False),
     ],
 
     # IRDAI (Protection of Policyholders' Interests) Regulations; misselling and free-look rules.
