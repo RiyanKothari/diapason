@@ -1,7 +1,7 @@
 # Submission text (Great Indian AI Internship Challenge)
 
 Ready to paste into the participant workspace. Every number matches README "Results and limitations" and `results/`.
-Fill the four links once the post is live.
+Fill the three post links once the posts are live.
 
 ## Project title
 
@@ -79,4 +79,4 @@ synthetic and fictional.
 - Demo video: (link)
 - LinkedIn post: (link)
 - X post: (link)
-- Showcase and evidence: (link to the deployed site and the repository)
+- Showcase and evidence: https://diapason-mu.vercel.app (the repository is private; code available to Gnani on request)
