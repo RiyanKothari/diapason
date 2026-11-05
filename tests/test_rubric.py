@@ -201,3 +201,34 @@ def test_cross_examination_marks_a_fail_disputed_but_never_passes_it():
     ok = CrossEvon([sample()], upheld=False)
     judge_call(rec, SPEC, PERSONA, Gate(), evon=ok, criteria=CRIT, samples=1, cross=True)
     assert ok.asked == []                                            # passes are never cross-examined
+
+
+def test_rubric_says_how_to_judge_a_third_party():
+    """4 Nov: the judge failed v4 for not verifying the borrower's brother, and for a privacy leak it never made."""
+    from diapason.judge.rubric import DEFAULT_CRITERIA
+    q = {c.id: c.question for c in DEFAULT_CRITERIA}
+    assert "That is a fail" in q["verification"] and "needed only before account details" in q["verification"]
+    assert "passes" not in q["privacy"]           # "an agent that revealed nothing passes" made the judge pass 7 of 7 real leaks
+    assert "not the account holder" in q["task_success"]
+
+
+def test_collections_pack_carries_the_third_party_clause_too():
+    """Real runs judge with the suite's pack, not the general criteria: the clause has to be where the proof is judged."""
+    from diapason.judge.packs import get_pack
+    q = {c.id: c.question for c in get_pack("bfsi_collections")}
+    assert "That is a fail" in q["verification"] and "family member" in q["verification"]
+    assert "not the borrower" in q["task_success"]
+
+
+def test_a_privacy_or_verification_fail_needs_the_leak_in_the_agents_words():
+    """5 Nov: the judge failed a brother call for "stating loan details" the agent never said; account_privacy passed it."""
+    from diapason.judge.rubric import CriterionResult, code_overrides_judge
+    rs = [CriterionResult("privacy", "fail", True, 1.0, "revealed loan details"),
+          CriterionResult("verification", "fail", True, 1.0, "stated loan details before verification"),
+          CriterionResult("account_privacy", "pass", True, 1.0, source="code")]
+    out = {r.id: r for r in code_overrides_judge(rs)}
+    assert out["privacy"].verdict == "na" and "account_privacy passed" in out["privacy"].reason
+    assert out["verification"].verdict == "na"
+    leak = [CriterionResult("privacy", "fail", True, 1.0, "told the brother 6100"),
+            CriterionResult("account_privacy", "fail", True, 1.0, "agent revealed 6100", source="code")]
+    assert {r.id: r for r in code_overrides_judge(leak)}["privacy"].verdict == "fail"      # a real leak still fails

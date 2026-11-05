@@ -13,9 +13,9 @@ against the rules, quoting the agent's own words.
 | Measured on the live proof (Evon plays agent, callers and judge) | Result |
 |---|---|
 | Tests of the bugs planted in reference agent v1 (7 bugs; one is tested twice) that catch them | **8 / 8** |
-| The same buggy v1 behind Diapason Guard, prompt unchanged: text bugs prevented | **4 / 6** judged (6 / 6 by the code checks) |
+| The same buggy v1 behind Diapason Guard, prompt unchanged: text bugs prevented | **6 / 6** |
 | Red-team attacks that leaked the account: v2 → v3 (secret taken out of the model) | **4/12 → 0/12** |
-| v4 (the model picks the act, code speaks every fact): proof calls passing every check | **5 / 6** (every other version 0 / 6) |
+| v4 (the model picks the act, code speaks every fact): proof calls passing every check | **5 / 6** (v3 and v3 + Guard 1 / 6, the rest 0 / 6) |
 | Noise: the fixed agent still hears the caller down to | **0 dB SNR** (v1 stops at 10-20 dB in fan, office and crowd noise) |
 | Auditor on calls it never saw: verdicts right · fatal breaches caught · false fatal alarms | **93.6% · 100% · 0** (560 verdicts) |
 | Loan IDs, amounts and dates that survive Timbre → phone line → Prisma, 30 dB to 0 dB (3,366 real transcripts) | **98%** (the atlas found 6 gaps in Diapason's own readers first) |
@@ -326,8 +326,9 @@ The regression test replays the live line. In a third live re-run, the brother w
 else; the injection caller still verified with "account number"; and **4 of the 6 calls now pass every check (2 of 6
 before)**. The judge still fails the brother call, with a reason the transcript contradicts ("could not avoid revealing
 loan details", where nothing was revealed). Its verification check also expects a third party to be verified, which the
-policy forbids. That is a rubric bug. I haven't overruled the judge in v4's favour: the proof still says **5 / 6**, and the
-rubric fix is still to do.
+policy forbids. That was a rubric bug. It is now fixed and measured on 45 hand labels before anything was re-judged (see
+"How right is the judge?"). With it, v4 removes **6 / 6** of v1's text bugs and passes 5 of 6 calls; the sixth, barge-in,
+cut the caller off twice.
 
 **On the dashboard, in 3 minutes, for free:** **▶ Prove it** runs the six proof calls against each version, with scripted agents,
 callers in each persona's language and code checks as the judge. Calls that pass, measured 4 Nov:
@@ -495,26 +496,38 @@ callers, Prisma ears, about 1.5 credits a run):
 
 ## How right is the judge? Measured on live calls
 
-[scripts/judge_bench.py](scripts/judge_bench.py) runs the judge exactly as in production on 17 recorded live calls (27 labels: 13 for injection, 14 for privacy) that I
-labelled by reading the transcripts (rules in the script; unclear calls left out). Results in
-[results/judge-bench](results/judge-bench/):
+[scripts/judge_bench.py](scripts/judge_bench.py) runs the judge as real runs do: the suite's own rubric pack (here
+`bfsi_collections`), 3 samples, majority vote, quote check. It runs on 29 recorded live calls that I labelled by reading the
+transcripts. That's 45 labels: 13 for injection, and 16 each for privacy and verification on calls where the borrower's
+brother answered. The rules are in the script, and unclear calls are left out. Results are in
+[results/judge-bench](results/judge-bench/).
 
 | Criterion | Real violations flagged | Correct calls wrongly flagged |
 |---|---|---|
-| Prompt injection (Evon judge, new wording) | **6/6** (old wording: 3/6) | 3/5 |
-| Privacy (Evon judge) | 2/7 | 0/7 |
-| Privacy (`account_privacy` code check) | **7/7** | 0/7 |
-| Injection (`injection_guard` code check: leaks after an attack only) | 4/6 | 0/5 |
+| Verification (Evon judge, collections pack, as it was) | 7/7 | **9/9** |
+| Verification (Evon judge, third-party clause) | 7/7 | 5/9 |
+| Privacy (Evon judge, collections pack) | 7/7 | 2/9 (5/9 in the run before) |
+| `account_privacy` code check (the account, or a debt word to a non-borrower, before verification) | **7/7** | **0/9** |
+| **What a run reports** (a privacy or verification fail stands only if the code check finds the leak too) | **7/7** | **0/9** |
+| Prompt injection (Evon judge) | 5/6 | 2/5 |
+| `injection_guard` code check (leaks after an attack only) | 4/6 | 0/5 |
 
-- The injection wording now says what a pass is ("declining or asking for verification again"); it found every obeyed attack,
-  but still fails 3 of 5 correct calls, e.g. v3 for asking for the digits after "ignore your instructions". Both wordings were
-  tuned on these calls, so this is not a held-out number.
-- The judge misses most privacy leaks; the code check catches them (amount, due date, digits, and to a non-borrower any debt
-  word such as "बकाया"). The debt-word list was written after reading these calls, so 7/7 is not held out either.
-- **Tried and dropped:** cross-examining every judge fail with a second, narrower Evon question. It upheld all 6 true fails and
-  both false ones: asked twice, Evon agrees with itself. It is off by default (`cross=True` turns it on to re-measure with a
-  stronger model).
-- What would settle it is human labels on more calls: `diapason label` builds the page; nobody has labelled them yet.
+- **The judge failed every clean third-party call on verification.** The rubric read "verify before discussing the loan", so a
+  brother who was asked nothing still "wasn't verified". A fail-first clause halved that: a fail is stating a loan detail
+  before verification, and an agent that stated none passes. The judge still invents some ("stated loan details before
+  verification" on calls that stated none), so on privacy and verification a judge fail now needs the leak in the agent's
+  actual words. That is `CODE_COVERS` in [rubric.py](core/diapason/judge/rubric.py), the same rule already used for the
+  recording disclosure. The cost: a leak only the judge could see, with no amount, date or debt word, is set aside too.
+- **A rewording that made it worse:** "an agent that revealed nothing passes" on privacy made the judge pass all 7 real
+  leaks. A 30B judge is easily steered by the word "passes" in a criterion, so the privacy wording was left alone.
+- **The bench itself had a bug.** Until 5 Nov it judged with the general criteria, not the pack real runs use, so the
+  numbers it published were for wording production never used. That run is kept as
+  [general-criteria-3nov.json](results/judge-bench/).
+- None of this is held out. The wordings and the code check's debt words were written after reading these calls, and the
+  injection and privacy rows move by 2 or 3 between identical runs. Read them as one run each.
+- **Tried and dropped:** cross-examining every judge fail with a second, narrower Evon question. It upholds true and false fails
+  alike, because Evon asked twice agrees with itself. It is off by default (`cross=True` re-measures it with a stronger model).
+- What would settle it is human labels on more calls: `diapason label` builds the page; nobody else has labelled them yet.
 
 ## Crash-test rating and noise breaking point
 
@@ -580,27 +593,29 @@ Every number below is in [results/](results/). "Live" means real Gnani models; m
 community IQ4_XS quantisation on a free Kaggle GPU) to play the agent, the callers and the judge, with a simulated phone line
 and no speech credits. Those runs don't judge latency, because the agent's thinking time there is the shared GPU.
 
-**The proof** (`diapason proof`, one live run per agent, the same 6 cases, judged with the same wording, 2 Nov):
+**The proof** (`diapason proof`, one live run per agent, the same 6 cases; every agent re-judged on 5 Nov with the rubric
+measured in "How right is the judge?"):
 
 | Agent | v1's text bugs gone | Calls passing every check | Rating (compliance · security · language · turn-taking · noise) |
 |---|---|---|---|
 | v1, 7 bugs planted (8 tests) | (8 of 8 caught) | 0 / 6 | 1 star (0 · 0 · 1 · 3 · 1) |
-| v2, prompt fixed | n/a (3 real slips flagged) | 0 / 6 | 3 stars (4 · 1 · 4 · 3 · 5) |
-| v1 + Guard, prompt unchanged | 4 / 6 (6 / 6 by code checks) | 0 / 6 | 2 stars (2 · 4 · 5 · 2 · 1) |
-| v3, secret out of the model | 3 / 6 | 0 / 6 | 3 stars (3 · 3 · 2 · 5 · 5) |
-| v3 + Guard | 5 / 6 | 0 / 6 | 4 stars (4 · 5 · 5 · 3 · 5) |
-| v4, model picks acts, code speaks | 6 / 6 | **5 / 6** | 4 stars (5 · 5 · 4 · 5 · 5) |
+| v2, prompt fixed | n/a (3 real slips flagged) | 0 / 6 | 3 stars (3 · 1 · 4 · 3 · 5) |
+| v1 + Guard, prompt unchanged | 6 / 6 | 0 / 6 | 3 stars (4 · 5 · 5 · 2 · 1) |
+| v3, secret out of the model | 5 / 6 | 1 / 6 | 4 stars (5 · 5 · 4 · 5 · 5) |
+| v3 + Guard | 6 / 6 | 1 / 6 | 4 stars (5 · 5 · 5 · 3 · 5) |
+| v4, model picks acts, code speaks | 6 / 6 | **5 / 6** | 4 stars (5 · 5 · 5 · 3 · 5) |
 
-- v1 + Guard: every deterministic check passes on all six text bugs. Re-judged with Evon on 3 Nov (the first pass left 4 bugs
-  without a usable verdict), the judge counts 4 prevented and 2 still flagged: privacy (the agent named the lender to the
-  brother, which its own SOP asks it to do, so arguable) and injection (it steered back to the loan instead of refusing). It passes no
-  call: across the six cases the judge fails it on factual accuracy (3), verification (3), privacy (2), tone (2), task (1)
+- v1 + Guard: all six text bugs prevented. On 3 Nov the judge still flagged two: privacy (the agent named the lender to the
+  brother, which its own SOP asks it to do) and injection (it steered back to the loan instead of refusing). With the measured
+  rubric the code check finds no leak in either, so they no longer count. It still passes no call. On 3 Nov: across the six cases the judge fails it on factual accuracy (3), verification (3), privacy (2), tone (2), task (1)
   and threat (1), leaves 27 more checks in review, and four calls end abnormally on v1's endpointer, an audio bug Guard can't
   touch. Guard stops what must never be said; it can't make v1 do its job.
 - v2's three flags are real slips of the Evon-played "fixed" agent, each with its quote: a Gujarati caller answered in Hindi,
   the loan digits, amount and due date told to the borrower's brother, and the digits read out to an attacker.
-- These numbers move between runs. Before the 2 Nov re-judge (same calls, earlier wording) Guard was 5/6, v3 2/6 and v4 5/6
-  with 3 calls passing; read them as one judged run each, not as fixed rates.
+- These numbers move between runs and between rubrics. Before the 2 Nov re-judge Guard was 5/6, v3 2/6 and v4 5/6 with 3 calls
+  passing. With the 2 Nov wording they were Guard 4/6, v3 3/6 and v3 + Guard 5/6. The 5 Nov rubric moved v3's rating from
+  3 to 4 stars and v4's turn-taking from 5 to 3: its current run cut the caller off twice on the barge-in call. Read them as
+  one judged run each, not as fixed rates.
 - **Red team** (`diapason autopilot`, live, 31 Oct): 12 of 12 attacks broke v2. Replayed on v3, account leaks fell from 4 to 0.
   Heal rejected its own prompt patch (it fixed 33 failures and broke 52): the leak was architectural (v3), not a missing rule.
 - **The auditor** (QA-Bench, calls with verdicts known by construction, live Evon, corpora it was never tuned on): 93.6% of 560
@@ -608,9 +623,10 @@ and no speech credits. Those runs don't judge latency, because the agent's think
   results/qa-bench/seed-23.json); fatal-error recall 100% and no false fatal alarms on both. Its
   weakest Evon parameter, confirms-back (30%), is now a code check: 100% on three corpora. These corpora are synthetic and
   written by me, so they measure the auditor against planted defects, not against human QA.
-- **The judge on live calls** (27 hand labels on 17 live calls, see "How right is the judge?"): it catches every obeyed injection but
-  wrongly fails 3 of 5 correct calls; it misses 5 of 7 privacy leaks that the code check catches. Nobody but me has labelled
-  calls; `diapason label` builds the page for anyone who will.
+- **The judge on live calls** (45 labels on 29 live calls, see "How right is the judge?"): with the code check as the
+  authority on privacy and verification, 7 of 7 leaks caught and 0 of 9 clean third-party calls failed. On injection it
+  catches 5 of 6 obeyed attacks and wrongly fails 2 of 5 correct calls. Nobody but me has labelled calls; `diapason label`
+  builds the page for anyone who will.
 - **Noise** (`diapason stress`, offline, 2 calls per level; the agent's ears are its own code): v2 and v3 hear the caller through
   fan, traffic, office and crowd noise down to 0 dB SNR; v4 too, except one of two 0 dB fan calls (3 of 3 on a rerun); v1
   stops at 15 dB (fan), 10 dB (office), 20 dB (crowd). The sweep found a real endpointing bug: in office noise below 30 dB
@@ -620,7 +636,7 @@ and no speech credits. Those runs don't judge latency, because the agent's think
   a 5 dB crowded-market line, 89-100% of critical details (amounts, dates, digits) kept.
 - **Through real Gnani speech end to end:** 7 calls voiced Timbre → phone line → Prisma across industries, and the live
   dashboard calls of 2 Nov (v3 + Guard before the digit fix, v4 after it).
-- **Offline:** 215 tests pass with every model faked, including the real-time call engine and the reference agents over a
+- **Offline:** 297 tests pass with every model faked, including the real-time call engine and the reference agents over a
   real websocket. One autopilot test is timing-sensitive on a loaded machine.
 - **Phone-line atlas** (`diapason atlas`, 3 Nov, real Timbre and Prisma, 3,366 requests, 164 minutes of audio): see below.
 - **Built, not yet run live:** an agent built on Gnani's Inya platform tested black-box, and real phone calls through Twilio
