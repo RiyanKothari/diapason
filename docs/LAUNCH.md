@@ -2,17 +2,49 @@
 
 Every number here matches the README, `results/` and the 60-second film. Change a number only after changing the evidence.
 Rules that apply (challenge terms): organic engagement only. No engagement pods or swaps, no paid boosts, no bots. A
-misleading demo disqualifies, so nothing in a post may promise more than the README shows.
+misleading demo disqualifies, so nothing in a post may promise more than the evidence shows.
+
+The repository stays private, so the posts point at the deployed site only: it plays every call and carries every
+measurement. Nothing in a post may send a stranger to the code.
 
 ## Before posting
 
-1. The links must work for a stranger: the repository public, and the site deployed (`diapason site`, then any static host).
+1. The site is live at https://diapason-mu.vercel.app (Vercel project `diapason`, static files only). To update it:
+   `diapason site --out site --proof runs/proof-live-5`, then `npx vercel deploy --prod` from `site/`. `runs/` and `site/`
+   are git-ignored, so a Vercel project connected to the repo would have nothing to build; `site/vercel.json` pins it to
+   plain static files.
 2. Upload `runs/video/diapason-film-60s.mp4` to LinkedIn **natively** (not a YouTube link: native video is shown larger and
    counts as the "public video of a working application").
 3. Tag Gnani by typing `@Gnani` and picking **Gnani.ai** from the dropdown, so it becomes a real tag, not plain text.
 4. Post on a weekday morning (9-11 am IST). For the first hour, reply to every comment.
-5. Put the links in the first comment, not the post: LinkedIn shows posts with outside links to fewer people.
+5. Put the link in the first comment, not the post: LinkedIn shows posts with outside links to fewer people.
 6. Nominate this post in the participant workspace.
+
+## What goes in each post (media)
+
+LinkedIn can't mix a video and images in one post, so the launch post carries the video and the follow-ups carry the
+images. Images are in `runs/launch-media/` (captured from the live site at 2x; rerun the capture after a site change).
+
+| Post | Media | Notes |
+|---|---|---|
+| Launch (nominated) | Your own 60-75 s screen recording with voiceover (shot list below); fallback `runs/video/diapason-film-60s.mp4` | Native upload. Cover: `01-cover-16x9.png`. Turn on captions: most people watch muted |
+| Day 2: "4821" bug | `02-same-caller-guard.png` | The guard strikes out the threat and holds the amount until the caller verifies |
+| Day 3: the judge | `03-v1-to-v4.png` (and `06-proof.png` as a 2nd image) | The matrix is the single clearest image of the project |
+| Day 4: Tamil numerals | `09-every-language.png` (the transcript, its number words lit, the value read) | |
+| Day 5: Shield | a 20 s screen recording of a Shield block | |
+| X post 1 | the same video | X post 4: `03-v1-to-v4.png` |
+
+**The launch video (record it yourself: it is the "public video of a working application").** 1080p screen recording of
+`diapason dashboard`, your voice over it, captions burned in or added on upload. Keep every number on screen real.
+
+| Time | On screen | You say (roughly) |
+|---|---|---|
+| 0-4 s | The landing page hero: the live Guard card typing the agent's threat, striking it, saying the safe line | "This AI agent just threatened a borrower and said his debt before checking who he was." |
+| 4-15 s | Dashboard: pick the collections suite, start a run; callers in Hinglish and Gujarati, noise on, live transcript | "Diapason phones your agent with synthetic Indian callers on a noisy 8 kHz line and tries to break it." |
+| 15-27 s | A fail card quoting the agent's words | "Every fail quotes what the agent actually said." |
+| 27-40 s | The same call behind Guard: the threat struck out, the amount held until verified | "Guard checks each sentence in code before it's spoken. Same agent, prompt untouched." |
+| 40-52 s | **Prove it**: the v1 to v4 matrix filling in | "Seven planted bugs: eight of eight tests caught them, and v4 removes all six text bugs." |
+| 52-60 s | Logos of Prisma, Timbre, Evon as text; the site URL | "Built on Gnani's Prisma, Timbre and Evon, which I run myself. Link in the comments." |
 
 ## The post (LinkedIn, nominated)
 
@@ -22,58 +54,92 @@ misleading demo disqualifies, so nothing in a post may promise more than the REA
 > the agent off, and sometimes tell it to "ignore your instructions". Most voice agents are tested with a handful of polite
 > test calls.
 >
-> So for the #GreatIndianAIInternshipChallenge I built Diapason, on Gnani's own models:
+> So for the #GreatIndianAIInternshipChallenge I built Diapason, on all three of Gnani's models:
 >
 > 🔹 Before launch: synthetic callers phone your agent in Hindi, Hinglish, Gujarati, Tamil, Marathi, Telugu, Kannada or
 > English, over a simulated 8 kHz phone line with fan, traffic and market noise, and try to break it. Every call is judged
 > against your rules, and every fail quotes the agent's own words.
 > 🔹 During the call: Diapason Guard checks each sentence in code before it is spoken. Shield does the same in front of any
 > agent on Twilio, Exotel or Plivo, with no change to the agent.
-> 🔹 After the call: an auditor scores real calls against industry scorecards.
+> 🔹 After the call: an auditor scores calls against industry scorecards.
 >
 > To know it works, I planted 7 bugs in a collections agent and measured:
 > • 8 of 8 tests caught them
 > • Guard, with the agent's prompt untouched, prevented 6 of 6 text bugs
 > • v4 (the model picks what to do, code speaks every fact) removed 6 of 6 and passed 5 of 6 calls
-> • the auditor got 93.6% of 560 verdicts right and caught every fatal breach
-> • across 3,366 real transcripts of IDs, amounts and dates on noisy lines, 98% of details survive
+> • the auditor got 90-94% of 560 verdicts right on calls it never saw, and caught every fatal breach
+> • across 3,366 noisy-line transcripts, 98% of IDs, amounts and dates survive
 >
-> Built on @Gnani.ai Prisma (the callers' ears), Timbre (their voices) and Evon (the callers, the agent, the judge and the
-> red team).
+> Gnani's models do all the work:
+> • Prisma is the callers' ears
+> • Timbre is their voices
+> • Evon plays the callers, the agent, the judge and the red team. Evon has no hosted API yet, so I run it myself on a
+> free Kaggle GPU.
 >
 > My favourite bug: Timbre read "4821" aloud as a number, Prisma wrote "फोर थाउज़ंड एट हंडरेड ट्वेंटी वन", and no caller could
 > ever verify. Only a live call finds that.
 >
-> What is weak is written down in the README too. If you build voice agents for Indian customers: what breaks yours most?
+> I didn't trust my own AI judge either. It once failed 9 of 9 correct calls; I measured that, fixed it, and it now fails
+> none of them while still catching every real leak.
 >
-> #GnaniAI #GreatIndianAIInternshipChallenge #VoiceAI #ConversationalAI
+> If you build voice agents for Indian customers: what breaks yours most?
+>
+> @Gnani.ai #GnaniAI #GreatIndianAIInternshipChallenge #VoiceAI #ConversationalAI
 
 ## First comment (post it yourself, right after)
 
-> ▶ The 60-second demo, and the full 2-minute film, are drawn from the run files: <site>/watch-60.html
-> 💻 Code and every measurement behind the numbers: <repo>
-> Try it free: `diapason dashboard`, then **Prove it**. It runs the same six calls against v1 to v4 in about 3 minutes.
+> ▶ The 60-second demo and the full film, played from the run files: https://diapason-mu.vercel.app/watch-60.html
+> 📊 The planted-bug proof, the phone-line atlas and every call, with the agent's own words (you can listen to them):
+> https://diapason-mu.vercel.app
+> The code is private for now. Happy to walk anyone through it.
 
-## X (nominated post, if you post there too)
+## X (nominated post: the first one, with the same 60-second video attached)
 
-> Test your AI voice agent the way Indians call: noisy lines, Hinglish, a brother on the phone, "ignore your
-> instructions". Diapason: crash tests, a live guard and QA on Gnani Prisma, Timbre and Evon. 8/8 planted bugs caught.
-> [tag Gnani] #GnaniAI #GreatIndianAIInternshipChallenge
+1/
+> Test your AI voice agent the way Indians call: noisy 8 kHz lines, Hinglish, a brother on the phone, "ignore your
+> instructions".
+>
+> I built Diapason on [Gnani handle] Prisma, Timbre and Evon. I planted 7 bugs: 8 of 8 tests caught them.
+>
+> #GnaniAI #GreatIndianAIInternshipChallenge
 
-Attach the same 60-second video. Check Gnani's X handle before tagging; it isn't recorded anywhere in this repo.
+2/
+> How it works: Timbre gives the callers their voices, Prisma their ears, and Evon plays the callers, the agent, the judge
+> and the red team.
+>
+> Evon has no hosted API yet, so I run it myself on a free Kaggle GPU.
+
+3/
+> The bug only a live call could find: Timbre read the loan ID "4821" aloud as a number, Prisma wrote "four thousand eight
+> hundred twenty one", and no caller could ever verify.
+>
+> Every caller failed, until the digit reader was fixed.
+
+4/
+> Guard checks each sentence in code before the agent speaks it: 6 of 6 text bugs prevented, with the prompt untouched.
+>
+> Across 3,366 noisy-line transcripts, 98% of IDs, amounts and dates survive.
+>
+> Demo and every run: https://diapason-mu.vercel.app
+
+Check Gnani's X handle before tagging; it isn't recorded anywhere in this repo. Each post must stay within 280
+characters (a link counts as 23).
 
 ## Answers for likely comments
 
-- **Can I try it?** Yes: clone the repo, `pip install -e .`, then `diapason dashboard`. Prove it runs v1 to v4 for free. Testing
-  your own agent over a phone-platform stream uses Gnani credits, capped up front.
+- **Can I try it?** The site plays every call and shows every verdict with the agent's own words. The code is private for
+  now; testing your own agent over a phone-platform stream uses Gnani credits, capped up front.
+- **Is the code open?** Not yet. Every number is backed by run files, and I'm happy to show the code to anyone evaluating it.
 - **How is it different from Hamming, Coval or Cekura?** Those test voice agents too, mostly for English. Diapason is built around
   Indian calls: code-mixing, 8 kHz noise, digits and dates said the way Indian callers say them (in eight languages), RBI
   collections rules, and a guard and Shield that act during the call. Every accuracy number is published with what it misses.
 - **Does it work with my stack?** Anything that takes calls over Twilio Media Streams, an Exotel or Plivo stream, or a websocket.
-- **Real customer data?** No. Every caller is synthetic and every brand is fictional.
+- **Real customer data?** No. Every caller is synthetic and every brand is fictional. The 3,366 transcripts are Prisma's
+  real output on Timbre speech sent through a simulated noisy line, not recorded calls.
 - **Why self-host Evon?** It has no hosted API yet, so it runs on a free Kaggle GPU. That's also why test runs don't judge latency.
 - **What's the weakest part?** On its own the judge both misses and invents privacy failures, so a code check has the final say
-  there; the only human labels are mine; the Inya and real-phone targets work end to end offline but haven't run live yet.
+  there; the only human labels are mine; every caller is synthetic; the Inya and real-phone targets work end to end offline
+  but haven't run live yet.
 
 ## Follow-ups (one short story each, each pointing back to the nominated post)
 
@@ -85,5 +151,5 @@ Attach the same 60-second video. Check Gnani's X handle before tagging; it isn't
 | 4 | Prisma writes no numerals in Tamil | Digit and date reading: 1/28 → 28/28, and 24/24 held out |
 | 5 | Shield: compliance in front of any agent, live | Every threat replaced; median hold 678 ms per line |
 
-Close each one with "Demo and code: see my pinned post". The deadline is 10 Nov, 11:59 PM IST, and engagement counts only
+Close each one with "Demo: see my pinned post". The deadline is 10 Nov, 11:59 PM IST, and engagement counts only
 until then, so post the launch as early as possible and submit by 9 Nov evening.

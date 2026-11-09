@@ -9,19 +9,30 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500&family=Noto+Sans+Gujarati:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="theme.css">
 <style>
-:root{--card:var(--panel);--soft:var(--raise-2);--ink:var(--fg);--na:#3a4058;--caller:rgba(110,141,255,.22);--agent:var(--raise-2);--hl:rgba(255,193,77,.14)}
+#auditPanel,#callPanel{scroll-margin-top:78px}
+.langbar{display:flex;flex-wrap:wrap;gap:8px;margin:26px 0 0;align-items:center}
+.langbar .lb-h{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:6px}
+.langbar button{all:unset;cursor:pointer;display:inline-flex;align-items:baseline;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid var(--line-3);
+  background:rgba(255,255,255,.02);font:600 14px var(--sans);color:var(--fg);transition:border-color .2s,background .2s,transform .2s}
+.langbar button small{font:500 11px var(--mono);color:var(--muted)}
+.langbar button:hover{border-color:rgba(140,180,255,.45);background:rgba(79,140,255,.08)}
+.langbar button.on{border-color:var(--accent);background:rgba(79,140,255,.16)}
+.langbar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.langbar .native{font-weight:500;color:var(--text)}
+#heat th.c small{display:block;font:500 9.5px var(--mono);color:var(--muted);letter-spacing:.02em}
+:root{--card:var(--panel);--soft:var(--raise-2);--ink:var(--fg);--na:#3a4058;--caller:rgba(79,140,255,.22);--agent:var(--raise-2);--hl:rgba(255,193,77,.14)}
 main{max-width:1320px;margin:0 auto;padding:0 20px 96px}
-.hero{padding:64px 0 10px}.hero h1{font:400 clamp(40px,6.4vw,80px)/.98 var(--serif);letter-spacing:-.02em;color:var(--fg);margin:18px 0 0;max-width:1000px}
-.hero h1 i{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero{padding:64px 0 10px}.hero h1{font:650 clamp(40px,6.4vw,80px)/.98 var(--serif);letter-spacing:-.02em;color:var(--fg);margin:18px 0 0;max-width:1000px}
+.hero h1 i{color:var(--muted);font-style:normal}
 .hero p{margin:18px 0 0;color:var(--muted);max-width:760px;font-size:17px}
-h2{font:400 32px/1.05 var(--serif);color:var(--fg);margin:56px 0 8px;letter-spacing:-.01em}
+h2{font:650 32px/1.05 var(--serif);color:var(--fg);margin:56px 0 8px;letter-spacing:-.01em}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px;margin-top:16px}
 .tile{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;cursor:pointer;text-align:left;font:inherit;color:inherit;
   transition:transform .3s var(--ease),border-color .3s,box-shadow .3s;display:block}
-.tile:hover{transform:translateY(-3px);border-color:rgba(154,138,255,.45)}
+.tile:hover{transform:translateY(-3px);border-color:rgba(79,140,255,.45)}
 .tile.on{border-color:transparent;box-shadow:var(--glow-v)}
 .tile .reg{font:600 10.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--cyan)}
-.tile .nm{font:400 24px/1.1 var(--serif);color:var(--fg);margin:6px 0 10px}
+.tile .nm{font:650 24px/1.1 var(--serif);color:var(--fg);margin:6px 0 10px}
 .tile .st{display:flex;gap:12px;flex-wrap:wrap;font:500 11.5px var(--mono);color:var(--muted)}.tile .st b{color:var(--fg);font-weight:600}
 .tile .meter{height:4px;border-radius:9px;background:var(--raise-2);margin-top:14px;overflow:hidden}.tile .meter i{display:block;height:100%;background:var(--grad)}
 .panel{margin:16px 0}
@@ -64,7 +75,7 @@ h2{font:400 32px/1.05 var(--serif);color:var(--fg);margin:56px 0 8px;letter-spac
 </head>
 <body>
 <div class="room"><i></i></div>
-<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="dpg" x1="0" x2="1"><stop offset="0" stop-color="#b3a6ff"/><stop offset="1" stop-color="#38e3d6"/></linearGradient></defs></svg>
+<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="dpg" x1="0" x2="1"><stop offset="0" stop-color="#4f8cff"/><stop offset="1" stop-color="#4f8cff"/></linearGradient></defs></svg>
 <nav class="topnav"><div class="in">
   <a class="logo" href="/"><svg viewBox="0 0 26 26"><circle class="fork-ring" cx="13" cy="9" r="8"/><circle class="fork-ring r2" cx="13" cy="9" r="8"/>
     <path d="M9 2v9a4 4 0 0 0 8 0V2" fill="none" stroke="url(#dpg)" stroke-width="2.2" stroke-linecap="round"/><path d="M13 15v9" stroke="url(#dpg)" stroke-width="2.2" stroke-linecap="round"/></svg>Diapason</a>
@@ -75,6 +86,7 @@ h2{font:400 32px/1.05 var(--serif);color:var(--fg);margin:56px 0 8px;letter-spac
   <h1>Every call, every segment, <i>every verdict with proof.</i></h1>
   <p>One auditor for collections, insurance, healthcare, telecom, banking, e-commerce and KYC. Code checks where words decide,
   Evon where judgment does. Every fail quoted from the call, every doubt sent to a person. Click any verdict to hear the moment.</p>
+  <div class="langbar" id="langbar" hidden></div>
 </section>
 
 <h2>Segments</h2>
@@ -120,10 +132,15 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":
 const pct = (x) => x == null ? "—" : `${Math.round(x * 100)}%`;
 let data = {scorecards: [], audits: []}, card = null, audit = null, call = null;
 const DATA = window.DIAPASON_DATA;   // set by the static site (`diapason site`): read files instead of the API
-if (DATA) { const a = document.querySelector(".topbar a"); a.href = "index.html"; a.textContent = "Overview"; }
+if (DATA) { const a = document.querySelector(".topnav a.nl"); if (a) { a.href = "index.html"; a.textContent = "Overview"; } }
 
 const reg = (name) => (name.match(/\(([^)]+)\)\s*$/) || [, ""])[1];
 const short = (name) => name.replace(/\s*\([^)]*\)\s*$/, "").replace(/ QA$/, "");
+const LANG = {"hi-IN": ["Hindi", "हिन्दी"], "gu-IN": ["Gujarati", "ગુજરાતી"], "en-IN": ["English", "English"], "ta-IN": ["Tamil", "தமிழ்"], "mr-IN": ["Marathi", "मराठी"],
+  "kn-IN": ["Kannada", "ಕನ್ನಡ"], "te-IN": ["Telugu", "తెలుగు"], "bn-IN": ["Bengali", "বাংলা"], "ml-IN": ["Malayalam", "മലയാളം"], "pa-IN": ["Punjabi", "ਪੰਜਾਬੀ"]};
+const langName = (l) => (LANG[l] || [l])[0];
+const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+const goTo = (id) => $(id).scrollIntoView({behavior: smooth ? "smooth" : "auto", block: "start"});
 
 async function init() {
   data = await (await fetch(DATA ? `${DATA}studio.json` : "/api/studio")).json();
@@ -142,12 +159,38 @@ async function init() {
   $("tiles").innerHTML = segs.map(tile).join("") || `<p class="empty">No scorecards in scorecards/.</p>`;
   $("clientTiles").innerHTML = clients.map(tile).join("") || `<p class="empty">Run <code>diapason playbooks build</code>.</p>`;
   $("clientsHead").hidden = !clients.length;
-  document.querySelectorAll(".tile").forEach((t) => t.onclick = () => pick(t.dataset.stem));
-  const first = data.scorecards.find((c) => data.audits.some((a) => a.scorecard === c.name)) || data.scorecards[0];
-  if (first) pick(first.stem);
+  document.querySelectorAll(".tile").forEach((t) => t.onclick = async () => { await pick(t.dataset.stem); goTo("auditPanel"); });
+  // every language the audited calls are in, each a way straight into a call; voiced calls first
+  const withLangs = data.audits.filter((a) => a.langs && a.langs.length);
+  const count = {};
+  withLangs.forEach((a) => a.langs.forEach(([l]) => { if (l) count[l] = (count[l] || 0) + 1; }));
+  const order = Object.keys(count).sort((x, y) => count[y] - count[x]);
+  if (order.length > 1) {
+    $("langbar").hidden = false;
+    $("langbar").innerHTML = `<span class="lb-h">Open a call in</span>` + order.map((l) => `<button data-l="${esc(l)}">${esc(langName(l))}
+      ${LANG[l] && LANG[l][1] !== LANG[l][0] ? `<span class="native">${esc(LANG[l][1])}</span>` : ""}<small>${count[l]}</small></button>`).join("");
+    const seen = {};
+    $("langbar").onclick = async (ev) => {
+      const b = ev.target.closest("button"); if (!b) return;
+      const l = b.dataset.l, pool = withLangs.filter((a) => a.langs.some(([x]) => x === l));
+      pool.sort((x, y) => (y.langs.some(([q, v]) => q === l && v) - x.langs.some(([q, v]) => q === l && v)));
+      const a = pool[(seen[l] = ((seen[l] ?? -1) + 1)) % pool.length];        // each click on the same language: the next industry
+      const c = data.scorecards.find((s) => s.name === a.scorecard);
+      document.querySelectorAll("#langbar button").forEach((x) => x.classList.toggle("on", x === b));
+      await pick(c.stem, a.path, l); goTo("callPanel");
+    };
+  }
+  // open on the audit that shows the most languages, voiced if possible
+  const best = withLangs.slice().sort((x, y) => {
+    const n = (a) => (a.langs.some(([l, v]) => v && !["hi-IN", "en-IN"].includes(l)) ? 100 : 0) + new Set(a.langs.map(([l]) => l).filter(Boolean)).size * 10 + a.langs.filter(([, v]) => v).length;
+    return n(y) - n(x); })[0];
+  const bestCard = best && data.scorecards.find((s) => s.name === best.scorecard);
+  const first = bestCard || data.scorecards.find((c) => data.audits.some((a) => a.scorecard === c.name)) || data.scorecards[0];
+  const opening = best && (best.langs.find(([l, v]) => v && !["hi-IN", "en-IN"].includes(l)) || [])[0];
+  if (first) pick(first.stem, best && bestCard ? best.path : null, opening || null);
 }
 
-function pick(stem) {
+async function pick(stem, path = null, lang = null) {
   card = data.scorecards.find((c) => c.stem === stem);
   document.querySelectorAll(".tile").forEach((t) => t.classList.toggle("on", t.dataset.stem === stem));
   const audits = data.audits.filter((a) => a.scorecard === card.name);
@@ -160,10 +203,11 @@ function pick(stem) {
   $("callPanel").hidden = true;
   $("audit").innerHTML = audits.map((a) => `<option value="${esc(a.path)}">${esc(a.generated)} · ${a.calls} calls · ${esc(a.path)}</option>`).join("");
   $("audit").onchange = () => loadAudit($("audit").value);
-  if (audits.length) loadAudit(audits[0].path);
+  const chosen = audits.find((a) => a.path === path) || audits[0];
+  if (chosen) { $("audit").value = chosen.path; await loadAudit(chosen.path, lang); }
 }
 
-async function loadAudit(path) {
+async function loadAudit(path, lang = null) {
   audit = await (await fetch(DATA ? `${DATA}audit/${path.split("/").join("__")}.json` : `/api/studio/audit/${path.split("/").map(encodeURIComponent).join("/")}`)).json();
   const s = audit.summary || {}, ev = audit.evaluation;
   const k = [["Calls", s.calls], ["Average score", s.avg_score ?? "—"], ["Pass rate", pct(s.pass_rate)], ["Fatal-error calls", pct(s.fatal_rate)],
@@ -172,14 +216,16 @@ async function loadAudit(path) {
   $("kpis").innerHTML = k.map(([a, b]) => `<div class="kpi"><span>${esc(a)}</span><b>${esc(b)}</b></div>`).join("");
   const params = (card.sections || []).flatMap((x) => x.params);
   const calls = audit.calls;
-  $("heat").innerHTML = `<table><tr><th></th>${calls.map((c, i) => `<th class="c" data-i="${i}" title="${esc(c.call_id)}">#${esc(String(c.call_id).split(/[-_]/).pop())}</th>`).join("")}</tr>
+  $("heat").innerHTML = `<table><tr><th></th>${calls.map((c, i) => `<th class="c" data-i="${i}" title="${esc(c.call_id)} · ${esc(langName((c.meta || {}).lang || ""))}">#${esc(String(c.call_id).split(/[-_]/).pop())}${(c.meta || {}).lang ? `<small>${esc(langName(c.meta.lang).slice(0, 3))}</small>` : ""}</th>`).join("")}</tr>
     ${params.map((p) => `<tr><th>${esc(p.label)}${p.fatal ? " ·F" : ""}</th>${calls.map((c, i) => {
       const r = (c.params || []).find((x) => x.id === p.id); const v = r ? r.verdict : "na";
       const planted = (c.planted || []).includes(p.id);
       return `<td><button class="cell v-${esc(v)}${planted ? " planted" : ""}" data-i="${i}" data-p="${esc(p.id)}" title="${esc(c.call_id)} · ${esc(p.label)}: ${esc(v)}${planted ? " (planted)" : ""}${r && r.reason ? " — " + esc(r.reason) : ""}"></button></td>`;
     }).join("")}</tr>`).join("")}</table>`;
   document.querySelectorAll("#heat .cell, #heat th.c").forEach((b) => b.onclick = () => openCall(+b.dataset.i, b.dataset.p));
-  if (calls.length) openCall(Math.max(0, calls.findIndex((c) => !c.passed)), null, false);
+  const inLang = lang ? calls.findIndex((c) => (c.meta || {}).lang === lang && c.audio) : -1;
+  const anyLang = lang ? calls.findIndex((c) => (c.meta || {}).lang === lang) : -1;
+  if (calls.length) openCall(inLang >= 0 ? inLang : anyLang >= 0 ? anyLang : Math.max(0, calls.findIndex((c) => !c.passed)), null, false);
 }
 
 function openCall(i, focus, scroll = true) {
@@ -187,7 +233,7 @@ function openCall(i, focus, scroll = true) {
   $("callPanel").hidden = false;
   $("callId").textContent = call.call_id;
   const m = call.meta || {};
-  $("callTags").innerHTML = [m.segment, m.lang, m.voiced ? "voiced: Timbre → phone line → Prisma" : (call.audio ? "recording" : "transcript"),
+  $("callTags").innerHTML = [m.segment, m.lang && `${langName(m.lang)}${LANG[m.lang] && LANG[m.lang][1] !== LANG[m.lang][0] ? " · " + LANG[m.lang][1] : ""}`, m.voiced ? "voiced: Timbre → phone line → Prisma" : (call.audio ? "recording" : "transcript"),
     ...(call.timing_planted || []).map((t) => "planted: " + t)].filter(Boolean).map((t) => `<span class="chip">${esc(t)}</span>`).join("");
   const flagged = {};
   (call.params || []).forEach((p) => (p.verdict === "fail" || p.verdict === "review") && (p.evidence || []).forEach((e) => (flagged[e.turn] ||= []).push(p.id)));
@@ -227,7 +273,7 @@ function openCall(i, focus, scroll = true) {
   document.querySelectorAll(".coach li").forEach((li) => li.onclick = () => flash(+li.dataset.turn));
   setupAudio();
   if (focus) focusParam(focus);
-  if (scroll) $("callPanel").scrollIntoView({behavior: "smooth", block: "start"});
+  if (scroll) goTo("callPanel");
 }
 
 function setupAudio() {
