@@ -85,4 +85,6 @@ audited calls can be opened by language (Hindi, Gujarati, English, Tamil, Marath
 - Demo video: in the LinkedIn post; also https://diapason-mu.vercel.app/watch-60.html
 - LinkedIn post: (link)
 - X post: (link)
-- Showcase and evidence: https://diapason-mu.vercel.app (the repository is private; code available to Gnani on request)
+- Code: https://github.com/RiyanKothari/diapason (`pip install -e .`, then `diapason demo` runs with no keys; `diapason
+  dashboard`, then Prove it, replays v1 to v4)
+- Showcase and evidence: https://diapason-mu.vercel.app
