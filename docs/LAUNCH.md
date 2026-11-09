@@ -4,8 +4,8 @@ Every number here matches the README, `results/` and the 60-second film. Change 
 Rules that apply (challenge terms): organic engagement only. No engagement pods or swaps, no paid boosts, no bots. A
 misleading demo disqualifies, so nothing in a post may promise more than the evidence shows.
 
-The repository stays private, so the posts point at the deployed site only: it plays every call and carries every
-measurement. Nothing in a post may send a stranger to the code.
+The repository is public since 9 Nov (https://github.com/RiyanKothari/diapason), and the site links to it. The posts
+still point at the site first: it plays every call and carries every measurement.
 
 ## Before posting
 
@@ -161,9 +161,9 @@ organic; trading likes, engagement groups or "like for like" are not, and disqua
 
 ## Answers for likely comments
 
-- **Can I try it?** The site plays every call and shows every verdict with the agent's own words. The code is private for
-  now; testing your own agent over a phone-platform stream uses Gnani credits, capped up front.
-- **Is the code open?** Not yet. Every number is backed by run files, and I'm happy to show the code to anyone evaluating it.
+- **Can I try it?** Yes: https://github.com/RiyanKothari/diapason, `pip install -e .`, then `diapason demo` (no keys) or
+  `diapason dashboard` and Prove it. Testing your own agent over a phone-platform stream uses Gnani credits, capped up front.
+- **Is the code open?** Yes, the repository is public, with every run file behind the numbers.
 - **How is it different from Hamming, Coval or Cekura?** Those test voice agents too, mostly for English. Diapason is built around
   Indian calls: code-mixing, 8 kHz noise, digits and dates said the way Indian callers say them (in eight languages), RBI
   collections rules, and a guard and Shield that act during the call. Every accuracy number is published with what it misses.
