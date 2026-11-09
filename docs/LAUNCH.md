@@ -16,7 +16,7 @@ measurement. Nothing in a post may send a stranger to the code.
 2. Upload `runs/video/diapason-film-60s.mp4` to LinkedIn **natively** (not a YouTube link: native video is shown larger and
    counts as the "public video of a working application").
 3. Tag Gnani by typing `@Gnani` and picking **Gnani.ai** from the dropdown, so it becomes a real tag, not plain text.
-4. Post on a weekday morning (9-11 am IST). For the first hour, reply to every comment.
+4. Post on Friday 6 Nov at 9:00 IST (see the playbook). For the first hour, reply to every comment.
 5. Put the link in the first comment, not the post: LinkedIn shows posts with outside links to fewer people.
 6. Nominate this post in the participant workspace.
 
@@ -27,103 +27,137 @@ images. Images are in `runs/launch-media/` (captured from the live site at 2x; r
 
 | Post | Media | Notes |
 |---|---|---|
-| Launch (nominated) | Your own 60-75 s screen recording with voiceover (shot list below); fallback `runs/video/diapason-film-60s.mp4` | Native upload. Cover: `01-cover-16x9.png`. Turn on captions: most people watch muted |
+| Launch (nominated) | `runs/video/diapason-film-60s.mp4` with your voiceover (script below) | Native upload. Cover: `00-thumbnail-4x5.png` (or `00-thumbnail-16x9.png`). Turn on captions: most people watch muted |
 | Day 2: "4821" bug | `02-same-caller-guard.png` | The guard strikes out the threat and holds the amount until the caller verifies |
 | Day 3: the judge | `03-v1-to-v4.png` (and `06-proof.png` as a 2nd image) | The matrix is the single clearest image of the project |
 | Day 4: Tamil numerals | `09-every-language.png` (the transcript, its number words lit, the value read) | |
 | Day 5: Shield | a 20 s screen recording of a Shield block | |
-| X post 1 | the same video | X post 4: `03-v1-to-v4.png` |
+| X post 1 | the same video | X post 3: `02-same-caller-guard.png`; X post 5: `03-v1-to-v4.png` |
 
-**The launch video (record it yourself: it is the "public video of a working application").** 1080p screen recording of
-`diapason dashboard`, your voice over it, captions burned in or added on upload. Keep every number on screen real.
+**The launch video: the 60-second film, with your voice over it.** `runs/video/diapason-film-60s.mp4` (the same film plays
+at https://diapason-mu.vercel.app/watch-60.html). It has its own sound in one place: from about 6 s to 26 s the real
+recorded call plays (the agent's threat in Hindi, Ramesh answering, the agent threatening again). Don't talk over it;
+it is the strongest moment in the film. Speak only in the gaps below. Each line fits its scene at a relaxed pace.
 
-| Time | On screen | You say (roughly) |
+| Film time | On screen | You say |
 |---|---|---|
-| 0-4 s | The landing page hero: the live Guard card typing the agent's threat, striking it, saying the safe line | "This AI agent just threatened a borrower and said his debt before checking who he was." |
-| 4-15 s | Dashboard: pick the collections suite, start a run; callers in Hinglish and Gujarati, noise on, live transcript | "Diapason phones your agent with synthetic Indian callers on a noisy 8 kHz line and tries to break it." |
-| 15-27 s | A fail card quoting the agent's words | "Every fail quotes what the agent actually said." |
-| 27-40 s | The same call behind Guard: the threat struck out, the amount held until verified | "Guard checks each sentence in code before it's spoken. Same agent, prompt untouched." |
-| 40-52 s | **Prove it**: the v1 to v4 matrix filling in | "Seven planted bugs: eight of eight tests caught them, and v4 removes all six text bugs." |
-| 52-60 s | Logos of Prisma, Timbre, Evon as text; the site URL | "Built on Gnani's Prisma, Timbre and Evon, which I run myself. Link in the comments." |
+| 0-5 s | "Before your voice agent talks to a million Indians, it has to survive these callers." | "I built a crash test for Indian voice agents. Listen to what my test agent says first." |
+| 5-26 s | The call: transcript, fail stamps | **Nothing. The call speaks.** |
+| 26-31 s | The call's fails on screen | "That's a bug I planted: a threat, and the loan amount, before checking who picked up." |
+| 31-41 s | The same agent behind Guard | "Diapason's guard checks every sentence in code before it's spoken. Same agent, prompt untouched. The threat never reaches the caller." |
+| 41-50 s | v1 to v4 on the same calls | "I planted seven bugs. Every one was caught, and each new version is re-tested on the same calls until they're gone." |
+| 50-55 s | QA on every call | "After the call, every call is scored, with the agent's own words as proof." |
+| 55-60 s | Diapason, Prisma, Timbre, Evon | "Diapason. Built on Gnani's Prisma, Timbre and Evon." |
+
+How to record it in one take (Windows): open the film page full-screen (F11), start Snipping Tool's screen recording
+(Win+Shift+R) with the microphone and system audio on, press Play on the film, and read the lines as the scenes change.
+Then trim the start and end in Clipchamp, turn on auto captions, and export 1080p.
 
 ## The post (LinkedIn, nominated)
 
-> Before an AI voice agent talks to a million Indians, who tests it the way Indians actually call?
->
-> Real callers phone from a noisy shop, switch from Hindi to Gujarati mid-sentence, hand the phone to their brother, cut
-> the agent off, and sometimes tell it to "ignore your instructions". Most voice agents are tested with a handful of polite
-> test calls.
->
-> So for the #GreatIndianAIInternshipChallenge I built Diapason, on all three of Gnani's models:
->
-> 🔹 Before launch: synthetic callers phone your agent in Hindi, Hinglish, Gujarati, Tamil, Marathi, Telugu, Kannada or
-> English, over a simulated 8 kHz phone line with fan, traffic and market noise, and try to break it. Every call is judged
-> against your rules, and every fail quotes the agent's own words.
-> 🔹 During the call: Diapason Guard checks each sentence in code before it is spoken. Shield does the same in front of any
-> agent on Twilio, Exotel or Plivo, with no change to the agent.
-> 🔹 After the call: an auditor scores calls against industry scorecards.
->
-> To know it works, I planted 7 bugs in a collections agent and measured:
-> • 8 of 8 tests caught them
-> • Guard, with the agent's prompt untouched, prevented 6 of 6 text bugs
-> • v4 (the model picks what to do, code speaks every fact) removed 6 of 6 and passed 5 of 6 calls
-> • the auditor got 90-94% of 560 verdicts right on calls it never saw, and caught every fatal breach
-> • across 3,366 noisy-line transcripts, 98% of IDs, amounts and dates survive
->
-> Gnani's models do all the work:
-> • Prisma is the callers' ears
-> • Timbre is their voices
-> • Evon plays the callers, the agent, the judge and the red team. Evon has no hosted API yet, so I run it myself on a
-> free Kaggle GPU.
->
-> My favourite bug: Timbre read "4821" aloud as a number, Prisma wrote "फोर थाउज़ंड एट हंडरेड ट्वेंटी वन", and no caller could
-> ever verify. Only a live call finds that.
->
-> I didn't trust my own AI judge either. It once failed 9 of 9 correct calls; I measured that, fixed it, and it now fails
-> none of them while still catching every real leak.
->
-> If you build voice agents for Indian customers: what breaks yours most?
->
-> @Gnani.ai #GnaniAI #GreatIndianAIInternshipChallenge #VoiceAI #ConversationalAI
+The first two lines are all most people see before "...see more", so they carry a shock and an open question ("Here's
+why."). The crash-test comparison explains the product in one breath; the three numbered lines say what it does; the
+4821 story is the one people remember. No emojis.
 
-## First comment (post it yourself, right after)
-
-> ▶ The 60-second demo and the full film, played from the run files: https://diapason-mu.vercel.app/watch-60.html
-> 📊 The planted-bug proof, the phone-line atlas and every call, with the agent's own words (you can listen to them):
-> https://diapason-mu.vercel.app
-> The code is private for now. Happy to walk anyone through it.
-
-## X (nominated post: the first one, with the same 60-second video attached)
-
-1/
-> Test your AI voice agent the way Indians call: noisy 8 kHz lines, Hinglish, a brother on the phone, "ignore your
-> instructions".
+> An AI agent told a borrower: "Pay today, or there'll be legal action."
+> I built it to say that. Here's why.
 >
-> I built Diapason on [Gnani handle] Prisma, Timbre and Evon. I planted 7 bugs: 8 of 8 tests caught them.
+> Cars get crash-tested before they hit the road. AI voice agents that will talk to millions of Indians usually get a
+> few polite test calls and go live. Then a real customer calls from a noisy shop, switches from Hindi to Gujarati
+> halfway, or his brother picks up, and the agent breaks.
 >
-> #GnaniAI #GreatIndianAIInternshipChallenge
+> So I planted seven bugs in a test agent (that threat was one of them) and built Diapason to find them.
+>
+> What it does:
+> 1. Before launch, synthetic callers phone your agent in eight languages, over a noisy phone line, and try to break it.
+> 2. During a call, a guard checks every sentence before the agent says it.
+> 3. After the call, an auditor scores it and quotes the agent's exact words for every mistake.
+>
+> It caught all seven bugs, and the guard stopped six of them before they were ever spoken.
+>
+> The best bug was one I didn't plant: the loan ID "4821" was read out as "four thousand eight hundred twenty-one", so
+> no caller could ever verify. No unit test caught it. One real call did.
+>
+> Built on Gnani's Prisma, Timbre and Evon for the #GreatIndianAIInternshipChallenge. The 60-second demo is below, and
+> you can listen to every test call (link in the comments).
+>
+> If you've ever been stuck with a voice bot, what did it get wrong?
+>
+> @Gnani.ai #GnaniAI #VoiceAI #ConversationalAI
+
+Media: the film with your voiceover, uploaded natively, cover `00-thumbnail-4x5.png`, captions on.
+
+## First comment (post it yourself within a minute)
+
+> You can listen to every test call here: https://diapason-mu.vercel.app
+>
+> In QA Studio you can open a call in Tamil, Kannada or any of the other languages:
+> https://diapason-mu.vercel.app/studio.html
+>
+> I built it solo over the last two weeks. Happy to answer anything about how it works.
+
+## X (nominated post: the first one, with the video attached)
+
+1/ (video)
+> An AI agent told a borrower: "Pay today, or there'll be legal action." I built it to say that.
+>
+> Then I built Diapason to catch it: crash tests for Indian voice agents, on [Gnani handle] Prisma, Timbre & Evon. 7
+> planted bugs, all caught. #GnaniAI #GreatIndianAIInternshipChallenge
 
 2/
-> How it works: Timbre gives the callers their voices, Prisma their ears, and Evon plays the callers, the agent, the judge
-> and the red team.
->
-> Evon has no hosted API yet, so I run it myself on a free Kaggle GPU.
+> My favourite find: Timbre read the loan ID "4821" as "four thousand eight hundred twenty-one", so no caller could
+> verify. No unit test caught it. One real call did.
 
-3/
-> The bug only a live call could find: Timbre read the loan ID "4821" aloud as a number, Prisma wrote "four thousand eight
-> hundred twenty one", and no caller could ever verify.
->
-> Every caller failed, until the digit reader was fixed.
+3/ (image `03-v1-to-v4.png`)
+> Every test call, replayed: https://diapason-mu.vercel.app
 
-4/
-> Guard checks each sentence in code before the agent speaks it: 6 of 6 text bugs prevented, with the prompt untouched.
->
-> Across 3,366 noisy-line transcripts, 98% of IDs, amounts and dates survive.
->
-> Demo and every run: https://diapason-mu.vercel.app
+Check Gnani's X handle before tagging; it isn't recorded anywhere in this repo.
 
-Check Gnani's X handle before tagging; it isn't recorded anywhere in this repo. Each post must stay within 280
-characters (a link counts as 23).
+## Launch-day playbook (organic only)
+
+**Tonight (5 Nov)**
+1. Record the voiceover over the film (script above) and export it. Captions on.
+2. Profile: headline "Building Diapason: crash tests for Indian voice agents"; add the site to Featured. Optional banner:
+   `00-thumbnail-16x9.png`.
+3. Find Gnani's X handle and follow Gnani on both platforms.
+4. Write down 15-25 people who would genuinely care (classmates in AI, a professor, anyone in voice AI or fintech). After
+   the post is live, message each one personally and ask what they think. Asking for honest feedback is organic;
+   trading likes, joining pods or swapping engagement is not, and disqualifies.
+
+**Launch: Friday 6 Nov, 9:00 IST** (deadline is Tuesday 10 Nov, so waiting for a Tuesday slot would lose four days)
+1. 9:00 LinkedIn post with the video; 9:01 the first comment with the links.
+2. 9:10 the X thread, video on post 1.
+3. 9:00-10:00 is the hour that decides reach: reply to every comment within minutes, with a real answer and a question
+   back. Use "Answers for likely comments" below. Don't edit the post after the first 10 minutes.
+4. Send the personal messages from step 4 once the post has its first few reactions.
+5. Nominate both posts in the participant workspace.
+
+**Don't**: ask for "comment YES and I'll DM the link", tag more than Gnani, post the links in the post body, change any
+number, or use engagement groups of any kind.
+
+## Messages to friends (send after the post is live)
+
+Send each one yourself, to one person at a time, with their name. Asking people you know for honest feedback is
+organic; trading likes, engagement groups or "like for like" are not, and disqualify. Never promise anything in return.
+
+**WhatsApp, to friends and classmates**
+> Hey [name]! I just posted about the project I've spent the last two weeks on. It's called Diapason: it crash-tests AI
+> voice agents the way Indians actually call (noisy lines, Hindi switching to Gujarati, the brother picking up the
+> phone). It's my entry for Gnani AI's internship challenge.
+>
+> Could you have a look and tell me honestly what you think? Was it clear what it does? Did the demo make sense?
+> Anything confusing?
+>
+> If you find it interesting, a comment with your thoughts or a question would mean a lot. The shortlist partly depends
+> on how people engage with the post.
+>
+> [link to the post]
+> Thank you!
+
+**LinkedIn message, to a professor, a senior or someone in AI**
+> Hi [name], I just shared a project I built for Gnani AI's internship challenge: Diapason, which crash-tests AI voice
+> agents on realistic Indian calls before they go live. I'd really value your honest feedback, especially on whether
+> the problem and the demo come across clearly. Here's the post: [link]
 
 ## Answers for likely comments
 
@@ -141,15 +175,65 @@ characters (a link counts as 23).
   there; the only human labels are mine; every caller is synthetic; the Inya and real-phone targets work end to end offline
   but haven't run live yet.
 
-## Follow-ups (one short story each, each pointing back to the nominated post)
+## Follow-ups (one story each, each pointing back to the nominated post)
 
-| Day | Story | The number |
-|---|---|---|
-| 1 | Launch (the post above) | 8/8 planted bugs caught |
-| 2 | The bug only a live call could find: "4821" spoken as a number | Every caller failed verification, until the digit reader was fixed |
-| 3 | My AI judge failed every correct call, and how I measured the fix | Clean calls wrongly failed: 9/9 → 0/9, with 7/7 leaks still caught |
-| 4 | Prisma writes no numerals in Tamil | Digit and date reading: 1/28 → 28/28, and 24/24 held out |
-| 5 | Shield: compliance in front of any agent, live | Every threat replaced; median hold 678 ms per line |
+Only the nominated post's engagement counts, so each one ends with "Demo: see my pinned post" and you add the launch
+post's link as the first comment. One image each.
 
-Close each one with "Demo: see my pinned post". The deadline is 10 Nov, 11:59 PM IST, and engagement counts only
-until then, so post the launch as early as possible and submit by 9 Nov evening.
+**Sat 7 Nov, 10:00 IST** · image `02-same-caller-guard.png`
+> Every one of my test callers failed to verify. Every single one.
+>
+> The agent asked for the last four digits of the loan ID. The caller said "4821". Timbre, the voice, read it out as
+> "four thousand eight hundred twenty-one", and Prisma wrote down exactly that. So the check never matched.
+>
+> No unit test would have found this, because every piece worked on its own. It only broke when a real voice went
+> through a real phone line.
+>
+> So Diapason now reads numbers the way Indians actually say them: digit by digit, as one number, or in English inside
+> a Hindi sentence.
+>
+> Demo: see my pinned post.
+> #GnaniAI #GreatIndianAIInternshipChallenge
+
+**Sun 8 Nov, 11:00 IST** · image `09-every-language.png`
+> Prisma doesn't write numerals in Tamil.
+>
+> Say "4821" in Tamil and the transcript comes back as "நான்கு ஆயிரத்தி எண்ணூற்றி இருபத்தொன்று". Same in Marathi,
+> Telugu and Kannada. Any test that looks for digits fails before it starts.
+>
+> So I taught Diapason's readers those number words, including the ones Tamil and Kannada join into one word. Before:
+> 1 of 28 real transcripts read right. After: 28 of 28, and 24 of 24 on new numbers and a new voice, written after the
+> fix.
+>
+> Every one of those transcripts is on the site, word by word. Demo: see my pinned post.
+> #GnaniAI #GreatIndianAIInternshipChallenge
+
+**Mon 9 Nov, 9:00 IST** · images `03-v1-to-v4.png` and `06-proof.png`
+> My AI judge failed 9 out of 9 correct calls.
+>
+> Diapason uses Evon to judge every test call against the rules. On calls where the agent did everything right, it
+> still marked verification as a fail, every time. If I'd trusted it, every agent would have looked broken.
+>
+> So I labelled calls by hand, measured the judge against them, and rewrote the rule it kept misreading. A code check
+> now backs it up wherever the words alone decide.
+>
+> Clean calls wrongly failed: 9 of 9 before, 0 of 9 after. Real leaks still caught: 7 of 7.
+>
+> An AI that tests AI needs testing too. Demo: see my pinned post.
+> #GnaniAI #GreatIndianAIInternshipChallenge
+
+Submit on Mon 9 Nov evening, with the nominated post links.
+
+**Tue 10 Nov, 9:00 IST** · image `04-the-numbers.png` (or a 20-second screen recording of Shield)
+> Last day of the challenge, so here's the part I haven't shown yet: Shield.
+>
+> Most teams can't rewrite their voice agent. Shield sits between the phone line and the agent, on Twilio, Exotel or
+> Plivo, and checks every sentence before the caller hears it. No change to the agent.
+>
+> In a live test on an Exotel stream it replaced every threat and every missing disclosure, and held each line for a
+> median of 678 ms.
+>
+> Thank you to everyone who commented, asked questions and pushed back this week. Demo: see my pinned post.
+> #GnaniAI #GreatIndianAIInternshipChallenge
+
+Engagement counts until 10 Nov, 11:59 PM IST.
