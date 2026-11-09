@@ -2,7 +2,7 @@
 
 *A diapason is the tuning fork every voice is checked against.*
 
-**[One-page pitch](PITCH.md)** · **[Live demo](https://diapason-mu.vercel.app)** · **[2-minute video](https://diapason-mu.vercel.app/diapason-demo.mp4)**
+**[One-page pitch](PITCH.md)** · **[Live demo](https://diapason-mu.vercel.app)** · **[3-minute demo video](https://diapason-mu.vercel.app/diapason-demo.mp4)**
 
 **Crash-testing, a live guard and QA for Indian voice agents, built on Gnani Prisma, Timbre and Evon.** For teams
 shipping AI voice agents to Indian callers (collections, insurance, support). **Before launch**, synthetic callers

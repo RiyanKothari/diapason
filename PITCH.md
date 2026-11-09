@@ -1,7 +1,7 @@
 # Diapason: crash tests for Indian voice agents
 
 **Riyan Kothari · SRM Institute of Science and Technology · solo entry, Great Indian AI Internship Challenge**
-Live demo: https://diapason-mu.vercel.app · 2-minute video: https://diapason-mu.vercel.app/diapason-demo.mp4
+Live demo: https://diapason-mu.vercel.app · 3-minute demo video (narrated by Gnani Timbre): https://diapason-mu.vercel.app/diapason-demo.mp4
 
 ## The problem
 
