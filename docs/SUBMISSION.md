@@ -1,7 +1,7 @@
 # Submission text (Great Indian AI Internship Challenge)
 
-Ready to paste into the participant workspace. Every number matches README "Results and limitations" and `results/`.
-Fill the three post links once the posts are live.
+Ready to paste into the participant workspace. Every number matches README "Results and limitations", `results/` and the
+live site. Fill the two post links before submitting.
 
 ## Project title
 
@@ -28,9 +28,10 @@ centres, and the delivery teams of voice-AI platforms who launch agents for them
   amounts and dates through four noises at 30-0 dB.
 - **Timbre (text-to-speech, v3.0):** the voices of the synthetic callers (13 voices, emotion tags such as shouting or slow,
   Hindi, Hinglish, Gujarati, Tamil, Marathi, Telugu, Kannada, English) and of the reference agents.
-- **Evon v3.3 (LLM, open weights, self-hosted on a free Kaggle GPU):** plays each caller's mind (persona, hidden facts,
-  goal), plays the agent under test, judges every call against the rules with quoted evidence, red-teams the agent by
-  designing new attacks, translates Guard's lines, and picks v4's dialogue acts.
+- **Evon v3.3 (LLM, open weights, self-hosted on a free Kaggle GPU):** Evon has no hosted API, so I run it myself (a
+  quantised GGUF on two T4s, behind a tunnel). It plays each caller's mind (persona, hidden facts, goal), plays the agent
+  under test, judges every call against the rules with quoted evidence, red-teams the agent by designing new attacks,
+  translates Guard's lines, and picks v4's dialogue acts.
 
 ## Contribution
 
@@ -57,7 +58,8 @@ Evon plays the agent, callers and judge:
 - v4, where the model picks a dialogue act and code speaks every fact from the account record, removed all 6 text bugs and
   passed 5 of 6 test calls on every check (v1 and v2 passed none);
 - the fixed agent hears callers through all four noises down to 0 dB; v1 stops at 10-20 dB;
-- the auditor, on calls it never saw: 93.6% of 560 verdicts right, every fatal breach caught, no false fatal alarms;
+- the auditor, on calls it never saw: 90-94% of 560 verdicts right on two corpora (93.6% and 90.4%), every fatal breach
+  caught, no false fatal alarms;
 - a phone-line atlas of 3,366 real Prisma transcripts (loan IDs, amounts and dates in Hindi, Gujarati and English, spoken by
   Timbre through four noises from 30 dB to 0 dB): 98% of details survive, and it tells an agent which way to say each one
   and when to read it back (Gujarati IDs below 10 dB).
@@ -70,13 +72,19 @@ Tamil, Marathi, Telugu and Kannada: measured first, because Prisma writes no num
 
 What is weak is written down too: on its own the Evon judge both misses and invents privacy failures, so on privacy and
 verification a judge fail now stands only when a code check finds the leak in the agent's words (7 of 7 leaks, 0 of 9 clean
-calls failed, on 45 hand labels); my labels are the only human labels so far, and the Inya and phone-number targets (an Inya agent built from the SOP calls Diapason's number; Diapason scores
-each side's speech recognition against the other side's words) run end to end offline but have not yet been run live. Customers and lenders in every test are
-synthetic and fictional.
+calls failed, on 45 hand labels). My labels are the only human labels so far. The Inya and phone-number targets (an Inya
+agent built from the SOP calls Diapason's number, and Diapason scores each side's speech recognition against the other
+side's words) run end to end offline but have not yet been run live. Every caller is synthetic and every brand fictional.
+
+**See it working:** https://diapason-mu.vercel.app replays the test calls with their audio, Guard's rewrites as they
+happen, the v1-to-v4 results, Tamil, Marathi, Telugu and Kannada transcripts read back, and QA Studio, where any of the
+audited calls can be opened by language (Hindi, Gujarati, English, Tamil, Marathi, Kannada, Telugu, Bengali).
 
 ## Links
 
-- Demo video: (link)
+- Demo video: in the LinkedIn post; also https://diapason-mu.vercel.app/watch-60.html
 - LinkedIn post: (link)
 - X post: (link)
-- Showcase and evidence: https://diapason-mu.vercel.app (the repository is private; code available to Gnani on request)
+- Code: https://github.com/RiyanKothari/diapason (`pip install -e .`, then `diapason demo` runs with no keys; `diapason
+  dashboard`, then Prove it, replays v1 to v4)
+- Showcase and evidence: https://diapason-mu.vercel.app

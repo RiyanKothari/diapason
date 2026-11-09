@@ -1,8 +1,10 @@
 """Render the film (site/watch.html, or the 60-second cut) to an MP4 with its real audio.
 
-The film plays in headless Chrome in real time and is screen-recorded at 1920x1080; ffmpeg then lays the live call's own
-recording under the call scene, at the speed and moment the page plays it. Nothing is re-created: it is the same page a
-visitor sees, captured.
+The film is drawn frame by frame on a fixed clock: for each of 30 frames a second the page is moved to that instant
+(its own seek), every CSS fade and pop is stepped to the same instant, and the frame is captured and piped to ffmpeg.
+Recording it in real time dropped frames whenever the page was busy, which played back as jitter; a fixed clock cannot
+drop one. ffmpeg then lays the live call's own recording under the call scene, at the speed and moment the page plays
+it. Nothing is re-created: it is the same page a visitor sees, captured.
 
     diapason site && .venv/Scripts/python.exe scripts/render_film.py --cut 60      # needs Chrome and: pip install -e ".[video]"
 """
@@ -14,11 +16,8 @@ import functools
 import http.server
 import json
 import re
-import shutil
 import subprocess
-import tempfile
 import threading
-import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,25 +40,48 @@ def serve(folder: Path) -> tuple[http.server.ThreadingHTTPServer, str]:
     return srv, f"http://127.0.0.1:{srv.server_address[1]}"
 
 
-def record(url: str, seconds: float, tmp: Path) -> tuple[Path, float]:
-    """Screen-record the film from its first frame; returns the video and how long it ran before the film started."""
+# Freeze the page's own clock and hand frame control to the renderer: seek(t) draws the film at t, and each CSS animation
+# (a fade, a pop, a blinking dot) is paused when it first appears and then set to the time elapsed since then.
+FREEZE = """(() => {
+  const s = document.getElementById("start"); if (s) s.remove();
+  playing = false;
+  const born = new Map();
+  window.__frame = (t) => {
+    seek(t);
+    for (const a of document.getAnimations()) {
+      if (!born.has(a)) { born.set(a, t); a.pause(); }
+      a.currentTime = (t - born.get(a)) * 1000;
+    }
+    return true;
+  };
+})()"""
+
+
+def render(url: str, seconds: float, fps: int, encode: list[str]) -> int:
+    """Capture every frame of the film at a fixed rate and pipe it to ffmpeg; returns the number of frames."""
     from playwright.sync_api import sync_playwright
+    n = round(seconds * fps)
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(channel="chrome", args=["--autoplay-policy=no-user-gesture-required", "--mute-audio"])
-        ctx = browser.new_context(viewport={"width": 1920, "height": 1080}, record_video_dir=str(tmp),
-                                  record_video_size={"width": 1920, "height": 1080})
-        born = time.time()
-        page = ctx.new_page()
+        browser = pw.chromium.launch(channel="chrome", args=["--mute-audio"])
+        page = browser.new_page(viewport={"width": 1920, "height": 1080})
         page.goto(url, wait_until="networkidle")
         page.evaluate("document.fonts.ready.then(() => true)")
         page.wait_for_timeout(500)
-        page.click("#start")
-        lead = time.time() - born
-        page.wait_for_timeout(int((seconds + 1.0) * 1000))
-        video = Path(page.video.path())
-        ctx.close()
+        page.evaluate(FREEZE)
+        proc = subprocess.Popen(encode, stdin=subprocess.PIPE)
+        try:
+            for k in range(n):
+                page.evaluate("t => window.__frame(t)", k / fps)
+                proc.stdin.write(page.screenshot(type="jpeg", quality=93))
+                if k % (fps * 10) == 0:
+                    print(f"  {k / fps:4.0f} s of {seconds:.0f} s", flush=True)
+        finally:
+            proc.stdin.close()
+            proc.wait()
         browser.close()
-    return video, lead
+    if proc.returncode:
+        raise SystemExit(f"ffmpeg failed ({proc.returncode})")
+    return n
 
 
 def main() -> None:
@@ -82,23 +104,21 @@ def main() -> None:
 
     import imageio_ffmpeg
     ff = imageio_ffmpeg.get_ffmpeg_exe()
+    fps = 30
     srv, base = serve(a.site)
-    tmp = Path(tempfile.mkdtemp(prefix="film-"))
     try:
-        video, lead = record(f"{base}/{page.name}?record", total, tmp)
-        cmd = [ff, "-y", "-loglevel", "error", "-ss", f"{lead:.3f}", "-i", str(video)]
+        cmd = [ff, "-y", "-loglevel", "error", "-f", "image2pipe", "-framerate", str(fps), "-c:v", "mjpeg", "-i", "-"]
         if call:
             s, at = call
             cmd += ["-i", str(a.site / s["audio"]), "-filter_complex",
                     f"[1:a]atrim=0:{s['length']},asetpts=PTS-STARTPTS,atempo={s['rate']},adelay={int(at * 1000)}:all=1,apad[a]",
                     "-map", "0:v", "-map", "[a]", "-c:a", "aac", "-b:a", "160k"]
         cmd += ["-t", f"{total:.2f}", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
-                "-r", "30", "-movflags", "+faststart", str(out)]
-        subprocess.run(cmd, check=True)
+                "-r", str(fps), "-movflags", "+faststart", str(out)]
+        frames = render(f"{base}/{page.name}?record", total, fps, cmd)
     finally:
         srv.shutdown()
-        shutil.rmtree(tmp, ignore_errors=True)
-    print(f"{out}  ({total:.0f} s, {out.stat().st_size / 1e6:.1f} MB, lead-in trimmed {lead:.2f} s)")
+    print(f"{out}  ({total:.0f} s, {frames} frames at {fps} fps, {out.stat().st_size / 1e6:.1f} MB)")
 
 
 if __name__ == "__main__":
