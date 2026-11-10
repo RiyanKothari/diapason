@@ -215,7 +215,7 @@ def build() -> tuple[dict, np.ndarray]:
     own = read_wav(OWN_WAV)[: int(8.6 * SR)] if OWN and OWN_WAV.exists() else None
     it = add("intro", fit("intro", .5, .6), voice_at=.5, voice_len=round(len(own) / SR if own is not None else nd["intro"], 2),
              peaks=peaks(own if own is not None else (np.zeros(SR) if OWN else nar["intro"]), 160), sub_at=1.8 if OWN else cue("intro", "usually"),
-             sub="This part is in my own voice. Applying to a speech AI company, I let their model narrate the rest." if OWN else
+             sub="Demoing to a speech AI company in my own voice? That felt ironic. So Gnani's Timbre narrates the rest." if OWN else
                  "I usually narrate my own demos. Applying to a speech AI company, it felt right to let their model do the talking.",
              chip="From here on: narrated by Gnani Timbre" if OWN else "Narrated by Gnani Timbre")
     if not OWN:

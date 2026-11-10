@@ -170,8 +170,9 @@ def build_site(out: Path, runs_dir: Path = Path("runs"), scorecards_dir: Path = 
         return f"film/{dst.name}"
     reel = film.film(runs_dir, proof, film_audio, stress=stress_data, atlas=atlas, scorecards=scorecards_dir)
     (out / "watch.html").write_text(film.page(reel), encoding="utf-8")
-    # the demo as a plain video file, for forms that ask for a video link: the narrated reel if rendered, else the full film
-    demo = next((v for v in (runs_dir / "video" / "diapason-reel.mp4", runs_dir / "video" / "diapason-film.mp4") if v.exists()), None)
+    # the demo as a plain video file, for forms that ask for a video link: the reel (with the author's own intro if recorded), else the film
+    demo = next((v for v in (runs_dir / "video" / "diapason-reel-own-intro.mp4", runs_dir / "video" / "diapason-reel.mp4",
+                             runs_dir / "video" / "diapason-film.mp4") if v.exists()), None)
     if demo:
         shutil.copy2(demo, out / "diapason-demo.mp4")
     (out / "watch-60.html").write_text(film.page(film.film(runs_dir, proof, film_audio, stress=stress_data, atlas=atlas,
