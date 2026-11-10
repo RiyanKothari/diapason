@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Diapason: the demo reel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Noto+Sans+Devanagari:wght@500;600&family=Noto+Sans+Gujarati:wght@500;600&family=Noto+Sans+Tamil:wght@500;600&family=Noto+Sans+Telugu:wght@500;600&family=Noto+Sans+Kannada:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* A motion-designed reel, drawn by render(t): every frame is a pure function of the reel's clock, so a frame-by-frame
+   render is exact and the audio, mixed on the same clock, cannot drift. */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#050608}
+body{font-family:Inter,"Noto Sans Devanagari","Noto Sans Gujarati","Noto Sans Tamil","Noto Sans Telugu","Noto Sans Kannada",sans-serif;color:#f2f3f5;-webkit-font-smoothing:antialiased}
+:root{--acc:#4f8cff;--pass:#3ecf8e;--fail:#f2555a;--warn:#f5b84a;--mut:#8b9099;--dim:#4a4f58;--line:rgba(255,255,255,.09)}
+#stage{position:absolute;inset:0;overflow:hidden}
+.sc{position:absolute;inset:0;overflow:hidden;will-change:transform,opacity,clip-path,filter;visibility:hidden}
+.bg{position:absolute;inset:0;background:#07080a}
+.grid{position:absolute;inset:-64px;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:64px 64px;mask-image:radial-gradient(70% 65% at 50% 45%,#000 10%,transparent 80%)}
+.lamp{position:absolute;left:50%;top:-420px;width:2200px;height:1100px;margin-left:-1100px;
+  background:conic-gradient(from 180deg at 50% 0%,transparent 148deg,rgba(79,140,255,.26) 170deg,rgba(175,205,255,.5) 180deg,rgba(79,140,255,.26) 190deg,transparent 212deg);
+  filter:blur(46px);mask-image:radial-gradient(52% 70% at 50% 0%,#000 25%,transparent 72%)}
+.k{font:600 18px "JetBrains Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--mut)}
+.k b{color:var(--acc);font-weight:700;margin-right:14px}
+.h{font-weight:800;letter-spacing:-.045em;line-height:1}
+.mono{font-family:"JetBrains Mono",monospace}
+.w{display:inline-block;will-change:transform,opacity,filter}
+.chip{display:inline-block;font:700 15px "JetBrains Mono";letter-spacing:.06em;text-transform:uppercase;border-radius:8px;padding:5px 11px;border:1.5px solid currentColor}
+.card{position:absolute;background:linear-gradient(180deg,#15181e,#0f1115);border:1px solid rgba(255,255,255,.12);border-radius:22px;box-shadow:0 40px 120px -40px #000}
+.vign{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 50%,transparent 55%,rgba(0,0,0,.55))}
+#grain{position:absolute;inset:0;pointer-events:none;z-index:50;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+#bar{position:absolute;left:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--acc),#a9c6ff);z-index:60}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;z-index:55;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="stage"></div><div id="flash"></div><div id="grain"></div><div id="bar"></div>
+<script id="reel-data" type="application/json">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById("reel-data").textContent);
+const stage = document.getElementById("stage");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, p) => a + (b - a) * p;
+const E = {
+  out: (p) => 1 - Math.pow(1 - p, 3), in: (p) => p * p * p, io: (p) => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  back: (p) => { const c = 1.70158, c3 = c + 1; return 1 + c3 * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); },
+  expo: (p) => p >= 1 ? 1 : 1 - Math.pow(2, -10 * p),
+};
+const prog = (t, a, d) => clamp((t - a) / d);           // 0..1 between a and a+d
+const el = (html) => { const d = document.createElement("div"); d.innerHTML = html.trim(); return d.firstChild; };
+const scene = (html) => { const r = el(html); stage.appendChild(r); return r; };   // a scene's root layer, in timeline order
+// words that rise out of a blur, one after another
+function words(text, cls = "") { return text.split(/(\s+)/).map((w) => /^\s+$/.test(w) ? w : `<span class="w ${cls}">${esc(w)}</span>`).join(""); }
+function rise(spans, t, at, step = .07, dur = .55) {
+  spans.forEach((s, i) => { const p = E.out(prog(t, at + i * step, dur));
+    s.style.opacity = p; s.style.transform = `translateY(${(1 - p) * 34}px)`; s.style.filter = `blur(${(1 - p) * 12}px)`; });
+}
+function counter(node, to, t, at, dur = 1.2, fmt = (v) => Math.round(v)) { node.textContent = fmt(to * E.out(prog(t, at, dur))); }
+
+/* ---------------------------------------------------------------- scenes ---------------------------------------------------------------- */
+const B = {};
+
+B.open = (s) => {   // the real call: the agent's threat, word by word, on its own recording
+  const root = scene(`<div class="sc"><div class="bg" style="background:#030405"></div>
+    <div style="position:absolute;left:120px;top:96px" class="k"><span id="o-rec" style="display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--fail);margin-right:14px"></span>Live test call · agent v1 · 8 kHz phone line · Hindi</div>
+    <div id="o-wave" style="position:absolute;left:120px;right:120px;top:230px;height:220px;display:flex;align-items:center;gap:5px"></div>
+    <div id="o-line" style="position:absolute;left:120px;right:120px;top:520px;font:600 64px/1.35 'Noto Sans Devanagari',Inter;letter-spacing:-.01em"></div>
+    <div id="o-tr" class="mono" style="position:absolute;left:120px;right:120px;top:770px;font-size:26px;color:var(--mut)"></div>
+    <div id="o-stamp" class="chip" style="position:absolute;right:140px;top:110px;font-size:30px;color:#fff;background:var(--fail);border-color:var(--fail);padding:14px 22px;opacity:0">✕ Banned threat</div>
+    <div id="o-planted" class="h" style="position:absolute;left:120px;bottom:120px;font-size:84px;opacity:0">That was a bug <span style="color:var(--acc)">I planted.</span></div>
+    <div class="vign"></div></div>`);
+  const wave = root.querySelector("#o-wave");
+  wave.innerHTML = s.peaks.map((p) => `<i style="flex:1;height:${Math.max(4, p * 100)}%;background:#262a31;border-radius:3px;display:block"></i>`).join("");
+  const bars = [...wave.children];
+  const ws = s.text.split(/\s+/);
+  root.querySelector("#o-line").innerHTML = ws.map((w) => `<span class="w" data-hot="${s.hot.some((h) => w.includes(h)) ? 1 : 0}">${esc(w)}</span>`).join(" ");
+  const spans = [...root.querySelectorAll("#o-line .w")];
+  root.querySelector("#o-tr").textContent = `"${s.english}"`;
+  return (t) => {
+    const a = t - s.audio_at, p = clamp(a / s.audio_len);
+    bars.forEach((b, i) => { const on = i / bars.length <= p && a > 0; b.style.background = on ? (p >= 1 ? "#5a1f24" : "var(--fail)") : "#262a31"; });
+    spans.forEach((sp, i) => { const at = s.audio_at + s.audio_len * (i / spans.length) * .96, q = E.out(prog(t, at, .35));
+      sp.style.opacity = .12 + .88 * q; sp.style.filter = `blur(${(1 - q) * 6}px)`;
+      sp.style.color = sp.dataset.hot === "1" && q > .5 ? "var(--fail)" : "#f2f3f5"; });
+    root.querySelector("#o-tr").style.opacity = E.out(prog(t, s.audio_at + s.audio_len * .55, .8));
+    const st = prog(t, s.stamp_at, .28), stamp = root.querySelector("#o-stamp");
+    stamp.style.opacity = st > 0 ? 1 : 0; stamp.style.transform = `scale(${lerp(2.4, 1, E.back(st))}) rotate(${lerp(-12, -3, st)}deg)`;
+    const shake = st > 0 && st < 1 ? Math.sin(t * 90) * 10 * (1 - st) : 0;
+    root.style.transform = `translate(${shake}px, ${shake * .6}px)`;
+    const pl = E.out(prog(t, s.stamp_at + .5, .7)), pn = root.querySelector("#o-planted");
+    pn.style.opacity = pl; pn.style.transform = `translateY(${(1 - pl) * 40}px)`;
+    root.querySelector("#o-rec").style.opacity = .35 + .65 * (Math.sin(t * 6) > 0 ? 1 : 0);
+  };
+};
+
+B.title = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div><div class="grid"></div><div class="lamp" id="t-lamp"></div>
+    <svg id="t-fork" viewBox="0 0 26 26" style="position:absolute;left:50%;top:250px;width:150px;height:150px;margin-left:-75px;overflow:visible">
+      <circle id="t-r1" cx="13" cy="9" r="8" fill="none" stroke="#4f8cff" stroke-width=".6"/><circle id="t-r2" cx="13" cy="9" r="8" fill="none" stroke="#4f8cff" stroke-width=".6"/>
+      <path id="t-p1" d="M9 2v9a4 4 0 0 0 8 0V2" fill="none" stroke="#4f8cff" stroke-width="2.2" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <path id="t-p2" d="M13 15v9" stroke="#4f8cff" stroke-width="2.2" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>
+    <div id="t-name" class="h" style="position:absolute;left:0;right:0;top:450px;text-align:center;font-size:200px">${[..."Diapason"].map((c) => `<span class="w">${c}</span>`).join("")}</div>
+    <div id="t-sub" style="position:absolute;left:0;right:0;top:700px;text-align:center;font:500 44px Inter;color:#c9ccd2">${words("Crash tests for Indian voice agents.")}</div>
+    <div class="vign"></div></div>`);
+  const ls = [...root.querySelectorAll("#t-name .w")], sub = [...root.querySelectorAll("#t-sub .w")];
+  return (t) => {
+    root.querySelector("#t-p1").style.strokeDashoffset = 1 - E.io(prog(t, .1, .9));
+    root.querySelector("#t-p2").style.strokeDashoffset = 1 - E.io(prog(t, .7, .5));
+    [["#t-r1", 1.0], ["#t-r2", 1.6]].forEach(([id, at]) => { const p = prog(t, at, 1.4), r = root.querySelector(id);
+      r.style.opacity = p > 0 && p < 1 ? .8 * (1 - p) : 0; r.style.transformOrigin = "13px 9px"; r.style.transform = `scale(${lerp(.4, 2.4, E.out(p))})`; });
+    ls.forEach((c, i) => { const p = E.back(prog(t, .9 + i * .055, .6));
+      c.style.opacity = clamp(p * 1.4); c.style.transform = `translateY(${(1 - p) * 120}px) rotate(${(1 - p) * 8}deg)`; c.style.filter = `blur(${clamp(1 - p) * 10}px)`; });
+    rise(sub, t, 1.7, .08);
+    root.querySelector("#t-lamp").style.opacity = .4 + .6 * E.out(prog(t, .2, 1.4));
+    root.querySelector(".grid").style.transform = `translateY(${-t * 14}px)`;
+  };
+};
+
+B.hook = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div><div class="grid"></div>
+    <div style="position:absolute;left:140px;top:250px;right:140px">
+      ${s.lines.map((l, i) => `<div class="h hl" style="font-size:118px;margin-bottom:14px;${i === s.lines.length - 1 ? "color:var(--acc)" : ""}">${words(l)}</div>`).join("")}</div>
+    <div class="vign"></div></div>`);
+  const rows = [...root.querySelectorAll(".hl")].map((r) => [...r.querySelectorAll(".w")]);
+  return (t) => { rows.forEach((r, i) => rise(r, t, s.cues[i] ?? i * 1.2, .09, .6)); root.querySelector(".grid").style.transform = `translateY(${-t * 10}px)`; };
+};
+
+B.cast = (s) => {
+  const cols = 4, w = 400, h = 300, gx = 28, gy = 28, x0 = (1920 - (cols * w + (cols - 1) * gx)) / 2, y0 = 300;
+  const root = scene(`<div class="sc"><div class="bg"></div><div class="grid"></div>
+    <div class="k" style="position:absolute;left:${x0}px;top:120px"><b>01</b>The callers</div>
+    <div class="h" style="position:absolute;left:${x0}px;top:170px;font-size:76px">${words("Every caller is trying to break it.")}</div>
+    ${s.cast.map((c, i) => `<div class="card cc" style="left:${x0 + (i % cols) * (w + gx)}px;top:${y0 + Math.floor(i / cols) * (h + gy)}px;width:${w}px;height:${h}px;padding:30px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="chip" style="color:#c9d8ff;border-color:rgba(79,140,255,.5);background:rgba(79,140,255,.1)">${esc(c.lang)}</span>
+        <span class="eqc" style="display:flex;gap:4px;align-items:center;height:30px">${Array.from({length: 7}, () => `<i style="width:5px;height:30px;background:var(--acc);border-radius:2px;display:block"></i>`).join("")}</span></div>
+      <div style="font:600 64px/1.15 Inter,'Noto Sans Devanagari','Noto Sans Gujarati','Noto Sans Tamil','Noto Sans Telugu','Noto Sans Kannada';margin-top:26px">${esc(c.native)}</div>
+      <div style="font:600 26px Inter;color:#c9ccd2;margin-top:4px">${esc(c.name)}</div>
+      <div style="font:500 21px/1.35 Inter;color:var(--mut);margin-top:14px">${esc(c.what)}</div></div>`).join("")}
+    <div class="vign"></div></div>`);
+  const cards = [...root.querySelectorAll(".cc")], head = [...root.querySelectorAll(".h .w")];
+  return (t) => {
+    rise(head, t, .1, .06);
+    cards.forEach((c, i) => {
+      const p = E.back(prog(t, .5 + i * .12, .7));
+      c.style.opacity = clamp(p * 1.3); c.style.transform = `perspective(1400px) rotateX(${(1 - p) * 70}deg) translateY(${(1 - p) * 60}px)`;
+      const lit = t >= s.cues[i] && t < (s.cues[i + 1] ?? 1e9);
+      c.style.borderColor = lit ? "rgba(140,180,255,.75)" : "rgba(255,255,255,.12)";
+      c.style.boxShadow = lit ? "0 0 0 1px rgba(79,140,255,.5), 0 30px 90px -30px rgba(79,140,255,.55)" : "0 40px 120px -40px #000";
+      [...c.querySelectorAll(".eqc i")].forEach((b, j) => { const amp = lit ? .35 + .65 * Math.abs(Math.sin(t * (7 + j * 1.7) + j)) : .12;
+        b.style.transform = `scaleY(${amp})`; b.style.opacity = lit ? 1 : .35; });
+    });
+  };
+};
+
+B.line = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div>
+    <div class="k" style="position:absolute;left:140px;top:120px"><b>02</b>The phone line</div>
+    <div class="h" style="position:absolute;left:140px;top:170px;font-size:76px">${words("Over a simulated Indian phone line.")}</div>
+    <canvas id="l-cv" width="1640" height="420" style="position:absolute;left:140px;top:330px"></canvas>
+    <div style="position:absolute;left:140px;top:800px;display:flex;gap:16px" id="l-tags">
+      ${["8 kHz μ-law", "fan", "traffic", "office", "crowd", "packet loss"].map((x) => `<span class="chip" style="color:#c9ccd2;border-color:rgba(255,255,255,.25)">${x}</span>`).join("")}</div>
+    <div style="position:absolute;right:140px;top:790px;text-align:right"><div class="mono" style="font-size:20px;color:var(--mut);letter-spacing:.1em">SIGNAL-TO-NOISE</div>
+      <div class="mono" id="l-snr" style="font:700 96px 'JetBrains Mono';letter-spacing:-.04em">30 dB</div></div>
+    <div class="vign"></div></div>`);
+  const cv = root.querySelector("#l-cv"), cx = cv.getContext("2d"), tags = [...root.querySelectorAll("#l-tags .chip")], head = [...root.querySelectorAll(".h .w")];
+  const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+  return (t) => {
+    rise(head, t, .1, .05);
+    const noise = E.io(prog(t, .8, s.dur - 1.6)), W = cv.width, H = cv.height;
+    cx.clearRect(0, 0, W, H);
+    cx.beginPath();
+    for (let x = 0; x <= W; x += 3) {
+      const u = x / W, env = Math.pow(Math.sin(Math.PI * u), 1.3);
+      const voice = Math.sin(u * 46 + t * 3) * .55 + Math.sin(u * 13 - t * 2) * .35;
+      const n = (rnd(Math.floor(x / 3) + Math.floor(t * 30) * 977) - .5) * 2 * noise * 1.1;
+      const y = H / 2 + (voice * env * (1 - noise * .25) + n * .55) * H * .38;
+      x ? cx.lineTo(x, y) : cx.moveTo(x, y);
+    }
+    cx.strokeStyle = `rgba(${Math.round(lerp(79, 242, noise))},${Math.round(lerp(140, 85, noise * .7))},${Math.round(lerp(255, 90, noise))},.95)`;
+    cx.lineWidth = 3; cx.stroke();
+    root.querySelector("#l-snr").textContent = `${Math.round(lerp(30, 0, noise))} dB`;
+    tags.forEach((g, i) => { const p = E.back(prog(t, .9 + i * .18, .5)); g.style.opacity = clamp(p); g.style.transform = `scale(${lerp(.6, 1, p)})`; });
+  };
+};
+
+B.call = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div>
+    <div class="k" style="position:absolute;left:120px;top:96px"><b>03</b>Crash test · agent v1 · Ramesh calls back</div>
+    <div class="card" style="left:120px;top:160px;width:1080px;height:820px;padding:34px">
+      <div id="c-wave" style="height:90px;display:flex;align-items:center;gap:4px"></div>
+      <div id="c-feed" style="position:absolute;left:34px;right:34px;top:150px;bottom:30px;display:flex;flex-direction:column;gap:18px;justify-content:flex-end;overflow:hidden"></div></div>
+    <div class="k" style="position:absolute;left:1250px;top:170px">Checks, as the call happens</div>
+    <div id="c-fails" style="position:absolute;left:1250px;top:220px;width:550px;display:flex;flex-direction:column;gap:18px"></div>
+    <div id="c-verdict" class="card" style="left:1250px;top:760px;width:550px;padding:28px 30px;opacity:0;border-color:rgba(242,85,90,.5)">
+      <div class="mono" style="font-size:18px;color:var(--fail);letter-spacing:.12em">VERDICT</div>
+      <div class="h" style="font-size:54px;color:var(--fail);margin-top:8px">Does not ship.</div></div>
+    <div class="vign"></div></div>`);
+  root.querySelector("#c-wave").innerHTML = s.peaks.map((p) => `<i style="flex:1;height:${Math.max(4, p * 100)}%;background:#262a31;border-radius:2px;display:block"></i>`).join("");
+  const bars = [...root.querySelectorAll("#c-wave i")];
+  const feed = root.querySelector("#c-feed");
+  feed.innerHTML = s.turns.map((u) => `<div class="tb" style="align-self:${u.who === "agent" ? "flex-start" : "flex-end"};max-width:86%;padding:16px 20px;border-radius:16px;
+      background:${u.who === "agent" ? "#1a1d23" : "rgba(79,140,255,.16)"};border:1px solid ${u.who === "agent" ? "rgba(255,255,255,.1)" : "rgba(79,140,255,.35)"};font:500 30px/1.45 'Noto Sans Devanagari',Inter">
+      <div class="mono" style="font-size:16px;color:var(--mut);margin-bottom:6px">${u.who === "agent" ? "AGENT" : "RAMESH"} · ${u.start.toFixed(1)} s</div>${esc(u.text)}</div>`).join("");
+  const tbs = [...feed.children];
+  root.querySelector("#c-fails").innerHTML = s.fails.map((f) => `<div class="card fc" style="position:relative;padding:22px 24px;border-color:rgba(242,85,90,.45)">
+      <span class="chip" style="color:#fff;background:var(--fail);border-color:var(--fail)">✕ ${esc(f.name)}</span>
+      <div style="font:500 24px/1.4 'Noto Sans Devanagari',Inter;color:#c9ccd2;margin-top:14px">${esc(f.why)}</div></div>`).join("");
+  const fcs = [...root.querySelectorAll(".fc")];
+  return (t) => {
+    const a = t - s.audio_at;
+    bars.forEach((b, i) => { b.style.background = i / bars.length <= a / s.audio_len && a > 0 ? "var(--acc)" : "#262a31"; });
+    tbs.forEach((b, i) => { const p = E.out(prog(a, s.turns[i].start, .45)); b.style.display = p > 0 ? "block" : "none";
+      b.style.opacity = p; b.style.transform = `translateY(${(1 - p) * 26}px)`; });
+    fcs.forEach((f, i) => { const p = prog(t, s.fail_at[i], .3);
+      f.style.opacity = p > 0 ? 1 : 0; f.style.transform = `scale(${lerp(1.5, 1, E.back(p))}) rotate(${lerp(-4, 0, p)}deg)`; });
+    const v = E.out(prog(t, s.verdict_at, .6)), vd = root.querySelector("#c-verdict");
+    vd.style.opacity = v; vd.style.transform = `translateY(${(1 - v) * 30}px)`;
+  };
+};
+
+B.guard = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div><div class="grid"></div>
+    <div class="k" style="position:absolute;left:160px;top:110px"><b>04</b>During the call</div>
+    <div class="h" style="position:absolute;left:160px;top:160px;font-size:76px">${words("The same agent, behind Diapason Guard.")}</div>
+    <div class="mono" style="position:absolute;left:160px;top:262px;font-size:24px;color:var(--mut)" id="g-sub">Every sentence checked in code before it's spoken · prompt untouched</div>
+    ${s.steps.map((st, i) => `<div class="card gs" style="left:160px;top:${340 + i * 330}px;width:1600px;padding:30px 36px">
+      <div class="mono" style="font-size:18px;color:var(--mut);letter-spacing:.08em">AGENT DRAFT · ${st.at.toFixed(1)} S</div>
+      <div class="gd" style="font:500 36px/1.45 'Noto Sans Devanagari',Inter;margin-top:10px;position:relative;display:inline-block">
+        <span class="gdt">${esc(st.draft)}</span><i class="gst" style="position:absolute;left:0;top:54%;height:4px;width:0;background:var(--fail);display:block"></i></div>
+      <div style="margin-top:14px"><span class="chip gtag" style="color:var(--pass);background:rgba(62,207,142,.1);border-color:rgba(62,207,142,.5)">Guard · ${esc(st.rule)}</span></div>
+      <div class="gsay" style="font:500 36px/1.45 'Noto Sans Devanagari',Inter;margin-top:12px;border-left:4px solid var(--pass);padding-left:18px">${esc(st.said)}</div></div>`).join("")}
+    <div class="vign"></div></div>`);
+  const head = [...root.querySelectorAll(".h .w")], cards = [...root.querySelectorAll(".gs")];
+  return (t) => {
+    rise(head, t, .1, .06);
+    root.querySelector("#g-sub").style.opacity = E.out(prog(t, .7, .6));
+    cards.forEach((c, i) => {
+      const base = s.cues[i], p = E.out(prog(t, base, .5));
+      c.style.opacity = p; c.style.transform = `translateX(${(1 - p) * -80}px)`;
+      const txt = c.querySelector(".gdt"), full = s.steps[i].draft, ws = full.split(" ");
+      const n = Math.floor(ws.length * clamp((t - base - .3) / 1.6)); txt.textContent = ws.slice(0, n).join(" ") || " ";
+      const sp = E.io(prog(t, base + 2.1, .5)); c.querySelector(".gst").style.width = `${sp * 100}%`;
+      txt.style.color = sp > 0 ? `rgba(242,85,90,${lerp(1, .7, sp)})` : "#f2f3f5";
+      const tg = prog(t, base + 2.5, .3), tag = c.querySelector(".gtag"); tag.style.opacity = tg > 0 ? 1 : 0; tag.style.transform = `scale(${lerp(1.6, 1, E.back(tg))})`;
+      const sy = E.out(prog(t, base + 2.9, .6)), say = c.querySelector(".gsay"); say.style.opacity = sy; say.style.filter = `blur(${(1 - sy) * 8}px)`;
+    });
+  };
+};
+
+B.matrix = (s) => {
+  const ev = s.evolution, cw = 170, ch = 60, lx = 160, ly = 390, lw = 520;
+  const root = scene(`<div class="sc"><div class="bg"></div>
+    <div class="k" style="position:absolute;left:${lx}px;top:110px"><b>05</b>Fix, re-test, prove it</div>
+    <div class="h" style="position:absolute;left:${lx}px;top:160px;font-size:76px">${words("Seven planted bugs. Every one caught.")}</div>
+    ${ev.versions.map((v, j) => `<div class="vh" style="position:absolute;left:${lx + lw + j * (cw + 12)}px;top:${ly - 56}px;width:${cw}px;font:700 28px Inter">${esc(v.label)}</div>`).join("")}
+    ${ev.bugs.map((b, i) => `<div class="bl" style="position:absolute;left:${lx}px;top:${ly + i * (ch + 10)}px;width:${lw - 30}px;height:${ch}px;display:flex;align-items:center;font:500 25px Inter;color:#c9ccd2">${esc(b.what)}</div>
+      ${ev.versions.map((v, j) => { const c = b.cells[v.key] || "na";
+        const col = {caught: ["rgba(79,140,255,.18)", "#4f8cff", "●"], clean: ["rgba(62,207,142,.18)", "#3ecf8e", "✓"], flagged: ["rgba(242,85,90,.16)", "#f2555a", "✕"], missed: ["rgba(242,85,90,.16)", "#f2555a", "✕"]}[c] || ["#14171c", "#4a4f58", "○"];
+        return `<div class="cx" data-d="${i * ev.versions.length + j}" style="position:absolute;left:${lx + lw + j * (cw + 12)}px;top:${ly + i * (ch + 10)}px;width:${cw}px;height:${ch}px;border-radius:12px;
+          background:${col[0]};border:1.5px solid ${col[1]}66;color:${col[1]};display:grid;place-items:center;font:700 28px 'JetBrains Mono'">${col[2]}</div>`; }).join("")}`).join("")}
+    ${ev.versions.map((v, j) => `<div class="sx mono" style="position:absolute;left:${lx + lw + j * (cw + 12)}px;top:${ly + ev.bugs.length * (ch + 10) + 14}px;width:${cw}px;font-size:24px;font-weight:700">
+      ${v.key === "v1" ? `${v.good}/${v.of} caught` : `${v.good}/${v.of} gone`}</div>`).join("")}
+    <div class="vign"></div></div>`);
+  const head = [...root.querySelectorAll(".h .w")], cells = [...root.querySelectorAll(".cx")], vh = [...root.querySelectorAll(".vh,.bl,.sx")];
+  return (t) => {
+    rise(head, t, .1, .06);
+    vh.forEach((x, i) => { const p = E.out(prog(t, .4 + i * .02, .5)); x.style.opacity = p; });
+    cells.forEach((c) => { const p = E.back(prog(t, .8 + +c.dataset.d * .035, .45)); c.style.opacity = clamp(p * 1.4); c.style.transform = `scale(${lerp(.4, 1, p)})`; });
+  };
+};
+
+B.langs = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div><div class="grid"></div>
+    <div class="k" style="position:absolute;left:160px;top:110px"><b>06</b>Every language, read right</div>
+    <div class="h" style="position:absolute;left:160px;top:165px;font-size:68px">${words("Tamil and Telugu numbers come back as words.")}</div>
+    ${s.rows.map((r, i) => `<div class="card lr" style="left:160px;top:${330 + i * 330}px;width:1600px;height:290px;padding:34px 40px">
+      <div style="display:flex;gap:14px;align-items:center"><span class="chip" style="color:#c9d8ff;border-color:rgba(79,140,255,.5);background:rgba(79,140,255,.1)">${esc(r.lang)}</span>
+        <span class="mono" style="font-size:20px;color:var(--mut)">Prisma heard the caller say</span></div>
+      <div class="lw" lang="${r.code}" style="font:500 44px/1.5 'Noto Sans ${r.font}',Inter;margin-top:14px">${r.words.map((w, k) => `<span class="w" data-n="${k >= r.span[0] && k < r.span[1] ? 1 : 0}" style="border-radius:10px;padding:0 6px;margin:0 -3px">${esc(w)}</span>`).join(" ")}</div>
+      <div class="lread" style="position:absolute;right:40px;bottom:34px;display:flex;align-items:baseline;gap:18px">
+        <span class="mono" style="font-size:20px;color:var(--mut);letter-spacing:.1em">${esc(r.kindLabel)}</span>
+        <span class="mono" style="font:700 86px 'JetBrains Mono';letter-spacing:-.04em">${esc(r.read)}</span>
+        <span class="chip" style="color:var(--pass);border-color:rgba(62,207,142,.5);background:rgba(62,207,142,.1)">read right</span></div></div>`).join("")}
+    <div class="vign"></div></div>`);
+  const head = [...root.querySelectorAll(".h .w")], rows = [...root.querySelectorAll(".lr")];
+  return (t) => {
+    rise(head, t, .1, .06);
+    rows.forEach((row, i) => {
+      const base = s.cues[i], p = E.out(prog(t, base, .5)); row.style.opacity = p; row.style.transform = `translateY(${(1 - p) * 40}px)`;
+      const ws = [...row.querySelectorAll(".lw .w")];
+      ws.forEach((w, k) => { const q = E.out(prog(t, base + .2 + k * .08, .45)); const mk = prog(t, base + .5 + ws.length * .08, .4);
+        w.style.opacity = (.1 + .9 * q) * (w.dataset.n === "1" ? 1 : lerp(1, .35, mk)); w.style.filter = `blur(${(1 - q) * 8}px)`;
+        w.style.background = w.dataset.n === "1" && mk > 0 ? `rgba(79,140,255,${.25 * mk})` : "transparent"; });
+      const rd = E.back(prog(t, base + 1.1 + ws.length * .08, .5)), r = row.querySelector(".lread");
+      r.style.opacity = clamp(rd * 1.3); r.style.transform = `translateX(${(1 - rd) * 60}px)`;
+    });
+  };
+};
+
+B.numbers = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div><div class="lamp" style="opacity:.45"></div>
+    <div class="k" style="position:absolute;left:160px;top:110px"><b>07</b>Measured, not claimed</div>
+    ${s.kpis.map((k, i) => `<div class="card nk" style="left:${160 + (i % 2) * 810}px;top:${200 + Math.floor(i / 2) * 400}px;width:790px;height:370px;padding:44px">
+      <div class="mono nv" style="font:700 150px/1 'JetBrains Mono';letter-spacing:-.05em">${esc(k.show)}</div>
+      <div style="font:500 32px/1.35 Inter;color:#c9ccd2;margin-top:26px;max-width:680px">${esc(k.label)}</div></div>`).join("")}
+    <div class="vign"></div></div>`);
+  const cards = [...root.querySelectorAll(".nk")];
+  return (t) => cards.forEach((c, i) => {
+    const k = s.kpis[i], p = E.out(prog(t, s.cues[i], .6)); c.style.opacity = p; c.style.transform = `translateY(${(1 - p) * 60}px) scale(${lerp(.94, 1, p)})`;
+    if (k.to != null) counter(c.querySelector(".nv"), k.to, t, s.cues[i], 1.3, (v) => `${Math.round(v)}${k.suffix || ""}`);
+  });
+};
+
+B.gnani = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div><div class="grid"></div><div class="lamp" style="opacity:.55"></div>
+    <div class="k" style="position:absolute;left:0;right:0;top:150px;text-align:center">Built on Gnani</div>
+    ${s.models.map((m, i) => `<div class="card gm" style="left:${150 + i * 550}px;top:300px;width:520px;height:520px;padding:44px">
+      <div class="mono" style="font-size:20px;color:var(--acc);letter-spacing:.12em">GNANI</div>
+      <div class="h" style="font-size:96px;margin-top:10px">${esc(m.name)}</div>
+      <div style="font:500 30px/1.4 Inter;color:#c9ccd2;margin-top:26px">${esc(m.role)}</div></div>`).join("")}
+    <div class="vign"></div></div>`);
+  const cards = [...root.querySelectorAll(".gm")];
+  return (t) => cards.forEach((c, i) => { const p = E.back(prog(t, s.cues[i], .7));
+    c.style.opacity = clamp(p * 1.3); c.style.transform = `perspective(1600px) rotateY(${(1 - p) * -50}deg) translateY(${(1 - p) * 80}px)`; });
+};
+
+B.end = (s) => {
+  const root = scene(`<div class="sc"><div class="bg" style="background:#030405"></div><div class="lamp"></div>
+    <div id="e-name" class="h" style="position:absolute;left:0;right:0;top:330px;text-align:center;font-size:190px">${words("Diapason")}</div>
+    <div id="e-tag" style="position:absolute;left:0;right:0;top:560px;text-align:center;font:500 46px Inter;color:#c9ccd2">${words("Test your agent the way India calls.")}</div>
+    <div id="e-links" class="mono" style="position:absolute;left:0;right:0;top:720px;text-align:center;font-size:30px;color:var(--mut);line-height:1.8">
+      diapason-mu.vercel.app<br>github.com/RiyanKothari/diapason</div>
+    <div class="vign"></div></div>`);
+  const n = [...root.querySelectorAll("#e-name .w")], g = [...root.querySelectorAll("#e-tag .w")];
+  return (t) => { rise(n, t, .2, .1, .8); rise(g, t, .9, .08); root.querySelector("#e-links").style.opacity = E.out(prog(t, 1.8, .8)); };
+};
+
+
+B.intro = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div><div class="grid"></div><div class="lamp" style="opacity:.5"></div>
+    <div class="h" id="i-hi" style="position:absolute;left:150px;top:250px;font-size:150px">${words("Hi, I'm Riyan.")}</div>
+    <div id="i-sub" style="position:absolute;left:150px;top:470px;width:1500px;font:500 50px/1.35 Inter;color:#c9ccd2">${words("I usually narrate my own demos. Applying to a speech AI company, it felt right to let their model do the talking.")}</div>
+    <div class="card" id="i-chip" style="left:150px;top:760px;padding:22px 28px;display:flex;align-items:center;gap:22px">
+      <span class="mono" style="font-size:20px;color:var(--acc);letter-spacing:.12em">NARRATED BY GNANI TIMBRE</span>
+      <span id="i-eq" style="display:flex;gap:4px;align-items:center;height:40px">${Array.from({length: 28}, () => `<i style="width:5px;height:40px;background:var(--acc);border-radius:2px;display:block"></i>`).join("")}</span></div>
+    <div class="vign"></div></div>`);
+  const hi = [...root.querySelectorAll("#i-hi .w")], sub = [...root.querySelectorAll("#i-sub .w")], eq = [...root.querySelectorAll("#i-eq i")];
+  return (t) => {
+    rise(hi, t, .3, .1, .7); rise(sub, t, s.sub_at, .045, .5);
+    const c = E.out(prog(t, .9, .6)), ch = root.querySelector("#i-chip"); ch.style.opacity = c; ch.style.transform = `translateY(${(1 - c) * 30}px)`;
+    const a = (t - s.voice_at) / s.voice_len, n = s.peaks.length, k = Math.floor(clamp(a) * (n - 1));
+    eq.forEach((b, j) => { const v = a > 0 && a < 1 ? s.peaks[Math.min(n - 1, k + j)] : .1; b.style.transform = `scaleY(${.12 + .88 * v})`; });
+  };
+};
+
+B.bugs = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div>
+    <div class="k" style="position:absolute;left:160px;top:100px"><b>04</b>Proof: seven planted bugs</div>
+    <div class="h" style="position:absolute;left:160px;top:150px;font-size:72px">${words("I broke the agent on purpose.")}</div>
+    ${s.bugs.map((b, i) => `<div class="card br" style="left:${160 + (i % 2) * 810}px;top:${300 + Math.floor(i / 2) * 175}px;width:790px;height:155px;padding:26px 30px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="mono" style="font-size:18px;color:var(--mut);letter-spacing:.1em">TEST ${String(i + 1).padStart(2, "0")}</span>
+        <span class="chip bc" style="color:var(--acc);border-color:rgba(79,140,255,.6);background:rgba(79,140,255,.12)">● caught</span></div>
+      <div style="font:600 34px/1.25 Inter;margin-top:14px">${esc(b.what)}</div></div>`).join("")}
+    <div class="vign"></div></div>`);
+  const head = [...root.querySelectorAll(".h .w")], rows = [...root.querySelectorAll(".br")];
+  return (t) => {
+    rise(head, t, .1, .06);
+    rows.forEach((r, i) => {
+      const p = E.out(prog(t, .5 + i * .07, .5)), lit = prog(t, s.cues[i], .35);
+      r.style.opacity = (.25 + .75 * p) * (lit > 0 ? 1 : .55); r.style.transform = `translateY(${(1 - p) * 30}px) scale(${1 + .03 * Math.sin(Math.PI * lit)})`;
+      r.style.borderColor = lit > 0 ? "rgba(79,140,255,.6)" : "rgba(255,255,255,.12)";
+      const c = r.querySelector(".bc"); c.style.opacity = lit > 0 ? 1 : 0; c.style.transform = `scale(${lerp(1.8, 1, E.back(lit))})`;
+    });
+  };
+};
+
+B.shield = (s) => {
+  const boxes = [["Caller", "Twilio · Exotel · Plivo"], ["Diapason Shield", "checks every line"], ["Your agent", "unchanged"]];
+  const root = scene(`<div class="sc"><div class="bg"></div><div class="grid"></div>
+    <div class="k" style="position:absolute;left:160px;top:100px"><b>07</b>Shield: any agent, no change to it</div>
+    <div class="h" style="position:absolute;left:160px;top:150px;font-size:72px">${words("A guard in front of any voice agent.")}</div>
+    ${boxes.map(([a, b], i) => `<div class="card sb" style="left:${160 + i * 560}px;top:330px;width:480px;height:170px;padding:30px;${i === 1 ? "border-color:rgba(79,140,255,.7)" : ""}">
+        <div class="h" style="font-size:44px;${i === 1 ? "color:var(--acc)" : ""}">${a}</div><div class="mono" style="font-size:20px;color:var(--mut);margin-top:12px">${b}</div></div>`).join("")}
+    <div id="sh-pkt" class="card" style="left:1280px;top:560px;width:600px;padding:20px 24px;font:500 28px/1.4 'Noto Sans Devanagari',Inter"><span id="sh-txt"></span></div>
+    <div style="position:absolute;left:160px;top:820px;display:flex;gap:70px" id="sh-st">
+      ${s.stats.map(([v, l]) => `<div><div class="mono" style="font:700 72px 'JetBrains Mono';letter-spacing:-.04em">${esc(v)}</div><div style="font:500 24px Inter;color:var(--mut);margin-top:6px">${esc(l)}</div></div>`).join("")}</div>
+    <div class="vign"></div></div>`);
+  const head = [...root.querySelectorAll(".h .w")], bx = [...root.querySelectorAll(".sb")], st = [...root.querySelectorAll("#sh-st > div")];
+  const pk = root.querySelector("#sh-pkt"), txt = root.querySelector("#sh-txt");
+  return (t) => {
+    rise(head, t, .1, .06);
+    bx.forEach((b, i) => { const p = E.back(prog(t, .4 + i * .2, .5)); b.style.opacity = clamp(p); b.style.transform = `scale(${lerp(.8, 1, p)})`; });
+    pk.style.opacity = clamp((t - 1.2) * 3);
+    const hold = prog(t, 2.9, .5);
+    if (hold < 1) {
+      pk.style.left = `${lerp(1280, 700, E.io(prog(t, 1.4, 1.4)))}px`; txt.textContent = s.bad; pk.style.borderColor = "rgba(255,255,255,.12)";
+      txt.style.textDecoration = hold > 0 ? "line-through" : "none"; txt.style.color = hold > 0 ? "var(--fail)" : "#f2f3f5";
+    } else {
+      txt.textContent = s.good; txt.style.textDecoration = "none"; txt.style.color = "#f2f3f5"; pk.style.borderColor = "rgba(62,207,142,.6)";
+      pk.style.left = `${lerp(700, 160, E.io(prog(t, 3.5, 1.2)))}px`;
+    }
+    st.forEach((d, i) => { const p = E.out(prog(t, s.stat_at + i * .25, .5)); d.style.opacity = p; d.style.transform = `translateY(${(1 - p) * 30}px)`; });
+  };
+};
+
+B.redteam = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div>
+    <div class="k" style="position:absolute;left:160px;top:100px"><b>08</b>Red team: Evon attacks the agent</div>
+    <div class="h" style="position:absolute;left:160px;top:150px;font-size:72px">${words("It designs attacks from what broke.")}</div>
+    ${s.ideas.map((x, i) => `<div class="card ri" style="left:160px;top:${300 + i * 130}px;width:860px;padding:22px 26px;font:500 25px/1.35 Inter;color:#c9ccd2">
+      <span class="mono" style="color:var(--fail);font-size:18px;margin-right:12px">ATTACK ${String(i + 1).padStart(2, "0")}</span>${esc(x)}</div>`).join("")}
+    <div class="card" id="rt-leak" style="left:1080px;top:300px;width:680px;padding:28px;border-color:rgba(242,85,90,.55)">
+      <div class="mono" style="font-size:18px;color:var(--fail);letter-spacing:.1em">v2 UNDER ATTACK · TO AN UNVERIFIED CALLER</div>
+      <div style="font:500 32px/1.45 'Noto Sans Devanagari',Inter;margin-top:14px">"${esc(s.leak)}"</div></div>
+    <div id="rt-big" style="position:absolute;left:1080px;top:650px;display:flex;gap:46px;align-items:flex-end">
+      <div><div class="mono" style="font:700 120px 'JetBrains Mono';color:var(--fail);letter-spacing:-.05em">${s.before}/${s.of}</div><div class="mono" style="font-size:22px;color:var(--mut)">v2 · attacks that leaked</div></div>
+      <div class="mono" style="font:700 70px 'JetBrains Mono';color:var(--dim);padding-bottom:40px">→</div>
+      <div><div class="mono" style="font:700 120px 'JetBrains Mono';color:var(--pass);letter-spacing:-.05em">${s.after}/${s.of}</div><div class="mono" style="font-size:22px;color:var(--mut)">v3 · secret out of the model</div></div></div>
+    <div class="vign"></div></div>`);
+  const head = [...root.querySelectorAll(".h .w")], ideas = [...root.querySelectorAll(".ri")];
+  return (t) => {
+    rise(head, t, .1, .06);
+    ideas.forEach((c, i) => { const p = E.out(prog(t, .5 + i * .25, .5)); c.style.opacity = p; c.style.transform = `translateX(${(1 - p) * -60}px)`; });
+    const l = E.back(prog(t, s.leak_at, .5)), lk = root.querySelector("#rt-leak"); lk.style.opacity = clamp(l * 1.3); lk.style.transform = `scale(${lerp(.85, 1, l)})`;
+    const b = E.out(prog(t, s.big_at, .6)), bg = root.querySelector("#rt-big"); bg.style.opacity = b; bg.style.transform = `translateY(${(1 - b) * 40}px)`;
+  };
+};
+
+B.atlas = (s) => {
+  const cw = 140, chh = 66, x0 = 380, y0 = 340;
+  const root = scene(`<div class="sc"><div class="bg"></div>
+    <div class="k" style="position:absolute;left:160px;top:100px"><b>10</b>Phone-line atlas · noise sweep</div>
+    <div class="h" style="position:absolute;left:160px;top:150px;font-size:72px">${words("Which details survive the line.")}</div>
+    ${s.cols.map((c, j) => `<div class="mono ah" style="position:absolute;left:${x0 + j * (cw + 8)}px;top:${y0 - 44}px;width:${cw}px;text-align:center;font-size:22px;color:var(--mut)">${esc(c)}</div>`).join("")}
+    ${s.rows.map((r, i) => `<div class="ah" style="position:absolute;left:160px;top:${y0 + i * (chh + 8)}px;height:${chh}px;display:flex;align-items:center;font:600 30px Inter">${esc(r.name)}</div>
+      ${r.vals.map((v, j) => `<div class="ac" data-d="${i * 7 + j}" style="position:absolute;left:${x0 + j * (cw + 8)}px;top:${y0 + i * (chh + 8)}px;width:${cw}px;height:${chh}px;border-radius:12px;
+        background:rgba(${v >= .95 ? "62,207,142" : v >= .8 ? "245,184,74" : "242,85,90"},${.15 + .5 * v});display:grid;place-items:center;font:700 26px 'JetBrains Mono'">${Math.round(v * 100)}%</div>`).join("")}`).join("")}
+    <div id="at-sw" style="position:absolute;left:160px;top:${y0 + 3 * (chh + 8) + 60}px">
+      <div class="mono" style="font-size:20px;color:var(--mut);letter-spacing:.1em">WHERE EACH AGENT STOPS HEARING THE CALLER · ${esc(s.noise.toUpperCase())} NOISE</div>
+      ${s.sweep.map((r, i) => `<div style="display:flex;align-items:center;gap:8px;margin-top:14px"><span style="width:212px;font:600 28px Inter">${esc(r.v)}</span>
+        ${r.cells.map((ok, j) => `<span class="sw" data-d="${i * 6 + j}" style="width:${cw}px;height:44px;border-radius:10px;background:${ok ? "rgba(62,207,142,.55)" : "rgba(242,85,90,.6)"};display:grid;place-items:center;font:600 18px 'JetBrains Mono'">${s.levels[j]} dB</span>`).join("")}</div>`).join("")}</div>
+    <div id="at-big" style="position:absolute;right:120px;top:330px;text-align:right"><div class="mono" style="font:700 150px 'JetBrains Mono';letter-spacing:-.05em">98%</div>
+      <div style="font:500 26px/1.35 Inter;color:var(--mut);max-width:330px;margin-left:auto">of IDs, amounts and dates survive, across 3,366 Prisma transcripts</div></div>
+    <div class="vign"></div></div>`);
+  const head = [...root.querySelectorAll(".h .w")], cells = [...root.querySelectorAll(".ac")], sw = [...root.querySelectorAll(".sw")], hs = [...root.querySelectorAll(".ah")];
+  return (t) => {
+    rise(head, t, .1, .06); hs.forEach((h) => h.style.opacity = E.out(prog(t, .4, .5)));
+    cells.forEach((c) => { const p = E.back(prog(t, .6 + +c.dataset.d * .04, .4)); c.style.opacity = clamp(p * 1.3); c.style.transform = `scale(${lerp(.5, 1, p)})`; });
+    root.querySelector("#at-sw").style.opacity = E.out(prog(t, s.sweep_at - .3, .4));
+    sw.forEach((c) => { const p = E.out(prog(t, s.sweep_at + +c.dataset.d * .06, .35)); c.style.opacity = p; });
+    const b = E.out(prog(t, 1.6, .7)), bg = root.querySelector("#at-big"); bg.style.opacity = b; bg.style.transform = `translateY(${(1 - b) * 40}px)`;
+  };
+};
+
+B.found = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div><div class="grid"></div>
+    <div class="k" style="position:absolute;left:160px;top:100px"><b>11</b>Bugs only a live call finds</div>
+    <div class="h" style="position:absolute;left:160px;top:150px;font-size:72px">${words("The bugs I didn't plant.")}</div>
+    <div class="card fd" style="left:160px;top:300px;width:790px;height:580px;padding:40px">
+      <div class="mono" style="font-size:20px;color:var(--mut);letter-spacing:.1em">THE CALLER'S LOAN ID</div>
+      <div class="mono" style="font:700 130px 'JetBrains Mono';letter-spacing:-.04em;margin-top:6px">4821</div>
+      <div class="mono" style="font-size:20px;color:var(--mut);letter-spacing:.1em;margin-top:28px">TIMBRE SPOKE IT AS A NUMBER, PRISMA WROTE</div>
+      <div style="font:600 40px/1.4 'Noto Sans Devanagari';color:var(--fail);margin-top:10px">फोर थाउज़ंड एट हंडरेड ट्वेंटी वन</div>
+      <div style="font:500 26px/1.4 Inter;color:#c9ccd2;margin-top:24px">No caller could ever verify. Fixed: the reader now hears digits, pairs, whole numbers and English words in Devanagari.</div></div>
+    <div class="card fd" style="left:970px;top:300px;width:790px;height:580px;padding:40px">
+      <div class="mono" style="font-size:20px;color:var(--mut);letter-spacing:.1em">MY OWN AI JUDGE · CORRECT CALLS FAILED</div>
+      <div style="display:flex;align-items:flex-end;gap:40px;margin-top:20px">
+        <div><div class="mono" style="font:700 130px 'JetBrains Mono';color:var(--fail);letter-spacing:-.04em">9/9</div><div class="mono" style="font-size:22px;color:var(--mut)">before</div></div>
+        <div class="mono" style="font:700 64px 'JetBrains Mono';color:var(--dim);padding-bottom:40px">→</div>
+        <div><div class="mono" style="font:700 130px 'JetBrains Mono';color:var(--pass);letter-spacing:-.04em">0/9</div><div class="mono" style="font-size:22px;color:var(--mut)">after</div></div></div>
+      <div style="font:500 26px/1.4 Inter;color:#c9ccd2;margin-top:34px">Measured against hand labels, then fixed: a code check now backs the judge, and every real leak is still caught (7 of 7).</div></div>
+    <div class="vign"></div></div>`);
+  const head = [...root.querySelectorAll(".h .w")], cards = [...root.querySelectorAll(".fd")];
+  return (t) => { rise(head, t, .1, .06);
+    cards.forEach((c, i) => { const p = E.back(prog(t, s.cues[i], .6)); c.style.opacity = clamp(p * 1.3); c.style.transform = `perspective(1400px) rotateY(${(1 - p) * (i ? -35 : 35)}deg)`; }); };
+};
+
+B.qa = (s) => {
+  const root = scene(`<div class="sc"><div class="bg"></div><div class="lamp" style="opacity:.4"></div>
+    <div class="k" style="position:absolute;left:160px;top:100px"><b>12</b>After the call: QA on every call</div>
+    <div class="h" style="position:absolute;left:160px;top:150px;font-size:72px">${words("Every call scored, every doubt to a human.")}</div>
+    ${s.kpis.map(([v, l], i) => `<div class="card qk" style="left:${160 + i * 545}px;top:300px;width:520px;height:270px;padding:36px">
+      <div class="mono" style="font:700 110px/1 'JetBrains Mono';letter-spacing:-.05em">${esc(v)}</div><div style="font:500 26px/1.35 Inter;color:#c9ccd2;margin-top:20px">${esc(l)}</div></div>`).join("")}
+    <div class="mono" style="position:absolute;left:160px;top:630px;font-size:20px;color:var(--mut);letter-spacing:.1em" id="q-lh">QA STUDIO · AUDITED CALLS BY LANGUAGE · OPEN ANY ONE</div>
+    <div style="position:absolute;left:160px;top:680px;width:1600px;display:flex;flex-wrap:wrap;gap:16px">
+      ${s.langs.map(([n, nat, c]) => `<div class="card ql" style="position:relative;padding:18px 24px;display:flex;align-items:baseline;gap:14px">
+        <span style="font:600 32px Inter">${esc(n)}</span><span style="font:500 28px 'Noto Sans Devanagari','Noto Sans Gujarati','Noto Sans Tamil','Noto Sans Telugu','Noto Sans Kannada',Inter;color:#c9ccd2">${esc(nat)}</span>
+        <span class="mono" style="font-size:22px;color:var(--acc)">${c}</span></div>`).join("")}</div>
+    <div class="vign"></div></div>`);
+  const head = [...root.querySelectorAll(".h .w")], ks = [...root.querySelectorAll(".qk")], ls = [...root.querySelectorAll(".ql")];
+  return (t) => { rise(head, t, .1, .05);
+    ks.forEach((k, i) => { const p = E.out(prog(t, s.cues[i], .6)); k.style.opacity = p; k.style.transform = `translateY(${(1 - p) * 50}px)`; });
+    root.querySelector("#q-lh").style.opacity = E.out(prog(t, s.langs_at, .5));
+    ls.forEach((l, i) => { const p = E.back(prog(t, s.langs_at + .1 + i * .12, .45)); l.style.opacity = clamp(p * 1.3); l.style.transform = `scale(${lerp(.6, 1, p)})`; }); };
+};
+
+/* ---------------------------------------------------------------- the timeline ---------------------------------------------------------------- */
+const scenes = D.scenes.map((s) => ({s, tick: B[s.type](s)}));
+const XF = D.xfade;
+function apply(node, kind, p, incoming) {      // p: 0 -> 1 through the transition
+  const q = incoming ? p : 1 - p;               // how visible this layer is
+  node.style.clipPath = ""; node.style.filter = ""; node.style.transform = node.style.transform || "";
+  if (kind === "iris") {
+    if (incoming) node.style.clipPath = `circle(${E.io(p) * 75}% at 50% 50%)`;
+    else node.style.transform = `scale(${lerp(1, 1.06, p)})`;
+  } else if (kind === "slide") {
+    const x = incoming ? (1 - E.io(p)) * 1920 : -E.io(p) * 1920;
+    node.style.transform = `translateX(${x}px)`; node.style.filter = `blur(${Math.sin(Math.PI * p) * 14}px)`;
+  } else if (kind === "zoom") {
+    node.style.transform = incoming ? `scale(${lerp(.82, 1, E.out(p))})` : `scale(${lerp(1, 1.5, E.in(p))})`;
+    node.style.opacity = incoming ? E.out(p) : 1 - E.in(p); node.style.filter = `blur(${(incoming ? 1 - p : p) * 16}px)`; return;
+  } else if (kind === "glitch") {
+    const j = Math.sin(p * 80) * 18 * Math.sin(Math.PI * p);
+    node.style.transform = `translateX(${j}px)`; node.style.filter = `drop-shadow(${j * .6}px 0 0 rgba(242,85,90,.75)) drop-shadow(${-j * .6}px 0 0 rgba(79,140,255,.75))`;
+    node.style.opacity = incoming ? (p > .5 ? 1 : (Math.sin(p * 120) > 0 ? .9 : .2)) : (p < .5 ? 1 : 0); return;
+  } else if (kind === "wipe") {
+    if (incoming) { const v = E.io(p) * 140 - 20; node.style.clipPath = `polygon(0 0, ${v}% 0, ${v - 20}% 100%, 0 100%)`; }
+  }
+  node.style.opacity = incoming ? 1 : 1;
+}
+let roots = [];
+function render(t) {
+  roots.forEach((r) => { r.style.visibility = "hidden"; r.style.zIndex = 0; });
+  D.scenes.forEach((s, i) => {
+    const r = roots[i], st = s.start, en = s.start + s.dur;
+    const inX = i > 0 ? XF : 0, outX = i < D.scenes.length - 1 ? XF : 0;
+    if (t < st - inX / 2 || t > en + outX / 2) return;
+    r.style.visibility = "visible"; r.style.opacity = 1; r.style.transform = ""; r.style.filter = ""; r.style.clipPath = "";
+    scenes[i].tick(t - st);
+    if (i > 0 && t < st + inX / 2) { r.style.zIndex = 2; apply(r, s.trans_in, (t - (st - inX / 2)) / inX, true); }
+    else if (i < D.scenes.length - 1 && t > en - outX / 2) { r.style.zIndex = 1; apply(r, D.scenes[i + 1].trans_in, (t - (en - outX / 2)) / outX, false); }
+    else r.style.zIndex = 1;
+  });
+  const fl = D.flashes.reduce((m, f) => Math.max(m, 1 - clamp(Math.abs(t - f) / .12)), 0);
+  document.getElementById("flash").style.opacity = fl * .5;
+  document.getElementById("bar").style.width = `${clamp(t / D.total) * 100}%`;
+}
+roots = [...stage.children];
+window.__frame = (t) => { render(t); return true; };
+window.__ready = document.fonts.ready.then(() => true);
+render(0);
+</script>
+</body>
+</html>
