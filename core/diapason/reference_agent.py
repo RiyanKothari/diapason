@@ -14,7 +14,6 @@ v2 fixes all seven. Serve with `diapason serve-agent --version v1|v2`.
 from __future__ import annotations
 
 import asyncio
-import base64
 import json
 from collections import deque
 from collections.abc import Awaitable, Callable

@@ -36,7 +36,7 @@ body{font-family:Inter,"Noto Sans Devanagari","Noto Sans Gujarati","Noto Sans Ta
 </style>
 </head>
 <body>
-<div id="stage"></div><div id="flash"></div><div id="grain"></div><div id="bar"></div>
+<div id="stage"></div><div id="flash"></div><div id="grain"></div>
 <script id="reel-data" type="application/json">__DATA__</script>
 <script>
 const D = JSON.parse(document.getElementById("reel-data").textContent);
@@ -88,8 +88,6 @@ B.open = (s) => {   // the real call: the agent's threat, word by word, on its o
     root.querySelector("#o-tr").style.opacity = E.out(prog(t, s.audio_at + s.audio_len * .55, .8));
     const st = prog(t, s.stamp_at, .28), stamp = root.querySelector("#o-stamp");
     stamp.style.opacity = st > 0 ? 1 : 0; stamp.style.transform = `scale(${lerp(2.4, 1, E.back(st))}) rotate(${lerp(-12, -3, st)}deg)`;
-    const shake = st > 0 && st < 1 ? Math.sin(t * 90) * 10 * (1 - st) : 0;
-    root.style.transform = `translate(${shake}px, ${shake * .6}px)`;
     const pl = E.out(prog(t, s.stamp_at + .5, .7)), pn = root.querySelector("#o-planted");
     pn.style.opacity = pl; pn.style.transform = `translateY(${(1 - pl) * 40}px)`;
     root.querySelector("#o-rec").style.opacity = .35 + .65 * (Math.sin(t * 6) > 0 ? 1 : 0);
@@ -115,7 +113,6 @@ B.title = (s) => {
       c.style.opacity = clamp(p * 1.4); c.style.transform = `translateY(${(1 - p) * 120}px) rotate(${(1 - p) * 8}deg)`; c.style.filter = `blur(${clamp(1 - p) * 10}px)`; });
     rise(sub, t, 1.7, .08);
     root.querySelector("#t-lamp").style.opacity = .4 + .6 * E.out(prog(t, .2, 1.4));
-    root.querySelector(".grid").style.transform = `translateY(${-t * 14}px)`;
   };
 };
 
@@ -125,7 +122,7 @@ B.hook = (s) => {
       ${s.lines.map((l, i) => `<div class="h hl" style="font-size:118px;margin-bottom:14px;${i === s.lines.length - 1 ? "color:var(--acc)" : ""}">${words(l)}</div>`).join("")}</div>
     <div class="vign"></div></div>`);
   const rows = [...root.querySelectorAll(".hl")].map((r) => [...r.querySelectorAll(".w")]);
-  return (t) => { rows.forEach((r, i) => rise(r, t, s.cues[i] ?? i * 1.2, .09, .6)); root.querySelector(".grid").style.transform = `translateY(${-t * 10}px)`; };
+  return (t) => { rows.forEach((r, i) => rise(r, t, s.cues[i] ?? i * 1.2, .09, .6)); };
 };
 
 B.cast = (s) => {
@@ -342,9 +339,9 @@ B.end = (s) => {
 B.intro = (s) => {
   const root = scene(`<div class="sc"><div class="bg"></div><div class="grid"></div><div class="lamp" style="opacity:.5"></div>
     <div class="h" id="i-hi" style="position:absolute;left:150px;top:250px;font-size:150px">${words("Hi, I'm Riyan.")}</div>
-    <div id="i-sub" style="position:absolute;left:150px;top:470px;width:1500px;font:500 50px/1.35 Inter;color:#c9ccd2">${words("I usually narrate my own demos. Applying to a speech AI company, it felt right to let their model do the talking.")}</div>
+    <div id="i-sub" style="position:absolute;left:150px;top:470px;width:1500px;font:500 50px/1.35 Inter;color:#c9ccd2">${words(s.sub)}</div>
     <div class="card" id="i-chip" style="left:150px;top:760px;padding:22px 28px;display:flex;align-items:center;gap:22px">
-      <span class="mono" style="font-size:20px;color:var(--acc);letter-spacing:.12em">NARRATED BY GNANI TIMBRE</span>
+      <span class="mono" style="font-size:20px;color:var(--acc);letter-spacing:.12em">${esc(s.chip)}</span>
       <span id="i-eq" style="display:flex;gap:4px;align-items:center;height:40px">${Array.from({length: 28}, () => `<i style="width:5px;height:40px;background:var(--acc);border-radius:2px;display:block"></i>`).join("")}</span></div>
     <div class="vign"></div></div>`);
   const hi = [...root.querySelectorAll("#i-hi .w")], sub = [...root.querySelectorAll("#i-sub .w")], eq = [...root.querySelectorAll("#i-eq i")];
@@ -537,7 +534,6 @@ function render(t) {
   });
   const fl = D.flashes.reduce((m, f) => Math.max(m, 1 - clamp(Math.abs(t - f) / .12)), 0);
   document.getElementById("flash").style.opacity = fl * .5;
-  document.getElementById("bar").style.width = `${clamp(t / D.total) * 100}%`;
 }
 roots = [...stage.children];
 window.__frame = (t) => { render(t); return true; };

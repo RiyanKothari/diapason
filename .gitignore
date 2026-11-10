@@ -9,5 +9,4 @@ runs/
 node_modules/
 .next/
 site/
-judge-fit/
 evon_kaggle.ipynb
