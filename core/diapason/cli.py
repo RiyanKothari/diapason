@@ -184,7 +184,7 @@ def ingest(
     from .gnani import Evon, Prisma
     from .judge.packs import get_pack
     from .judge.rubric import judge_call
-    from .regress import append_regressions, distill, ingest_call
+    from .regress import append_regressions, distill, estimate_channel, ingest_call
     from .scenarios import Persona
     _utf8_console()
     load_dotenv()
@@ -587,7 +587,7 @@ def write_suite_cmd(sop: Path, name: str = typer.Option(..., help="Suite name"),
     save(suite_, cov, path)
     typer.echo(f"{len(suite_.cases)} attack cases for {len(cov['rules'])} rules"
                + (f", uncovered: {', '.join(cov['uncovered'])}" if cov["uncovered"] else ", every testable rule covered")
-               + (f"\nnot testable by a caller: " + "; ".join(f"{k} ({v})" for k, v in cov["untestable"].items())
+               + ("\nnot testable by a caller: " + "; ".join(f"{k} ({v})" for k, v in cov["untestable"].items())
                   if cov["untestable"] else "")
                + f"\nsuite: {path}\ncoverage: {path.with_suffix('.coverage.md')}")
 
@@ -641,9 +641,10 @@ def shield(agent: str = typer.Option(..., help="The agent's media-stream websock
     if voice:
         tts = Timbre()
 
-        def speak(text: str) -> bytes:
+        def _speak(text: str) -> bytes:
             x, sr = tts.synthesize(text, voice=voice, lang=lang)
             return float_to_pcm16(resample(x, sr, 8000))
+        speak = _speak
     record = _json.loads(crm.read_text(encoding="utf-8")) if crm else {}
     s = Shield(agent, hear=lambda x, sr: stt.transcribe_long(x, sr, lang) if x.size >= 0.2 * sr else "",
                dialect_name=dialect, mode=mode, crm=record, speak=speak, listen_caller=listen_caller, log_dir=out,

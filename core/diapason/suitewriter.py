@@ -64,7 +64,7 @@ def caller_lines(transcripts: list[Path], limit: int = 30, seed: int = 0) -> lis
 def _attacks_for(evon, sop: str, rule: dict, real: list[str]) -> tuple[list[dict], str]:
     """The attacks on one rule, or why no caller can test it."""
     user = (f"SOP:\n{sop}\n\nRULE TO BREAK: {rule['id']}: {rule['rule']}"
-            + (f"\n\nHOW REAL CALLERS OF THIS AGENT SPOKE:\n" + "\n".join(f"- {x}" for x in real) if real else ""))
+            + ("\n\nHOW REAL CALLERS OF THIS AGENT SPOKE:\n" + "\n".join(f"- {x}" for x in real) if real else ""))
     for temperature in (0.6, 0.9):                    # a reply with no usable attack is asked once more, a little looser
         try:
             reply = evon.chat_json([{"role": "system", "content": ATTACK_SYSTEM}, {"role": "user", "content": user}],

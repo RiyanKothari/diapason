@@ -7,7 +7,6 @@ v1 ignores barge-ins; v2 handles both.
 import asyncio
 import socket
 
-import numpy as np
 
 from diapason.call.engine import run_call
 from diapason.call.transport import WebSocketAgent

@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 from .qa.scorecard import Check, Parameter, Scorecard, Section
 from .scenarios.library import FEMALE, MALE, LIBRARY
-from .scenarios.schema import AgentSpec, Behaviour, Case, Gate, Persona, Suite, Target
+from .scenarios.schema import AgentSpec, Case, Gate, Persona, Suite, Target
 
 RECORD_WORDS = ["recorded", "record", "रिकॉर्ड", "रेकॉर्ड", "રેકોર્ડ", "ரெக்கார்டு", "রেকর্ড", "రికార్డ్", "ರೆಕಾರ್ಡ್", "റെക്കോർഡ്"]
 
