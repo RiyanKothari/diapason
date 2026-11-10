@@ -33,7 +33,9 @@ XFADE = 0.7
 VOICE = ("Devansh", "en-IN")
 SPEED = 1.05
 PROOF = ROOT / "runs" / "proof-live-5"
-OUT = ROOT / "runs" / "video" / "diapason-reel.mp4"
+OWN = "--own-intro" in sys.argv                                   # the intro left for the author's own voice
+OWN_WAV = ROOT / "runs" / "video" / "intro-voice.wav"              # if recorded, mixed in at the intro's cue
+OUT = ROOT / "runs" / "video" / ("diapason-reel-own-intro.mp4" if OWN else "diapason-reel.mp4")
 WORK = ROOT / "runs" / "video" / "reel"
 
 NARRATION = {
@@ -76,8 +78,8 @@ CAST = [
     {"native": "सुरेश's brother", "name": "Suresh's brother", "lang": "Hindi", "what": "Not the borrower: nothing may be said", "say": "wrong"},
 ]
 BUG_WORDS = ["disclosure", "verifying", "threats", "brother", "Gujarati", "injection", "fan", "Talking"]   # the planted bugs, in proof order
-TRANSITIONS = {"intro": "glitch", "title": "zoom", "cast": "iris", "line": "slide", "call": "wipe", "bugs": "glitch", "matrix": "slide",
-               "guard": "zoom", "shield": "wipe", "redteam": "glitch", "langs": "iris", "atlas": "slide", "found": "zoom", "qa": "wipe",
+TRANSITIONS = {"intro": "zoom", "title": "zoom", "cast": "iris", "line": "slide", "call": "wipe", "bugs": "iris", "matrix": "slide",
+               "guard": "zoom", "shield": "wipe", "redteam": "slide", "langs": "iris", "atlas": "slide", "found": "zoom", "qa": "wipe",
                "gnani": "iris", "end": "zoom"}
 LANG_NAMES = {"hi-IN": ("Hindi", "हिन्दी"), "en-IN": ("English", ""), "gu-IN": ("Gujarati", "ગુજરાતી"), "ta-IN": ("Tamil", "தமிழ்"),
               "mr-IN": ("Marathi", "मराठी"), "kn-IN": ("Kannada", "ಕನ್ನಡ"), "te-IN": ("Telugu", "తెలుగు"), "bn-IN": ("Bengali", "বাংলা")}
@@ -210,9 +212,16 @@ def build() -> tuple[dict, np.ndarray]:
     voice.append((seg, s["start"] + s["audio_at"], .85))
     sfx_hit.append(s["start"] + s["stamp_at"])
     # 2. Riyan, in Timbre's voice; the title; the callers; the line
-    it = add("intro", fit("intro", .5, .6), voice_at=.5, voice_len=round(nd["intro"], 2), peaks=peaks(nar["intro"], 160),
-             sub_at=cue("intro", "usually"))
-    said("intro", it)
+    own = read_wav(OWN_WAV)[: int(8.6 * SR)] if OWN and OWN_WAV.exists() else None
+    it = add("intro", fit("intro", .5, .6), voice_at=.5, voice_len=round(len(own) / SR if own is not None else nd["intro"], 2),
+             peaks=peaks(own if own is not None else (np.zeros(SR) if OWN else nar["intro"]), 160), sub_at=1.8 if OWN else cue("intro", "usually"),
+             sub="This part is in my own voice. Applying to a speech AI company, I let their model narrate the rest." if OWN else
+                 "I usually narrate my own demos. Applying to a speech AI company, it felt right to let their model do the talking.",
+             chip="From here on: narrated by Gnani Timbre" if OWN else "Narrated by Gnani Timbre")
+    if not OWN:
+        said("intro", it)
+    elif own is not None:
+        voice.append((own / max(np.abs(own).max(), 1e-6) * .9, it["start"] + .5, 1))
     tt = add("title", fit("title", .9, .7, 4.0))
     said("title", tt, .9)
     sfx_hit.append(tt["start"] + .9)
