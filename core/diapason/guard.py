@@ -14,6 +14,8 @@ would break a rule, before it reaches text-to-speech.
 - the first line without the recording disclosure                       -> the disclosure is added
 - a reply in another script than a Gujarati, Tamil, Telugu, Kannada,
   Malayalam, Bengali or Punjabi caller's                                -> translated by Evon when one is given
+- a date or month Timbre would misread ("15/11" read as a fraction,
+  "2026-11-15" as numbers, "5 Nov." as "five now": speakable.py)         -> written the way it should be heard
 Guard's own lines (the disclosure, the verification question) are said in the caller's language when it knows it.
 
 It is deterministic, so it can't hallucinate a rewrite, and it can't make an agent better at its job: only stop it
@@ -30,6 +32,7 @@ from .judge.dates import date_keys
 from .judge.loanwords import variants
 from .judge.rubric import normalize
 from .judge.scripts import OWN_SCRIPT, dominant, spoken_digits
+from .speakable import speakable
 
 _DIGITS = str.maketrans("०१२३४५६७८९૦૧૨૩૪૫૬૭૮૯", "01234567890123456789")
 _SENTENCE = re.compile(r"(?<=[।.!?])\s+")
@@ -93,6 +96,7 @@ class Guard:
     verified: bool = False
     disclosed: bool = False
     caller_script: str | None = None
+    pronounce: bool = True             # rewrite dates and months Timbre misreads (the last step, after every rule)
     events: list[GuardEvent] = field(default_factory=list)
 
     # ------------------------------------------------------------ what the caller said
@@ -179,6 +183,11 @@ class Guard:
                     self._log("language_mismatch", "translation_rejected", new, out, t0)
             except Exception:
                 pass                       # never block speech on a failed translation
+        if self.pronounce and out:         # last, so it can't change what any rule above decided
+            spoken, changes = speakable(out)
+            if changes:
+                self._log("pronunciation", "rewritten", out, spoken, t0, "; ".join(changes))
+                out = spoken
         return out
 
     def _log(self, rule: str, action: str, before: str, after: str, t0: float, matched: str = "") -> None:
